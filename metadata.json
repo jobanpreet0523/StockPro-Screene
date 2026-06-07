@@ -1,0 +1,6 @@
+{
+  "name": "StockPro Screener",
+  "description": "A high-fidelity real-time stock screener and Futures & Options (F&O) analytics dashboard featuring live market updates, interactive charting, option chains, PCR / Max Pain calculators, and advanced indicator filtering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
