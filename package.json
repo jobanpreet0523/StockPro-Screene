@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
- "build": "vite build",
+"build": "vite build && node -e \"const fs=require('fs');const f='dist/_redirects';if(fs.existsSync(f))fs.unlinkSync(f);console.log('Deleted _redirects');\""
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
