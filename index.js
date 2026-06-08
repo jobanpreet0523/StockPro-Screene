@@ -4,19 +4,19 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // 1. Authentication Layer
-    if (pathname.startsWith("/api/")) {
-      const authHeader = request.headers.get("Authorization");
-      if (authHeader !== "Bearer StockProSecureToken2026!") {
-        return new Response(JSON.stringify({ error: "Unauthorized access to financial data feeds." }), {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
-        });
-      }
-    }
+    // 1. Authentication Layer (DISABLED for open public access)
+    // if (pathname.startsWith("/api/")) {
+    //   const authHeader = request.headers.get("Authorization");
+    //   if (authHeader !== "Bearer StockProSecureToken2026!") {
+    //     return new Response(JSON.stringify({ error: "Unauthorized access to financial data feeds." }), {
+    //       status: 401,
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //         "Access-Control-Allow-Origin": "*"
+    //       }
+    //     });
+    //   }
+    // }
 
     // Handle CORS preflight requirements
     if (request.method === "OPTIONS") {

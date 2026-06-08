@@ -21,8 +21,8 @@ export default function App() {
     async function syncRealTimeMetrics() {
       try {
         const [indicesRes, stocksRes] = await Promise.all([
-          fetch('/api/indices'),
-          fetch('/api/stocks')
+          fetch('/api/indices', { headers: {} }),
+          fetch('/api/stocks', { headers: {} })
         ]);
 
         if (indicesRes.ok && stocksRes.ok) {
