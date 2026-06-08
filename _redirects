@@ -1,4 +1,5 @@
-/screener/* /screener.html 200
-/dashboard/* /dashboard.html 200
-/fo/* /fo.html 200
-/* /index.html 200
+/screener/* /screener 200
+/dashboard/* /dashboard 200
+/fo/* /fo 200
+/* / 200
+
