@@ -26,46 +26,20 @@ export default function App() {
         ]);
 
         if (indicesRes.ok && stocksRes.ok) {
-          const contentType1 = indicesRes.headers.get('content-type') || '';
-          const contentType2 = stocksRes.headers.get('content-type') || '';
+          const indicesJson = await indicesRes.json();
+          const stocksJson = await stocksRes.json();
           
-          if (contentType1.includes('application/json') && contentType2.includes('application/json')) {
-            const indicesJson = await indicesRes.json();
-            const stocksJson = await stocksRes.json();
-
-            if (indicesJson.status === 'ok' && Array.isArray(indicesJson.data) && indicesJson.data.length > 0) {
-              setIndices(indicesJson.data);
-            }
-            if (stocksJson.status === 'ok' && Array.isArray(stocksJson.data) && stocksJson.data.length > 0) {
-              setStocks(stocksJson.data);
-            }
-            setIsLive(true);
-            return;
-          }
+          if (indicesJson.data) setIndices(indicesJson.data);
+          if (stocksJson.data) setStocks(stocksJson.data);
+          
+          setIsLive(true);
+        } else {
+          throw new Error('API response not ok');
         }
-        throw new Error('Fallback to local high-fidelity simulated feed');
       } catch (err) {
-        setIsLive(true);
-        // Replace random simulation with production-ready API fetch from provider
-        try {
-          const [indicesRes, stocksRes] = await Promise.all([
-            fetch('https://stockpro-screener.jobanpreet0523.workers.dev/api/indices'),
-            fetch('https://stockpro-screener.jobanpreet0523.workers.dev/api/stocks')
-          ]);
-
-          if (indicesRes.ok && stocksRes.ok) {
-            const indicesJson = await indicesRes.json();
-            const stocksJson = await stocksRes.json();
-            setIndices(indicesJson.data);
-            setStocks(stocksJson.data);
-          }
-        } catch (apiErr) {
-          console.error("API Fetch failed:", apiErr);
-          setIsLive(false);
-          // Keep minimal local data if API fails to prevent white screen
-          setIndices(prev => prev || INITIAL_INDICES);
-          setStocks(prev => prev || INITIAL_STOCKS);
-        }
+        console.error("API Fetch failed:", err);
+        setIsLive(false);
+        // Retain existing state to prevent disruption on minor network blips
       }
     }
 
