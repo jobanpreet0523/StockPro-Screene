@@ -86,6 +86,10 @@ export default {
       return Response.redirect(url.origin + "/screener", 301);
     }
 
+    if (pathname === "/screener" || pathname === "/screener/") {
+      return handleStaticAssetsProxy("screener.html");
+    }
+
     if (pathname === "/dashboard" || pathname === "/dashboard/") {
       return handleStaticAssetsProxy("dashboard.html");
     }
