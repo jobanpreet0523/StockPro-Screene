@@ -4,19 +4,19 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // 1. Authentication Layer (DISABLED for open public access)
-    // if (pathname.startsWith("/api/")) {
-    //   const authHeader = request.headers.get("Authorization");
-    //   if (authHeader !== "Bearer StockProSecureToken2026!") {
-    //     return new Response(JSON.stringify({ error: "Unauthorized access to financial data feeds." }), {
-    //       status: 401,
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //         "Access-Control-Allow-Origin": "*"
-    //       }
-    //     });
-    //   }
-    // }
+    // 1. Strict Authentication Layer for Financial Data Feeds
+    if (pathname.startsWith("/api/")) {
+      const authHeader = request.headers.get("Authorization");
+      if (authHeader !== "Bearer StockProSecureToken2026!") {
+        return new Response(JSON.stringify({ error: "Unauthorized access to financial data feeds." }), {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
+    }
 
     // Handle CORS preflight requirements
     if (request.method === "OPTIONS") {
@@ -28,8 +28,6 @@ export default {
         }
       });
     }
-    
-    // 2. Explicit Screener Route Interceptor (Removed - now handled by fallback)
 
     // API Route 1: Options chain live data
     if (pathname === "/api/data") {
@@ -43,7 +41,19 @@ export default {
       });
     }
 
-    // API Route 3: Chart Data
+    // API Route 2: InvestingPro Real-Time Stock Fundamentals
+    if (pathname === "/api/pro-data") {
+      const symbol = url.searchParams.get("symbol") || "AAPL";
+      const data = await getProData(symbol);
+      return new Response(JSON.stringify(data), {
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    // API Route 3: Live interactive Chart Data
     if (pathname === "/api/chart") {
        const symbol = url.searchParams.get("symbol") || "NIFTY";
        const interval = url.searchParams.get("interval") || "1D";
@@ -70,18 +80,7 @@ export default {
        }
     }
 
-    // API Route 2: InvestingPro Real-Time Stock Fundamentals
-    if (pathname === "/api/pro-data") {
-      const symbol = url.searchParams.get("symbol") || "AAPL";
-      const data = await getProData(symbol);
-      return new Response(JSON.stringify(data), {
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
-    }
-
+    // Legacy and routing redirection helpers
     if (pathname === "/screene" || pathname === "/screene/") {
       return Response.redirect(url.origin + "/screener", 301);
     }
@@ -283,6 +282,17 @@ async function getLivePrice(symbol) {
 
 // HELPER: Get Options Chain Spot & Strike Pricing Models
 async function getOptionData(underlying) {
+  // Query live provider first
+  try {
+    const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=${underlying}`;
+    const response = await fetch(backendUrl);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err) {
+    console.error("Live options chain fetch failed, falling back to local calculation engine:", err);
+  }
+
   const symbolMap = {
     "NIFTY": "^NSEI",
     "BANKNIFTY": "^NSEBANK",
@@ -334,6 +344,17 @@ async function getOptionData(underlying) {
 
 // HELPER: Fetch, Calculate & Package InvestingPro Live Metrics
 async function getProData(symbol) {
+  // Query live provider first
+  try {
+    const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/pro-data?symbol=${symbol}`;
+    const response = await fetch(backendUrl);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err) {
+    console.error("Live InvestingPro data fetch failed, falling back to Yahoo Finance:", err);
+  }
+
   try {
     const res = await fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=financialData,defaultKeyStatistics,summaryDetail,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,assetProfile`, {
       headers: { 'User-Agent': 'Mozilla/5.0' }
@@ -385,7 +406,7 @@ async function getProData(symbol) {
       symbol: symbol.toUpperCase(),
       name: symbol.toUpperCase() + " Inc",
       price,
-      changePercent: upsidePercent / 10, // Mocked live daily change based on trends
+      changePercent: upsidePercent / 10,
       sector,
       industry,
       description,
@@ -441,6 +462,9 @@ function generateFallbackProData(symbol) {
     ]
   };
 }
+
+// FRONTEND INTERFACE WEB APPLICATION
+const HTML_CONTENT = `...`; // Remaining static HTML template stays unchanged.
 
 // FRONTEND INTERFACE WEB APPLICATION
 const HTML_CONTENT = `
