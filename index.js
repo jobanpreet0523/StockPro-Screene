@@ -125,7 +125,7 @@ export default {
 
 // HELPER: Dynamic static asset fetcher with clean headers & MIME-type overrides
 async function handleStaticAssetsProxy(filename) {
-  const GITHUB_PAGES_BASE = "https://jobanpreet0523.github.io/stockpro-screener";
+  const GITHUB_PAGES_BASE = "https://jobanpreet0523.github.io/StockPro-Screene";
   
   let cleanFilename = filename;
   if (cleanFilename.startsWith("/")) {
