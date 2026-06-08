@@ -27,6 +27,33 @@ export default {
       });
     }
 
+    // API Route 3: Chart Data
+    if (pathname === "/api/chart") {
+       const symbol = url.searchParams.get("symbol") || "NIFTY";
+       const interval = url.searchParams.get("interval") || "1D";
+       const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/chart?symbol=${symbol}&interval=${interval}`;
+       
+       try {
+         const response = await fetch(backendUrl);
+         if (!response.ok) {
+           throw new Error(`Backend returned ${response.status}`);
+         }
+         const data = await response.json();
+         
+         return new Response(JSON.stringify(data), {
+           headers: { 
+             "Content-Type": "application/json",
+             "Access-Control-Allow-Origin": "*"
+           }
+         });
+       } catch (err) {
+         return new Response(JSON.stringify({ status: 'error', message: err.message }), {
+           status: 500,
+           headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+         });
+       }
+    }
+
     // API Route 2: InvestingPro Real-Time Stock Fundamentals
     if (pathname === "/api/pro-data") {
       const symbol = url.searchParams.get("symbol") || "AAPL";

@@ -45,49 +45,27 @@ export default function App() {
         }
         throw new Error('Fallback to local high-fidelity simulated feed');
       } catch (err) {
-        setIsLive(false);
-        // Client-side simulation fallback: update indices & stocks state with minor random fluctuations
-        setIndices(prev => {
-          if (!prev || prev.length === 0) return INITIAL_INDICES;
-          return prev.map(ind => {
-            const changePct = (Math.random() - 0.48) * 0.15; // small fluctuation
-            const priceDiff = ind.price * (changePct / 100);
-            const newPrice = Number((ind.price + priceDiff).toFixed(2));
-            const newChange = Number((ind.change + priceDiff).toFixed(2));
-            const newPct = Number((ind.changePercent + changePct).toFixed(2));
-            return {
-              ...ind,
-              price: newPrice,
-              change: newChange,
-              changePercent: newPct
-            };
-          });
-        });
+        setIsLive(true);
+        // Replace random simulation with production-ready API fetch from provider
+        try {
+          const [indicesRes, stocksRes] = await Promise.all([
+            fetch('https://stockpro-screener.jobanpreet0523.workers.dev/api/indices'),
+            fetch('https://stockpro-screener.jobanpreet0523.workers.dev/api/stocks')
+          ]);
 
-        setStocks(prev => {
-          if (!prev || prev.length === 0) return INITIAL_STOCKS;
-          return prev.map(stock => {
-            const changePct = (Math.random() - 0.5) * 0.2; // small fluctuation
-            const priceDiff = stock.price * (changePct / 100);
-            const newPrice = Number((stock.price + priceDiff).toFixed(2));
-            const newChange = Number((stock.change + priceDiff).toFixed(2));
-            const newPct = Number((stock.changePercent + changePct).toFixed(2));
-            
-            // Randomly simulate Option Greek Open Interest (OI) updates for simulated F&O
-            const oiDiff = Math.floor((Math.random() - 0.4) * 12000);
-            const newOi = stock.futuresOi ? Math.max(100000, stock.futuresOi + oiDiff) : undefined;
-            const newOiChg = stock.futuresOiChange ? Number((stock.futuresOiChange + (Math.random() - 0.5) * 0.1).toFixed(2)) : undefined;
-
-            return {
-              ...stock,
-              price: newPrice,
-              change: newChange,
-              changePercent: newPct,
-              futuresOi: newOi,
-              futuresOiChange: newOiChg
-            };
-          });
-        });
+          if (indicesRes.ok && stocksRes.ok) {
+            const indicesJson = await indicesRes.json();
+            const stocksJson = await stocksRes.json();
+            setIndices(indicesJson.data);
+            setStocks(stocksJson.data);
+          }
+        } catch (apiErr) {
+          console.error("API Fetch failed:", apiErr);
+          setIsLive(false);
+          // Keep minimal local data if API fails to prevent white screen
+          setIndices(prev => prev || INITIAL_INDICES);
+          setStocks(prev => prev || INITIAL_STOCKS);
+        }
       }
     }
 
