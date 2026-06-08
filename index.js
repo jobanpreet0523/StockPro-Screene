@@ -68,7 +68,47 @@ export default {
 
     // Clean URL mappings: Explicitly fetch and serve the true source file contents
     if (pathname === "/screener" || pathname === "/screener/") {
-      return handleStaticAssetsProxy("screener.html");
+      const screenerUrl = "https://jobanpreet0523.github.io/stockpro-screener/screener.html";
+      const headers = new Headers();
+      headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+      headers.set("Accept", "text/html,*/*");
+      headers.set("Cache-Control", "no-cache");
+      
+      try {
+        let response = await fetch(screenerUrl, {
+          method: "GET",
+          headers: headers
+        });
+        
+        if (!response.ok) {
+          const rawTargetUrl = "https://raw.githubusercontent.com/jobanpreet0523/stockpro-screener/main/screener.html";
+          const rawResponse = await fetch(rawTargetUrl, {
+            method: "GET",
+            headers: headers
+          });
+          if (rawResponse.ok) {
+            response = rawResponse;
+          }
+        }
+        
+        const resHeaders = new Headers();
+        resHeaders.set("Content-Type", "text/html; charset=utf-8");
+        resHeaders.set("Access-Control-Allow-Origin", "*");
+        resHeaders.set("X-Content-Type-Options", "nosniff");
+        
+        return new Response(response.body, {
+          status: response.status || 200,
+          headers: resHeaders
+        });
+      } catch (err) {
+        return new Response(`Error loading screener: ${err.message}`, {
+          status: 500,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
     }
 
     if (pathname === "/dashboard" || pathname === "/dashboard/") {
@@ -122,7 +162,38 @@ export default {
 // HELPER: Dynamic static asset fetcher with clean headers & MIME-type overrides
 async function handleStaticAssetsProxy(filename) {
   const GITHUB_PAGES_BASE = "https://jobanpreet0523.github.io/stockpro-screener";
-  const targetUrl = `${GITHUB_PAGES_BASE}/${filename}`;
+  
+  let cleanFilename = filename;
+  if (cleanFilename.startsWith("/")) {
+    cleanFilename = cleanFilename.substring(1);
+  }
+
+  const lowerFile = cleanFilename.toLowerCase();
+  const formsExpectedFolder = lowerFile.includes("assets/") || lowerFile.includes("stockpro-screene/") || lowerFile.startsWith("assets/") || lowerFile.startsWith("stockpro-screene/");
+  const hasExtension = cleanFilename.includes(".") && cleanFilename.split('.').pop().length <= 5;
+
+  let contentType = "text/html;charset=UTF-8";
+  let inferredExt = "";
+
+  if (hasExtension) {
+    inferredExt = cleanFilename.split('.').pop()?.toLowerCase();
+  } else if (formsExpectedFolder) {
+    if (lowerFile.includes("/js") || lowerFile.endsWith("/js") || lowerFile.includes("js/")) {
+      contentType = "application/javascript";
+      inferredExt = "js";
+    } else if (lowerFile.includes("/css") || lowerFile.endsWith("/css") || lowerFile.includes("css/")) {
+      contentType = "text/css";
+      inferredExt = "css";
+    } else if (lowerFile.includes("/json") || lowerFile.endsWith("/json") || lowerFile.includes("json/")) {
+      contentType = "application/json";
+      inferredExt = "json";
+    } else if (lowerFile.includes("/img") || lowerFile.includes("/image") || lowerFile.includes("/png") || lowerFile.includes("/jpg") || lowerFile.includes("/svg")) {
+      contentType = "image/png";
+      inferredExt = "png";
+    }
+  }
+
+  const targetUrl = `${GITHUB_PAGES_BASE}/${cleanFilename}`;
   
   const headers = new Headers();
   headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
@@ -135,9 +206,8 @@ async function handleStaticAssetsProxy(filename) {
       headers: headers
     });
     
-    // If GitHub Pages fails or is still building, try the raw repo content fallback
     if (!response.ok) {
-      const rawTargetUrl = `https://raw.githubusercontent.com/jobanpreet0523/stockpro-screener/main/${filename}`;
+      const rawTargetUrl = `https://raw.githubusercontent.com/jobanpreet0523/stockpro-screener/main/${cleanFilename}`;
       const rawResponse = await fetch(rawTargetUrl, {
         method: "GET",
         headers: headers
@@ -148,19 +218,21 @@ async function handleStaticAssetsProxy(filename) {
     }
     
     if (!response.ok) {
-      return new Response(`File not found: ${filename} (Status: ${response.status})`, {
-        status: response.status,
-        headers: {
-          "Content-Type": "text/html;charset=UTF-8",
-          "Access-Control-Allow-Origin": "*"
+      if (!hasExtension && inferredExt) {
+        const fallbackWithExt = `${cleanFilename}.${inferredExt}`;
+        const extTargetUrl = `${GITHUB_PAGES_BASE}/${fallbackWithExt}`;
+        let extResponse = await fetch(extTargetUrl, { method: "GET", headers: headers });
+        if (!extResponse.ok) {
+          const rawExtUrl = `https://raw.githubusercontent.com/jobanpreet0523/stockpro-screener/main/${fallbackWithExt}`;
+          extResponse = await fetch(rawExtUrl, { method: "GET", headers: headers });
         }
-      });
+        if (extResponse.ok) {
+          response = extResponse;
+        }
+      }
     }
-    
-    // Explicit MIME type overrides
-    let contentType = "text/html;charset=UTF-8";
-    const ext = filename.split('.').pop()?.toLowerCase();
-    
+
+    // Determine final content type
     const mimeTypes = {
       "js": "application/javascript",
       "mjs": "application/javascript",
@@ -172,11 +244,27 @@ async function handleStaticAssetsProxy(filename) {
       "svg": "image/svg+xml",
       "ico": "image/x-icon",
       "json": "application/json",
-      "html": "text/html;charset=UTF-8"
+      "html": "text/html;charset=UTF-8",
+      "woff": "font/woff",
+      "woff2": "font/woff2",
+      "ttf": "font/ttf"
     };
     
+    const ext = cleanFilename.split('.').pop()?.toLowerCase();
     if (ext && mimeTypes[ext]) {
       contentType = mimeTypes[ext];
+    } else if (inferredExt && mimeTypes[inferredExt]) {
+      contentType = mimeTypes[inferredExt];
+    }
+
+    if (!response.ok) {
+      return new Response(`File not found: ${cleanFilename} (Status: ${response.status})`, {
+        status: response.status,
+        headers: {
+          "Content-Type": contentType,
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
     }
     
     const resHeaders = new Headers();
@@ -192,7 +280,7 @@ async function handleStaticAssetsProxy(filename) {
     return new Response(`Error loading asset: ${err.message}`, {
       status: 500,
       headers: {
-        "Content-Type": "text/html;charset=UTF-8",
+        "Content-Type": contentType,
         "Access-Control-Allow-Origin": "*"
       }
     });
