@@ -29,21 +29,7 @@ export default {
       });
     }
     
-    // 2. Explicit Screener Route Interceptor
-    if (pathname === "/screener" || pathname === "/screener/") {
-      try {
-        const response = await fetch("https://jobanpreet0523.github.io/StockPro-Screene/screener.html");
-        return new Response(response.body, {
-          status: 200,
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Access-Control-Allow-Origin": "*"
-          }
-        });
-      } catch (e) {
-        return new Response("Screener failed to load.", { status: 500 });
-      }
-    }
+    // 2. Explicit Screener Route Interceptor (Removed - now handled by fallback)
 
     // API Route 1: Options chain live data
     if (pathname === "/api/data") {
@@ -139,12 +125,7 @@ export default {
     }
 
     // Fallback response for single-page routing
-    return new Response(HTML_CONTENT, {
-      headers: { 
-        "Content-Type": "text/html;charset=UTF-8",
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
+    return await handleStaticAssetsProxy("index.html");
   }
 };
 
