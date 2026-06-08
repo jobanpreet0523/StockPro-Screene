@@ -2,9 +2,21 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const pathname = url.pathname;
+
+    // Handle CORS preflight requirements
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+          "Access-Control-Allow-Headers": "*"
+        }
+      });
+    }
     
     // API Route 1: Options chain live data
-    if (url.pathname === "/api/data") {
+    if (pathname === "/api/data") {
       const underlying = url.searchParams.get("underlying") || "NIFTY";
       const data = await getOptionData(underlying);
       return new Response(JSON.stringify(data), {
@@ -16,7 +28,7 @@ export default {
     }
 
     // API Route 2: InvestingPro Real-Time Stock Fundamentals
-    if (url.pathname === "/api/pro-data") {
+    if (pathname === "/api/pro-data") {
       const symbol = url.searchParams.get("symbol") || "AAPL";
       const data = await getProData(symbol);
       return new Response(JSON.stringify(data), {
@@ -26,13 +38,139 @@ export default {
         }
       });
     }
+
+    // Clean URL mappings: Explicitly fetch and serve the true source file contents
+    if (pathname === "/screener" || pathname === "/screener/") {
+      return handleStaticAssetsProxy("screener.html");
+    }
+
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+      return handleStaticAssetsProxy("dashboard.html");
+    }
+
+    if (pathname === "/fo" || pathname === "/fo/") {
+      return handleStaticAssetsProxy("fo.html");
+    }
+
+    // Handle static assets or assets mapped within the repository
+    const isStaticAsset = pathname.includes(".") || pathname.startsWith("/assets/") || pathname.startsWith("/StockPro-Screene/");
+    if (isStaticAsset) {
+      let resolvedFile = pathname;
+      if (resolvedFile.startsWith("/StockPro-Screene/")) {
+        resolvedFile = resolvedFile.replace("/StockPro-Screene/", "");
+      }
+      if (resolvedFile.startsWith("/")) {
+        resolvedFile = resolvedFile.substring(1);
+      }
+      return handleStaticAssetsProxy(resolvedFile);
+    }
     
-    // Serve Webpage Content
+    // Default page content (Serve root/index.html via proxy, fallback to local string)
+    if (pathname === "/" || pathname === "/index.html") {
+      try {
+        const proxyResponse = await handleStaticAssetsProxy("index.html");
+        if (proxyResponse.status === 200) {
+          return proxyResponse;
+        }
+      } catch (err) {}
+      
+      return new Response(HTML_CONTENT, {
+        headers: { 
+          "Content-Type": "text/html;charset=UTF-8",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    // Fallback response for single-page routing
     return new Response(HTML_CONTENT, {
-      headers: { "Content-Type": "text/html;charset=UTF-8" }
+      headers: { 
+        "Content-Type": "text/html;charset=UTF-8",
+        "Access-Control-Allow-Origin": "*"
+      }
     });
   }
 };
+
+// HELPER: Dynamic static asset fetcher with clean headers & MIME-type overrides
+async function handleStaticAssetsProxy(filename) {
+  const GITHUB_PAGES_BASE = "https://jobanpreet0523.github.io/StockPro-Screene";
+  const targetUrl = `${GITHUB_PAGES_BASE}/${filename}`;
+  
+  const headers = new Headers();
+  headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+  headers.set("Accept", "*/*");
+  headers.set("Cache-Control", "no-cache");
+  
+  try {
+    let response = await fetch(targetUrl, {
+      method: "GET",
+      headers: headers
+    });
+    
+    // If GitHub Pages fails or is still building, try the raw repo content fallback
+    if (!response.ok) {
+      const rawTargetUrl = `https://raw.githubusercontent.com/jobanpreet0523/stockpro-screener/main/${filename}`;
+      const rawResponse = await fetch(rawTargetUrl, {
+        method: "GET",
+        headers: headers
+      });
+      if (rawResponse.ok) {
+        response = rawResponse;
+      }
+    }
+    
+    if (!response.ok) {
+      return new Response(`File not found: ${filename} (Status: ${response.status})`, {
+        status: response.status,
+        headers: {
+          "Content-Type": "text/html;charset=UTF-8",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+    
+    // Explicit MIME type overrides
+    let contentType = "text/html;charset=UTF-8";
+    const ext = filename.split('.').pop()?.toLowerCase();
+    
+    const mimeTypes = {
+      "js": "application/javascript",
+      "mjs": "application/javascript",
+      "css": "text/css",
+      "png": "image/png",
+      "jpg": "image/jpeg",
+      "jpeg": "image/jpeg",
+      "gif": "image/gif",
+      "svg": "image/svg+xml",
+      "ico": "image/x-icon",
+      "json": "application/json",
+      "html": "text/html;charset=UTF-8"
+    };
+    
+    if (ext && mimeTypes[ext]) {
+      contentType = mimeTypes[ext];
+    }
+    
+    const resHeaders = new Headers();
+    resHeaders.set("Content-Type", contentType);
+    resHeaders.set("Access-Control-Allow-Origin", "*");
+    resHeaders.set("X-Content-Type-Options", "nosniff");
+    
+    return new Response(response.body, {
+      status: 200,
+      headers: resHeaders
+    });
+  } catch (err) {
+    return new Response(`Error loading asset: ${err.message}`, {
+      status: 500,
+      headers: {
+        "Content-Type": "text/html;charset=UTF-8",
+        "Access-Control-Allow-Origin": "*"
+      }
+    });
+  }
+}
 
 // HELPER: Fetch Yahoo Finance Quote Data
 async function getLivePrice(symbol) {
