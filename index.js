@@ -111,6 +111,10 @@ export default {
       }
     }
 
+    if (pathname === "/screene" || pathname === "/screene/") {
+      return Response.redirect(url.origin + "/screener", 301);
+    }
+
     if (pathname === "/dashboard" || pathname === "/dashboard/") {
       return handleStaticAssetsProxy("dashboard.html");
     }
@@ -247,7 +251,9 @@ async function handleStaticAssetsProxy(filename) {
       "html": "text/html;charset=UTF-8",
       "woff": "font/woff",
       "woff2": "font/woff2",
-      "ttf": "font/ttf"
+      "ttf": "font/ttf",
+      "ts": "application/javascript",
+      "tsx": "application/javascript"
     };
     
     const ext = cleanFilename.split('.').pop()?.toLowerCase();
