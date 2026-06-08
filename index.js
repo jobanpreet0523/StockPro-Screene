@@ -86,15 +86,15 @@ export default {
       return Response.redirect(url.origin + "/screener", 301);
     }
 
-    if (pathname === "/screener" || pathname === "/screener/") {
+    if (pathname === "/screener" || pathname === "/screener/" || pathname.startsWith("/screener/")) {
       return handleStaticAssetsProxy("screener.html", request, env);
     }
 
-    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+    if (pathname === "/dashboard" || pathname === "/dashboard/" || pathname.startsWith("/dashboard/")) {
       return handleStaticAssetsProxy("dashboard.html", request, env);
     }
 
-    if (pathname === "/fo" || pathname === "/fo/") {
+    if (pathname === "/fo" || pathname === "/fo/" || pathname.startsWith("/fo/")) {
       return handleStaticAssetsProxy("fo.html", request, env);
     }
 
