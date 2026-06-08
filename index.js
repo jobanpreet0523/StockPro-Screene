@@ -68,47 +68,7 @@ export default {
 
     // Clean URL mappings: Explicitly fetch and serve the true source file contents
     if (pathname === "/screener" || pathname === "/screener/") {
-      const screenerUrl = "https://jobanpreet0523.github.io/stockpro-screener/screener.html";
-      const headers = new Headers();
-      headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-      headers.set("Accept", "text/html,*/*");
-      headers.set("Cache-Control", "no-cache");
-      
-      try {
-        let response = await fetch(screenerUrl, {
-          method: "GET",
-          headers: headers
-        });
-        
-        if (!response.ok) {
-          const rawTargetUrl = "https://raw.githubusercontent.com/jobanpreet0523/stockpro-screener/main/screener.html";
-          const rawResponse = await fetch(rawTargetUrl, {
-            method: "GET",
-            headers: headers
-          });
-          if (rawResponse.ok) {
-            response = rawResponse;
-          }
-        }
-        
-        const resHeaders = new Headers();
-        resHeaders.set("Content-Type", "text/html; charset=utf-8");
-        resHeaders.set("Access-Control-Allow-Origin", "*");
-        resHeaders.set("X-Content-Type-Options", "nosniff");
-        
-        return new Response(response.body, {
-          status: response.status || 200,
-          headers: resHeaders
-        });
-      } catch (err) {
-        return new Response(`Error loading screener: ${err.message}`, {
-          status: 500,
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Access-Control-Allow-Origin": "*"
-          }
-        });
-      }
+      return handleStaticAssetsProxy("screener.html");
     }
 
     if (pathname === "/screene" || pathname === "/screene/") {
