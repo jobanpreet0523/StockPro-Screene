@@ -85,13 +85,48 @@ function getProDataFallback(symbol: string) {
   };
 }
 
-// Background Task: Sync Index benchmark lines with the live worker API
+// Background Task: Sync Index benchmark lines with the live worker API safely
+async function safeFetchFromWorker(pathAndQuery: string): Promise<any> {
+  const urls = [
+    'https://stockpro-screene.jobanpreet0523.workers.dev',
+    'https://stockpro-screener.jobanpreet0523.workers.dev'
+  ];
+
+  let lastError: Error | null = null;
+
+  for (const baseUrl of urls) {
+    const fullUrl = `${baseUrl}${pathAndQuery}`;
+    try {
+      const response = await fetch(fullUrl, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP status ${response.status}`);
+      }
+
+      const text = await response.text();
+      const trimmed = text.trim();
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        throw new Error(`Response is HTML or invalid JSON (starts with "${trimmed.substring(0, 10)}")`);
+      }
+
+      return JSON.parse(trimmed);
+    } catch (err: any) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('All worker URLs failed to fetch');
+}
+
 async function syncWithLiveWorker() {
   try {
     // 1. Sync NIFTY index
-    const niftyRes = await fetch('https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=NIFTY');
-    if (niftyRes.ok) {
-      const data = await niftyRes.json() as any;
+    try {
+      const data = await safeFetchFromWorker('/api/data?underlying=NIFTY');
       const nIdx = liveIndices.findIndex(i => i.symbol === '^NSEI');
       const spotVal = data.spotPrice || data.spot;
       if (nIdx !== -1 && spotVal) {
@@ -105,12 +140,13 @@ async function syncWithLiveWorker() {
         liveIndices[nIdx].change = Number(changeVal.toFixed(2));
         liveIndices[nIdx].changePercent = Number(changePctVal.toFixed(2));
       }
+    } catch (err: any) {
+      console.warn('[Sync Worker NIFTY Warning]:', err.message);
     }
 
     // 2. Sync BANKNIFTY index
-    const bankRes = await fetch('https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=BANKNIFTY');
-    if (bankRes.ok) {
-      const data = await bankRes.json() as any;
+    try {
+      const data = await safeFetchFromWorker('/api/data?underlying=BANKNIFTY');
       const bIdx = liveIndices.findIndex(i => i.symbol === '^NSEBANK');
       const spotVal = data.spotPrice || data.spot;
       if (bIdx !== -1 && spotVal) {
@@ -124,12 +160,13 @@ async function syncWithLiveWorker() {
         liveIndices[bIdx].change = Number(changeVal.toFixed(2));
         liveIndices[bIdx].changePercent = Number(changePctVal.toFixed(2));
       }
+    } catch (err: any) {
+      console.warn('[Sync Worker BANKNIFTY Warning]:', err.message);
     }
     
-    // 3. Sync FINNIFTY index by mapping our standard indices
-    const finRes = await fetch('https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=FINNIFTY');
-    if (finRes.ok) {
-      const data = await finRes.json() as any;
+    // 3. Sync FINNIFTY index
+    try {
+      const data = await safeFetchFromWorker('/api/data?underlying=FINNIFTY');
       const fIdx = liveIndices.findIndex(i => i.symbol === '^NSEFN' || i.symbol === 'FINNIFTY' || i.name.includes('FIN'));
       const spotVal = data.spotPrice || data.spot;
       if (fIdx !== -1 && spotVal) {
@@ -143,6 +180,8 @@ async function syncWithLiveWorker() {
         liveIndices[fIdx].change = Number(changeVal.toFixed(2));
         liveIndices[fIdx].changePercent = Number(changePctVal.toFixed(2));
       }
+    } catch (err: any) {
+      console.warn('[Sync Worker FINNIFTY Warning]:', err.message);
     }
   } catch (err: any) {
     console.warn('[Sync Worker Warning] Failed to update in-memory indices from live worker:', err.message);
@@ -370,17 +409,13 @@ app.get('/api/option-chain/:symbol', async (req: Request, res: Response) => {
   const targetUnderlying = underlyingMap[cleanSymbol] || cleanSymbol;
 
   try {
-    const workerRes = await fetch(`https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=${targetUnderlying}`);
-    if (workerRes.ok) {
-      const workerJson = await workerRes.json() as any;
-      const mappedChain = mapWorkerToOptionChain(workerJson, cleanSymbol);
-      return res.json({
-        status: 'ok',
-        symbol,
-        data: mappedChain
-      });
-    }
-    throw new Error(`Worker returned status: ${workerRes.status}`);
+    const workerJson = await safeFetchFromWorker(`/api/data?underlying=${targetUnderlying}`);
+    const mappedChain = mapWorkerToOptionChain(workerJson, cleanSymbol);
+    return res.json({
+      status: 'ok',
+      symbol,
+      data: mappedChain
+    });
   } catch (err: any) {
     console.warn(`[Option Chain API] Live data request failed for ${cleanSymbol}, using generator fallback. Error:`, err.message);
     
@@ -417,12 +452,8 @@ app.get('/api/option-chain/:symbol', async (req: Request, res: Response) => {
 app.get('/api/pro-data', async (req: Request, res: Response) => {
   const symbol = (req.query.symbol as string) || 'AAPL';
   try {
-    const liveRes = await fetch(`https://stockpro-screener.jobanpreet0523.workers.dev/api/pro-data?symbol=${symbol}`);
-    if (liveRes.ok) {
-      const liveJson = await liveRes.json();
-      return res.json(liveJson);
-    }
-    throw new Error(`Worker returned status: ${liveRes.status}`);
+    const liveJson = await safeFetchFromWorker(`/api/pro-data?symbol=${symbol}`);
+    return res.json(liveJson);
   } catch (err: any) {
     console.warn(`[InvestingPro API] Error proxying pro-data for ${symbol}:`, err.message);
     return res.json(getProDataFallback(symbol));
@@ -432,12 +463,8 @@ app.get('/api/pro-data', async (req: Request, res: Response) => {
 // API: Proxy ProPicks AI Portfolios to Worker
 app.get('/api/propicks', async (req: Request, res: Response) => {
   try {
-    const liveRes = await fetch(`https://stockpro-screener.jobanpreet0523.workers.dev/api/propicks`);
-    if (liveRes.ok) {
-      const liveJson = await liveRes.json();
-      return res.json(liveJson);
-    }
-    throw new Error(`Worker returned status: ${liveRes.status}`);
+    const liveJson = await safeFetchFromWorker(`/api/propicks`);
+    return res.json(liveJson);
   } catch (err: any) {
     console.warn(`[ProPicks API] Error proxying propicks:`, err.message);
     // Return high-fidelity portfolio dataset as fallback
