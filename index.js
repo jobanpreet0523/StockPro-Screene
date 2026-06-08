@@ -28,8 +28,6 @@ export default {
         }
       });
     }
-    
-    // 2. Explicit Screener Route Interceptor (Removed - now handled by fallback)
 
     // API Route 1: Options chain live data
     if (pathname === "/api/data") {
@@ -563,7 +561,7 @@ const HTML_CONTENT = `
           <div class="relative space-y-4 text-white">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-50"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 <span class="text-[10px] text-slate-400 font-mono ml-2">F&O Terminal v4.2</span>
@@ -668,27 +666,27 @@ const HTML_CONTENT = `
           
           <!-- Company profile card -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-3 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Company Profile</h3>
+            <h3 class="text-sm font-extrabold text-slate-805 border-b border-slate-100 pb-2">Company Profile</h3>
             <p id="pro-desc" class="text-xs text-slate-500 leading-relaxed">...</p>
           </div>
 
           <!-- Key Financial Explorer metrics -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Data Explorer / Ratios</h3>
+            <h3 class="text-sm font-extrabold text-slate-808 border-b border-slate-100 pb-2">Data Explorer / Ratios</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
+              <div class="bg-slate-50 border border-slate-105 p-3.5 rounded-xl">
                 <span class="text-[9px] text-slate-400 font-bold uppercase">P/E Ratio</span>
                 <p id="ratio-pe" class="text-sm font-extrabold text-slate-700 mt-1">...</p>
               </div>
-              <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
+              <div class="bg-slate-50 border border-slate-105 p-3.5 rounded-xl">
                 <span class="text-[9px] text-slate-400 font-bold uppercase">Dividend Yield</span>
                 <p id="ratio-yield" class="text-sm font-extrabold text-slate-700 mt-1">...</p>
               </div>
-              <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
+              <div class="bg-slate-50 border border-slate-105 p-3.5 rounded-xl">
                 <span class="text-[9px] text-slate-400 font-bold uppercase">Quick Ratio</span>
                 <p id="ratio-quick" class="text-sm font-extrabold text-slate-700 mt-1">...</p>
               </div>
-              <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
+              <div class="bg-slate-50 border border-slate-105 p-3.5 rounded-xl">
                 <span class="text-[9px] text-slate-400 font-bold uppercase">Gross Margin</span>
                 <p id="ratio-margin" class="text-sm font-extrabold text-slate-700 mt-1">...</p>
               </div>
@@ -697,7 +695,7 @@ const HTML_CONTENT = `
 
           <!-- Multi-Year Statement Financials -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Historical Income Statement (Cr/USD Millions)</h3>
+            <h3 class="text-sm font-extrabold text-slate-808 border-b border-slate-100 pb-2">Historical Income Statement (Cr/USD Millions)</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">
                 <thead>
@@ -719,51 +717,51 @@ const HTML_CONTENT = `
           
           <!-- Financial health overview metrics card -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-5 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Financial Health Indicators</h3>
+            <h3 class="text-sm font-extrabold text-slate-808 border-b border-slate-100 pb-2">Financial Health Indicators</h3>
             
-            <div class="flex items-center justify-between bg-slate-50 border border-slate-100 p-3 rounded-xl">
-              <span class="text-xs font-semibold text-slate-500">Overall Assessment</span>
+            <div class="flex items-center justify-between bg-slate-50 border border-slate-105 p-3 rounded-xl">
+              <span class="text-xs font-semibold text-slate-505">Overall Assessment</span>
               <span id="health-overall" class="text-xs font-extrabold px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-full">...</span>
             </div>
 
             <!-- Health sub-metrics -->
             <div class="space-y-3 pt-1">
               <div>
-                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-600">
+                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-605">
                   <span>Cash Flow Performance</span>
                   <span id="health-cash">...</span>
                 </div>
-                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div class="w-full bg-slate-101 h-1.5 rounded-full overflow-hidden">
                   <div id="bar-cash" class="bg-emerald-500 h-full"></div>
                 </div>
               </div>
 
               <div>
-                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-600">
+                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-605">
                   <span>Growth Momentum</span>
                   <span id="health-growth">...</span>
                 </div>
-                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div class="w-full bg-slate-101 h-1.5 rounded-full overflow-hidden">
                   <div id="bar-growth" class="bg-emerald-500 h-full"></div>
                 </div>
               </div>
 
               <div>
-                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-600">
+                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-605">
                   <span>Profitability Health</span>
                   <span id="health-profit">...</span>
                 </div>
-                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div class="w-full bg-slate-101 h-1.5 rounded-full overflow-hidden">
                   <div id="bar-profit" class="bg-emerald-500 h-full"></div>
                 </div>
               </div>
 
               <div>
-                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-600">
+                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-605">
                   <span>Relative Value</span>
                   <span id="health-value">...</span>
                 </div>
-                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div class="w-full bg-slate-101 h-1.5 rounded-full overflow-hidden">
                   <div id="bar-value" class="bg-emerald-500 h-full"></div>
                 </div>
               </div>
@@ -772,19 +770,19 @@ const HTML_CONTENT = `
 
           <!-- prebuilt financial models card -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Prebuilt Valuation Models</h3>
+            <h3 class="text-sm font-extrabold text-slate-805 border-b border-slate-100 pb-2">Prebuilt Valuation Models</h3>
             <div class="space-y-2.5">
-              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-100 rounded-lg">
-                <span class="text-slate-500 font-semibold">10Y DCF EBITDA Multiple</span>
-                <span id="model-dcf-ebitda" class="font-bold text-slate-700">...</span>
+              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-105 rounded-lg">
+                <span class="text-slate-505 font-semibold">10Y DCF EBITDA Multiple</span>
+                <span id="model-dcf-ebitda" class="font-bold text-slate-705">...</span>
               </div>
-              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-100 rounded-lg">
-                <span class="text-slate-500 font-semibold">5Y Revenue Growth Exit</span>
-                <span id="model-dcf-revenue" class="font-bold text-slate-700">...</span>
+              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-105 rounded-lg">
+                <span class="text-slate-505 font-semibold">5Y Revenue Growth Exit</span>
+                <span id="model-dcf-revenue" class="font-bold text-slate-705">...</span>
               </div>
-              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-100 rounded-lg">
-                <span class="text-slate-500 font-semibold">Dividend Discount Model (DDM)</span>
-                <span id="model-ddm" class="font-bold text-slate-700">...</span>
+              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-105 rounded-lg">
+                <span class="text-slate-505 font-semibold">Dividend Discount Model (DDM)</span>
+                <span id="model-ddm" class="font-bold text-slate-705">...</span>
               </div>
             </div>
           </div>
