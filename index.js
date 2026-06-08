@@ -28,6 +28,8 @@ export default {
         }
       });
     }
+    
+    // 2. Explicit Screener Route Interceptor (Removed - now handled by fallback)
 
     // API Route 1: Options chain live data
     if (pathname === "/api/data") {
@@ -561,7 +563,7 @@ const HTML_CONTENT = `
           <div class="relative space-y-4 text-white">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
               <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-rose-50"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 <span class="text-[10px] text-slate-400 font-mono ml-2">F&O Terminal v4.2</span>
@@ -666,27 +668,27 @@ const HTML_CONTENT = `
           
           <!-- Company profile card -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-3 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-805 border-b border-slate-100 pb-2">Company Profile</h3>
+            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Company Profile</h3>
             <p id="pro-desc" class="text-xs text-slate-500 leading-relaxed">...</p>
           </div>
 
           <!-- Key Financial Explorer metrics -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-808 border-b border-slate-100 pb-2">Data Explorer / Ratios</h3>
+            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Data Explorer / Ratios</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div class="bg-slate-50 border border-slate-105 p-3.5 rounded-xl">
+              <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
                 <span class="text-[9px] text-slate-400 font-bold uppercase">P/E Ratio</span>
                 <p id="ratio-pe" class="text-sm font-extrabold text-slate-700 mt-1">...</p>
               </div>
-              <div class="bg-slate-50 border border-slate-105 p-3.5 rounded-xl">
+              <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
                 <span class="text-[9px] text-slate-400 font-bold uppercase">Dividend Yield</span>
                 <p id="ratio-yield" class="text-sm font-extrabold text-slate-700 mt-1">...</p>
               </div>
-              <div class="bg-slate-50 border border-slate-105 p-3.5 rounded-xl">
+              <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
                 <span class="text-[9px] text-slate-400 font-bold uppercase">Quick Ratio</span>
                 <p id="ratio-quick" class="text-sm font-extrabold text-slate-700 mt-1">...</p>
               </div>
-              <div class="bg-slate-50 border border-slate-105 p-3.5 rounded-xl">
+              <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl">
                 <span class="text-[9px] text-slate-400 font-bold uppercase">Gross Margin</span>
                 <p id="ratio-margin" class="text-sm font-extrabold text-slate-700 mt-1">...</p>
               </div>
@@ -695,7 +697,7 @@ const HTML_CONTENT = `
 
           <!-- Multi-Year Statement Financials -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-808 border-b border-slate-100 pb-2">Historical Income Statement (Cr/USD Millions)</h3>
+            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Historical Income Statement (Cr/USD Millions)</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">
                 <thead>
@@ -717,51 +719,51 @@ const HTML_CONTENT = `
           
           <!-- Financial health overview metrics card -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-5 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-808 border-b border-slate-100 pb-2">Financial Health Indicators</h3>
+            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Financial Health Indicators</h3>
             
-            <div class="flex items-center justify-between bg-slate-50 border border-slate-105 p-3 rounded-xl">
-              <span class="text-xs font-semibold text-slate-505">Overall Assessment</span>
+            <div class="flex items-center justify-between bg-slate-50 border border-slate-100 p-3 rounded-xl">
+              <span class="text-xs font-semibold text-slate-500">Overall Assessment</span>
               <span id="health-overall" class="text-xs font-extrabold px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-full">...</span>
             </div>
 
             <!-- Health sub-metrics -->
             <div class="space-y-3 pt-1">
               <div>
-                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-605">
+                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-600">
                   <span>Cash Flow Performance</span>
                   <span id="health-cash">...</span>
                 </div>
-                <div class="w-full bg-slate-101 h-1.5 rounded-full overflow-hidden">
+                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                   <div id="bar-cash" class="bg-emerald-500 h-full"></div>
                 </div>
               </div>
 
               <div>
-                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-605">
+                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-600">
                   <span>Growth Momentum</span>
                   <span id="health-growth">...</span>
                 </div>
-                <div class="w-full bg-slate-101 h-1.5 rounded-full overflow-hidden">
+                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                   <div id="bar-growth" class="bg-emerald-500 h-full"></div>
                 </div>
               </div>
 
               <div>
-                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-605">
+                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-600">
                   <span>Profitability Health</span>
                   <span id="health-profit">...</span>
                 </div>
-                <div class="w-full bg-slate-101 h-1.5 rounded-full overflow-hidden">
+                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                   <div id="bar-profit" class="bg-emerald-500 h-full"></div>
                 </div>
               </div>
 
               <div>
-                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-605">
+                <div class="flex justify-between text-xs mb-1 font-semibold text-slate-600">
                   <span>Relative Value</span>
                   <span id="health-value">...</span>
                 </div>
-                <div class="w-full bg-slate-101 h-1.5 rounded-full overflow-hidden">
+                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                   <div id="bar-value" class="bg-emerald-500 h-full"></div>
                 </div>
               </div>
@@ -770,19 +772,19 @@ const HTML_CONTENT = `
 
           <!-- prebuilt financial models card -->
           <div class="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm">
-            <h3 class="text-sm font-extrabold text-slate-805 border-b border-slate-100 pb-2">Prebuilt Valuation Models</h3>
+            <h3 class="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2">Prebuilt Valuation Models</h3>
             <div class="space-y-2.5">
-              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-105 rounded-lg">
-                <span class="text-slate-505 font-semibold">10Y DCF EBITDA Multiple</span>
-                <span id="model-dcf-ebitda" class="font-bold text-slate-705">...</span>
+              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-100 rounded-lg">
+                <span class="text-slate-500 font-semibold">10Y DCF EBITDA Multiple</span>
+                <span id="model-dcf-ebitda" class="font-bold text-slate-700">...</span>
               </div>
-              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-105 rounded-lg">
-                <span class="text-slate-505 font-semibold">5Y Revenue Growth Exit</span>
-                <span id="model-dcf-revenue" class="font-bold text-slate-705">...</span>
+              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-100 rounded-lg">
+                <span class="text-slate-500 font-semibold">5Y Revenue Growth Exit</span>
+                <span id="model-dcf-revenue" class="font-bold text-slate-700">...</span>
               </div>
-              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-105 rounded-lg">
-                <span class="text-slate-505 font-semibold">Dividend Discount Model (DDM)</span>
-                <span id="model-ddm" class="font-bold text-slate-705">...</span>
+              <div class="flex justify-between items-center text-xs p-2 bg-slate-50 border border-slate-100 rounded-lg">
+                <span class="text-slate-500 font-semibold">Dividend Discount Model (DDM)</span>
+                <span id="model-ddm" class="font-bold text-slate-700">...</span>
               </div>
             </div>
           </div>
@@ -817,14 +819,14 @@ const HTML_CONTENT = `
     async function fetchLiveMetrics() {
       const underlying = document.getElementById('underlyingSelect').value;
       try {
-        const response = await fetch(`/api/data?underlying=\${underlying}`);
+        const response = await fetch(\`/api/data?underlying=\${underlying}\`);
         const data = await response.json();
         
-        document.getElementById('term-nifty').innerText = underlying === 'NIFTY' ? `\${data.spot.toFixed(2)}` : '...';
-        document.getElementById('term-bank').innerText = underlying === 'BANKNIFTY' ? `\${data.spot.toFixed(2)}` : '...';
-        document.getElementById('term-vix').innerText = `\${data.vix.toFixed(2)}`;
+        document.getElementById('term-nifty').innerText = underlying === 'NIFTY' ? \`\${data.spot.toFixed(2)}\` : '...';
+        document.getElementById('term-bank').innerText = underlying === 'BANKNIFTY' ? \`\${data.spot.toFixed(2)}\` : '...';
+        document.getElementById('term-vix').innerText = \`\${data.vix.toFixed(2)}\`;
 
-        document.getElementById('pcr-badge').innerText = `PCR: \${data.pcr}`;
+        document.getElementById('pcr-badge').innerText = \`PCR: \${data.pcr}\`;
         document.getElementById('meta-maxpain').innerText = data.maxPain;
 
         const tbody = document.getElementById('option-chain-body');
@@ -833,9 +835,9 @@ const HTML_CONTENT = `
         data.optionChain.forEach(row => {
           const isAtm = row.strike === data.atm;
           const tr = document.createElement('tr');
-          tr.className = `hover:bg-slate-50/80 \${isAtm ? 'bg-blue-50/40 border-y border-blue-200' : ''}`;
+          tr.className = \`hover:bg-slate-50/80 \${isAtm ? 'bg-blue-50/40 border-y border-blue-200' : ''}\`;
 
-          tr.innerHTML = `
+          tr.innerHTML = \`
             <td class="p-2 text-center text-rose-600 font-bold">\${row.ce.oi}</td>
             <td class="p-2 text-center text-rose-600">\${row.ce.chgPercent}%</td>
             <td class="p-2 text-center text-slate-400">\${row.ce.vol}K</td>
@@ -857,7 +859,7 @@ const HTML_CONTENT = `
             <td class="p-2 text-center text-slate-400">\${row.pe.vol}K</td>
             <td class="p-2 text-center text-emerald-600">\${row.pe.chgPercent}%</td>
             <td class="p-2 text-center text-emerald-600 font-bold">\${row.pe.oi}</td>
-          `;
+          \`;
           tbody.appendChild(tr);
         });
       } catch (err) {
@@ -869,15 +871,15 @@ const HTML_CONTENT = `
     async function fetchProStock() {
       const inputVal = document.getElementById('proSearchSymbol').value || "AAPL";
       try {
-        const res = await fetch(`/api/pro-data?symbol=\${inputVal}`);
+        const res = await fetch(\`/api/pro-data?symbol=\${inputVal}\`);
         const data = await res.json();
 
         // Update Overview Cards
-        document.getElementById('pro-stock-name').innerText = `\${data.name} (\${data.symbol})`;
-        document.getElementById('pro-stock-details').innerText = `\${data.sector} Sector | \${data.industry}`;
-        document.getElementById('pro-stock-price').innerText = `$\${data.price.toFixed(2)}`;
-        document.getElementById('pro-stock-fairval').innerText = `$\${data.fairValue.toFixed(2)}`;
-        document.getElementById('pro-stock-upside').innerText = `+\${data.upsidePercent}%`;
+        document.getElementById('pro-stock-name').innerText = \`\${data.name} (\${data.symbol})\`;
+        document.getElementById('pro-stock-details').innerText = \`\${data.sector} Sector | \${data.industry}\`;
+        document.getElementById('pro-stock-price').innerText = \`$\s\${data.price.toFixed(2)}\`;
+        document.getElementById('pro-stock-fairval').innerText = \`$\s\${data.fairValue.toFixed(2)}\`;
+        document.getElementById('pro-stock-upside').innerText = \`+\${data.upsidePercent}%\`;
         document.getElementById('pro-stock-uncertainty').innerText = data.uncertainty;
         document.getElementById('pro-desc').innerText = data.description;
 
@@ -892,31 +894,31 @@ const HTML_CONTENT = `
         }
 
         // Key Ratios
-        document.getElementById('ratio-pe').innerText = `\${data.keyStats.pe.toFixed(1)}x`;
-        document.getElementById('ratio-yield').innerText = `\${(data.keyStats.divYield * 100).toFixed(2)}%`;
-        document.getElementById('ratio-quick').innerText = `\${data.keyStats.quickRatio.toFixed(2)}x`;
-        document.getElementById('ratio-margin').innerText = `\${(data.keyStats.grossMargin * 100).toFixed(1)}%`;
+        document.getElementById('ratio-pe').innerText = \`\${data.keyStats.pe.toFixed(1)}x\`;
+        document.getElementById('ratio-yield').innerText = \`\${(data.keyStats.divYield * 100).toFixed(2)}%\`;
+        document.getElementById('ratio-quick').innerText = \`\${data.keyStats.quickRatio.toFixed(2)}x\`;
+        document.getElementById('ratio-margin').innerText = \`\${(data.keyStats.grossMargin * 100).toFixed(1)}%\`;
 
         // Financial Health scores (1-5 Scale)
         const healthMap = { 5: "Excellent", 4: "Great", 3: "Fair", 2: "Weak", 1: "At Risk" };
-        document.getElementById('health-overall').innerText = `\${data.financialHealth.overallScore}/5 - \${healthMap[data.financialHealth.overallScore]}`;
+        document.getElementById('health-overall').innerText = \`\${data.financialHealth.overallScore}/5 - \${healthMap[data.financialHealth.overallScore]}\`;
         
-        document.getElementById('health-cash').innerText = `\${data.financialHealth.cashFlowHealth}/5`;
-        document.getElementById('bar-cash').style.width = `\${data.financialHealth.cashFlowHealth * 20}%`;
+        document.getElementById('health-cash').innerText = \`\${data.financialHealth.cashFlowHealth}/5\`;
+        document.getElementById('bar-cash').style.width = \`\${data.financialHealth.cashFlowHealth * 20}%\`;
 
-        document.getElementById('health-growth').innerText = `\${data.financialHealth.growthHealth}/5`;
-        document.getElementById('bar-growth').style.width = `\${data.financialHealth.growthHealth * 20}%`;
+        document.getElementById('health-growth').innerText = \`\${data.financialHealth.growthHealth}/5\`;
+        document.getElementById('bar-growth').style.width = \`\${data.financialHealth.growthHealth * 20}%\`;
 
-        document.getElementById('health-profit').innerText = `\${data.financialHealth.profitHealth}/5`;
-        document.getElementById('bar-profit').style.width = `\${data.financialHealth.profitHealth * 20}%`;
+        document.getElementById('health-profit').innerText = \`\${data.financialHealth.profitHealth}/5\`;
+        document.getElementById('bar-profit').style.width = \`\${data.financialHealth.profitHealth * 20}%\`;
 
-        document.getElementById('health-value').innerText = `\${data.financialHealth.valueHealth}/5`;
-        document.getElementById('bar-value').style.width = `\${data.financialHealth.valueHealth * 20}%`;
+        document.getElementById('health-value').innerText = \`\${data.financialHealth.valueHealth}/5\`;
+        document.getElementById('bar-value').style.width = \`\${data.financialHealth.valueHealth * 20}%\`;
 
         // Valuation Models calculations
-        document.getElementById('model-dcf-ebitda').innerText = `$\${(data.fairValue * 0.98).toFixed(2)}`;
-        document.getElementById('model-dcf-revenue').innerText = `$\${(data.fairValue * 1.02).toFixed(2)}`;
-        document.getElementById('model-ddm').innerText = data.keyStats.divYield > 0 ? `$\${(data.price * 0.85).toFixed(2)}` : "N/A";
+        document.getElementById('model-dcf-ebitda').innerText = \`$\s\${(data.fairValue * 0.98).toFixed(2)}\`;
+        document.getElementById('model-dcf-revenue').innerText = \`$\s\${(data.fairValue * 1.02).toFixed(2)}\`;
+        document.getElementById('model-ddm').innerText = data.keyStats.divYield > 0 ? \`$\s\${(data.price * 0.85).toFixed(2)}\` : "N/A";
 
         // Draw Income Statement table columns dynamically
         const yearsHeader = document.getElementById('statement-years-header');
@@ -941,14 +943,14 @@ const HTML_CONTENT = `
         metricsDef.forEach(metric => {
           const tr = document.createElement('tr');
           tr.className = "hover:bg-slate-50";
-          let rowHtml = `<td class="py-2.5 font-bold text-slate-800 font-sans text-xs">\${metric.label}</td>`;
+          let rowHtml = \`<td class="py-2.5 font-bold text-slate-800 font-sans text-xs">\${metric.label}</td>\`;
           
           data.statementYears.forEach(col => {
             const val = col[metric.key];
             const formatted = val >= 1000000000 
-              ? `\${(val / 1000000000).toFixed(1)}B` 
-              : `\${(val / 1000000).toFixed(1)}M`;
-            rowHtml += `<td class="py-2.5 text-right font-medium text-slate-700">\${formatted}</td>`;
+              ? \`\${(val / 1000000000).toFixed(1)}B\` 
+              : \`\${(val / 1000000).toFixed(1)}M\`;
+            rowHtml += \`<td class="py-2.5 text-right font-medium text-slate-700">\${formatted}</td>\`;
           });
           
           tr.innerHTML = rowHtml;
