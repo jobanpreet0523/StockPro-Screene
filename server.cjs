@@ -948,47 +948,6 @@ app.get("/indices", (req, res) => {
     sensex: sensex ? { price: sensex.price, change: sensex.changePercent } : { price: 76693.35, change: 0.64 }
   });
 });
-app.get("/landing", (req, res) => {
-  res.redirect("/");
-});
-app.get("/landing-page.html", (req, res) => {
-  res.redirect("/");
-});
-app.get("/screener", (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
-  const filePath = import_path.default.join(process.cwd(), isProd ? "dist/screener.html" : "screener.html");
-  res.sendFile(filePath);
-});
-app.get("/screener.html", (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
-  const filePath = import_path.default.join(process.cwd(), isProd ? "dist/screener.html" : "screener.html");
-  res.sendFile(filePath);
-});
-app.get("/dashboard", (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
-  const filePath = import_path.default.join(process.cwd(), isProd ? "dist/dashboard.html" : "dashboard.html");
-  res.sendFile(filePath);
-});
-app.get("/fo", (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
-  const filePath = import_path.default.join(process.cwd(), isProd ? "dist/fo.html" : "fo.html");
-  res.sendFile(filePath);
-});
-app.get("/dashboard.html", (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
-  const filePath = import_path.default.join(process.cwd(), isProd ? "dist/dashboard.html" : "dashboard.html");
-  res.sendFile(filePath);
-});
-app.get("/fo.html", (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
-  const filePath = import_path.default.join(process.cwd(), isProd ? "dist/fo.html" : "fo.html");
-  res.sendFile(filePath);
-});
-app.get("/live-data.js", (req, res) => {
-  const isProd = process.env.NODE_ENV === "production";
-  const filePath = import_path.default.join(process.cwd(), isProd ? "dist/live-data.js" : "live-data.js");
-  res.sendFile(filePath);
-});
 app.get("/api/download-zip", (req, res) => {
   try {
     const zip = new import_adm_zip.default();
