@@ -195,12 +195,27 @@ export default function App() {
       </main>
 
       {/* Humble Footer footer bar */}
-      <footer className="bg-slate-950/80 border-t border-slate-850/60 text-slate-500 text-center py-4 font-mono text-[10px] mt-10">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>&copy; StockPro Screener. All derivative analytics calculated real-time.</span>
-          <div className="flex gap-4">
-            <span className="hover:text-slate-350 transition cursor-pointer">Security Protocol v4.1</span>
-            <span className="hover:text-slate-350 transition cursor-pointer">Live Node Status: Active</span>
+      <footer className="bg-slate-950/80 border-t border-slate-850/60 text-slate-500 font-mono text-[10px] mt-16 py-10">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="flex flex-col gap-2">
+            <h4 className="text-slate-300 font-bold uppercase tracking-wider">StockPro Screener</h4>
+            <p>&copy; {new Date().getFullYear()} StockPro. All rights reserved.</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-slate-300 font-bold uppercase tracking-wider">Protocol</h4>
+            <span className="hover:text-slate-300 transition cursor-pointer">Security v4.1</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">Status: Active</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-slate-300 font-bold uppercase tracking-wider">Disclaimer</h4>
+            <p className="leading-relaxed">
+              Financial data provided for educational purposes only. Not investment advice. Analyze with caution.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-slate-300 font-bold uppercase tracking-wider">Support</h4>
+            <span className="hover:text-slate-300 transition cursor-pointer">Contact Us</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">Privacy Policy</span>
           </div>
         </div>
       </footer>
