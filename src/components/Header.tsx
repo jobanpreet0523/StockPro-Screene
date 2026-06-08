@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink } from 'lucide-react';
 import { Stock, IndexData } from '../types';
 
 interface HeaderProps {
@@ -24,6 +24,56 @@ export default function Header({
   const [showDropdown, setShowDropdown] = useState(false);
   const [prevPrices, setPrevPrices] = useState<Record<string, number>>({});
   const [flashStates, setFlashStates] = useState<Record<string, 'up' | 'down' | null>>({});
+  const [marketStatus, setMarketStatus] = useState<{
+    isOpen: boolean;
+    statusText: string;
+    isWeekend: boolean;
+  }>({ isOpen: false, statusText: 'Checking Status...', isWeekend: false });
+
+  // Monitor stock/index exchange session in IST
+  useEffect(() => {
+    const checkMarketStatus = () => {
+      const now = new Date();
+      // UTC to IST (+5:30)
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const ist = new Date(utc + (3600000 * 5.5));
+      
+      const day = ist.getDay(); // 0: Sunday, 6: Saturday
+      const hours = ist.getHours();
+      const minutes = ist.getMinutes();
+      const totalMinutes = hours * 60 + minutes;
+      
+      const marketOpenMinutes = 9 * 60 + 15;  // 9:15 AM
+      const marketCloseMinutes = 15 * 60 + 30; // 3:30 PM
+      
+      const isWeekend = (day === 0 || day === 6);
+      const isWithinHours = totalMinutes >= marketOpenMinutes && totalMinutes < marketCloseMinutes;
+      
+      if (isWeekend) {
+        setMarketStatus({
+          isOpen: false,
+          statusText: 'Market Closed (Weekend)',
+          isWeekend: true
+        });
+      } else if (!isWithinHours) {
+        setMarketStatus({
+          isOpen: false,
+          statusText: totalMinutes < marketOpenMinutes ? 'Market Closed (Pre-Open)' : 'Market Closed (After Hours)',
+          isWeekend: false
+        });
+      } else {
+        setMarketStatus({
+          isOpen: true,
+          statusText: 'Market Open (Live)',
+          isWeekend: false
+        });
+      }
+    };
+    
+    checkMarketStatus();
+    const intervalId = setInterval(checkMarketStatus, 10000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Detect price changes and trigger green/red visual flashes
   useEffect(() => {
@@ -66,10 +116,24 @@ export default function Header({
     <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50 shadow-md" id="app_header">
       {/* Ticker Marquee Bar */}
       <div className="bg-black/40 border-b border-slate-850 py-1.5 px-4 overflow-hidden text-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-emerald-400 font-semibold uppercase tracking-wider text-[10px]">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Live Feed
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className={`flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] ${marketStatus.isOpen ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${marketStatus.isOpen ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              {marketStatus.isOpen ? 'LIVE FEED ACTIVE' : 'VIRTUAL FEED ACTIVE'}
+            </div>
+            <span className={`text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono ${
+              marketStatus.isOpen 
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' 
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/25'
+            }`}>
+              {marketStatus.statusText}
+            </span>
+            {!marketStatus.isOpen && (
+              <span className="text-[9px] text-slate-450 hidden md:inline font-medium">
+                — Offline practice mode enabled (micro-ticks active)
+              </span>
+            )}
           </div>
           <div className="flex-1 overflow-hidden ml-6 relative">
             <div className="flex items-center gap-8 animate-marquee whitespace-nowrap min-w-max">
@@ -182,7 +246,7 @@ export default function Header({
         </div>
 
         {/* Dashboard Tabs & Status */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
           <nav className="flex bg-slate-950 p-1.5 rounded-lg border border-slate-800/50" id="main_navigation">
             <button
               onClick={() => setActiveTab('screener')}
@@ -207,6 +271,17 @@ export default function Header({
               F&O Analytics
             </button>
           </nav>
+
+          {/* Premium Light-mode Landing Page jump button */}
+          <a
+            href="/landing"
+            title="Open Crisp Light Mode Landing Page"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-extrabold tracking-wide bg-blue-600 hover:bg-blue-750 text-white shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <Compass size={14} />
+            <span>F&O Landing (Light)</span>
+            <ExternalLink size={11} className="opacity-80" />
+          </a>
 
           <div className="hidden lg:flex items-center gap-2 py-1.5 px-3 rounded-lg bg-emerald-950/20 border border-emerald-800/30 text-[11px] text-emerald-400 font-medium">
             <ShieldCheck size={13} />

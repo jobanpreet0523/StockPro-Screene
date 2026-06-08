@@ -15,6 +15,7 @@ export default defineConfig(() => {
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html'),
+          screener: path.resolve(__dirname, 'screener.html'),
           dashboard: path.resolve(__dirname, 'dashboard.html'),
           fo: path.resolve(__dirname, 'fo.html'),
           liveData: path.resolve(__dirname, 'live-data.js')

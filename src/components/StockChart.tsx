@@ -29,7 +29,7 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     async function fetchChart() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/chart/${symbol}?interval=${interval}`);
+        const res = await fetch(`/api/chart?symbol=${encodeURIComponent(symbol)}&interval=${interval}`);
         const json = await res.json();
         if (json.status === 'ok') {
           setCandles(json.data);

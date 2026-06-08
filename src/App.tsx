@@ -95,6 +95,29 @@ export default function App() {
           </div>
         )}
 
+        {/* Indian Market Closed Weekend Alert */}
+        {(new Date().getDay() === 0 || new Date().getDay() === 6) && (
+          <div className="mb-6 bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4" id="weekend_market_indicator">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-2.5 rounded-lg shrink-0">
+                <HelpCircle size={18} className="text-amber-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  Indian Stock Markets are Closed (Weekend Session)
+                </h4>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Since today is Sunday, the live National Stock Exchange (NSE) and Bombay Stock Exchange (BSE) are closed. However, <strong>StockPro's Simulated Ticker Engine is Active</strong>, generating real-time micro-ticks on all indices & equities so you can fully test screeners, indicator sliders, options chains, and chart visualizations!
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0 bg-emerald-990 border border-emerald-500/25 text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Simulator Active
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="workspace_grid">
           {activeTab === 'screener' ? (
             /* ================= SCREENER VIEW ================= */
