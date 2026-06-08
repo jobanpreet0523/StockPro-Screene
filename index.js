@@ -4,6 +4,20 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
+    // 1. Authentication Layer
+    if (pathname.startsWith("/api/")) {
+      const authHeader = request.headers.get("Authorization");
+      if (authHeader !== "Bearer StockProSecureToken2026!") {
+        return new Response(JSON.stringify({ error: "Unauthorized access to financial data feeds." }), {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
+    }
+
     // Handle CORS preflight requirements
     if (request.method === "OPTIONS") {
       return new Response(null, {
@@ -15,6 +29,22 @@ export default {
       });
     }
     
+    // 2. Explicit Screener Route Interceptor
+    if (pathname === "/screener" || pathname === "/screener/") {
+      try {
+        const response = await fetch("https://jobanpreet0523.github.io/StockPro-Screene/screener.html");
+        return new Response(response.body, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      } catch (e) {
+        return new Response("Screener failed to load.", { status: 500 });
+      }
+    }
+
     // API Route 1: Options chain live data
     if (pathname === "/api/data") {
       const underlying = url.searchParams.get("underlying") || "NIFTY";
@@ -64,11 +94,6 @@ export default {
           "Access-Control-Allow-Origin": "*"
         }
       });
-    }
-
-    // Clean URL mappings: Explicitly fetch and serve the true source file contents
-    if (pathname === "/screener" || pathname === "/screener/") {
-      return handleStaticAssetsProxy("screener.html");
     }
 
     if (pathname === "/screene" || pathname === "/screene/") {
@@ -171,7 +196,7 @@ async function handleStaticAssetsProxy(filename) {
     });
     
     if (!response.ok) {
-      const rawTargetUrl = `https://raw.githubusercontent.com/jobanpreet0523/stockpro-screener/main/${cleanFilename}`;
+      const rawTargetUrl = `https://raw.githubusercontent.com/jobanpreet0523/StockPro-Screene/main/${cleanFilename}`;
       const rawResponse = await fetch(rawTargetUrl, {
         method: "GET",
         headers: headers
@@ -187,7 +212,7 @@ async function handleStaticAssetsProxy(filename) {
         const extTargetUrl = `${GITHUB_PAGES_BASE}/${fallbackWithExt}`;
         let extResponse = await fetch(extTargetUrl, { method: "GET", headers: headers });
         if (!extResponse.ok) {
-          const rawExtUrl = `https://raw.githubusercontent.com/jobanpreet0523/stockpro-screener/main/${fallbackWithExt}`;
+          const rawExtUrl = `https://raw.githubusercontent.com/jobanpreet0523/StockPro-Screene/main/${fallbackWithExt}`;
           extResponse = await fetch(rawExtUrl, { method: "GET", headers: headers });
         }
         if (extResponse.ok) {
