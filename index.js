@@ -87,15 +87,15 @@ export default {
     }
 
     if (pathname === "/screener" || pathname === "/screener/") {
-      return handleStaticAssetsProxy("screener.html");
+      return handleStaticAssetsProxy("screener.html", request, env);
     }
 
     if (pathname === "/dashboard" || pathname === "/dashboard/") {
-      return handleStaticAssetsProxy("dashboard.html");
+      return handleStaticAssetsProxy("dashboard.html", request, env);
     }
 
     if (pathname === "/fo" || pathname === "/fo/") {
-      return handleStaticAssetsProxy("fo.html");
+      return handleStaticAssetsProxy("fo.html", request, env);
     }
 
     // Handle static assets or assets mapped within the repository
@@ -108,13 +108,13 @@ export default {
       if (resolvedFile.startsWith("/")) {
         resolvedFile = resolvedFile.substring(1);
       }
-      return handleStaticAssetsProxy(resolvedFile);
+      return handleStaticAssetsProxy(resolvedFile, request, env);
     }
     
     // Default page content (Serve root/index.html via proxy, fallback to local string)
     if (pathname === "/" || pathname === "/index.html") {
       try {
-        const proxyResponse = await handleStaticAssetsProxy("index.html");
+        const proxyResponse = await handleStaticAssetsProxy("index.html", request, env);
         if (proxyResponse.status === 200) {
           return proxyResponse;
         }
@@ -129,12 +129,27 @@ export default {
     }
 
     // Fallback response for single-page routing
-    return await handleStaticAssetsProxy("index.html");
+    return await handleStaticAssetsProxy("index.html", request, env);
   }
 };
 
 // HELPER: Dynamic static asset fetcher with clean headers & MIME-type overrides
-async function handleStaticAssetsProxy(filename) {
+async function handleStaticAssetsProxy(filename, request, env) {
+  // If Cloudflare Worker Assets exists, try to fetch it from the assets bundle
+  if (env && env.ASSETS && request) {
+    try {
+      const url = new URL(request.url);
+      url.pathname = "/" + filename;
+      const localRequest = new Request(url.toString(), request);
+      const assetResponse = await env.ASSETS.fetch(localRequest);
+      if (assetResponse.status === 200 || assetResponse.status === 304) {
+        return assetResponse;
+      }
+    } catch (err) {
+      console.error("Local ASSETS fetch failed, falling back to network proxy:", err);
+    }
+  }
+
   const GITHUB_PAGES_BASE = "https://jobanpreet0523.github.io/StockPro-Screene";
   
   let cleanFilename = filename;
@@ -877,8 +892,8 @@ const HTML_CONTENT = `
         // Update Overview Cards
         document.getElementById('pro-stock-name').innerText = \`\${data.name} (\${data.symbol})\`;
         document.getElementById('pro-stock-details').innerText = \`\${data.sector} Sector | \${data.industry}\`;
-        document.getElementById('pro-stock-price').innerText = \`$\s\${data.price.toFixed(2)}\`;
-        document.getElementById('pro-stock-fairval').innerText = \`$\s\${data.fairValue.toFixed(2)}\`;
+        document.getElementById('pro-stock-price').innerText = \`$\${data.price.toFixed(2)}\`;
+        document.getElementById('pro-stock-fairval').innerText = \`$\${data.fairValue.toFixed(2)}\`;
         document.getElementById('pro-stock-upside').innerText = \`+\${data.upsidePercent}%\`;
         document.getElementById('pro-stock-uncertainty').innerText = data.uncertainty;
         document.getElementById('pro-desc').innerText = data.description;
@@ -916,9 +931,9 @@ const HTML_CONTENT = `
         document.getElementById('bar-value').style.width = \`\${data.financialHealth.valueHealth * 20}%\`;
 
         // Valuation Models calculations
-        document.getElementById('model-dcf-ebitda').innerText = \`$\s\${(data.fairValue * 0.98).toFixed(2)}\`;
-        document.getElementById('model-dcf-revenue').innerText = \`$\s\${(data.fairValue * 1.02).toFixed(2)}\`;
-        document.getElementById('model-ddm').innerText = data.keyStats.divYield > 0 ? \`$\s\${(data.price * 0.85).toFixed(2)}\` : "N/A";
+        document.getElementById('model-dcf-ebitda').innerText = \`$\${(data.fairValue * 0.98).toFixed(2)}\`;
+        document.getElementById('model-dcf-revenue').innerText = \`$\${(data.fairValue * 1.02).toFixed(2)}\`;
+        document.getElementById('model-ddm').innerText = data.keyStats.divYield > 0 ? \`$\${(data.price * 0.85).toFixed(2)}\` : "N/A";
 
         // Draw Income Statement table columns dynamically
         const yearsHeader = document.getElementById('statement-years-header');
