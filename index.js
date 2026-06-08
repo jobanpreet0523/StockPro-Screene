@@ -4,7 +4,7 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // 1. Strict Authentication Layer for Financial Data Feeds
+    // 1. Authentication Layer
     if (pathname.startsWith("/api/")) {
       const authHeader = request.headers.get("Authorization");
       if (authHeader !== "Bearer StockProSecureToken2026!") {
@@ -28,6 +28,8 @@ export default {
         }
       });
     }
+    
+    // 2. Explicit Screener Route Interceptor (Removed - now handled by fallback)
 
     // API Route 1: Options chain live data
     if (pathname === "/api/data") {
@@ -41,19 +43,7 @@ export default {
       });
     }
 
-    // API Route 2: InvestingPro Real-Time Stock Fundamentals
-    if (pathname === "/api/pro-data") {
-      const symbol = url.searchParams.get("symbol") || "AAPL";
-      const data = await getProData(symbol);
-      return new Response(JSON.stringify(data), {
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
-    }
-
-    // API Route 3: Live interactive Chart Data
+    // API Route 3: Chart Data
     if (pathname === "/api/chart") {
        const symbol = url.searchParams.get("symbol") || "NIFTY";
        const interval = url.searchParams.get("interval") || "1D";
@@ -80,7 +70,18 @@ export default {
        }
     }
 
-    // Legacy and routing redirection helpers
+    // API Route 2: InvestingPro Real-Time Stock Fundamentals
+    if (pathname === "/api/pro-data") {
+      const symbol = url.searchParams.get("symbol") || "AAPL";
+      const data = await getProData(symbol);
+      return new Response(JSON.stringify(data), {
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
     if (pathname === "/screene" || pathname === "/screene/") {
       return Response.redirect(url.origin + "/screener", 301);
     }
@@ -282,7 +283,6 @@ async function getLivePrice(symbol) {
 
 // HELPER: Get Options Chain Spot & Strike Pricing Models
 async function getOptionData(underlying) {
-  // Query live provider first
   try {
     const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=${underlying}`;
     const response = await fetch(backendUrl);
@@ -344,7 +344,6 @@ async function getOptionData(underlying) {
 
 // HELPER: Fetch, Calculate & Package InvestingPro Live Metrics
 async function getProData(symbol) {
-  // Query live provider first
   try {
     const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/pro-data?symbol=${symbol}`;
     const response = await fetch(backendUrl);
@@ -406,7 +405,7 @@ async function getProData(symbol) {
       symbol: symbol.toUpperCase(),
       name: symbol.toUpperCase() + " Inc",
       price,
-      changePercent: upsidePercent / 10,
+      changePercent: upsidePercent / 10, // Mocked live daily change based on trends
       sector,
       industry,
       description,
@@ -462,9 +461,6 @@ function generateFallbackProData(symbol) {
     ]
   };
 }
-
-// FRONTEND INTERFACE WEB APPLICATION
-const HTML_CONTENT = `...`; // Remaining static HTML template stays unchanged.
 
 // FRONTEND INTERFACE WEB APPLICATION
 const HTML_CONTENT = `
