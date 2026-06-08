@@ -524,57 +524,6 @@ app.get('/indices', (req: Request, res: Response) => {
   });
 });
 
-// Explicit routes for navigating around the multiple website pages
-app.get('/landing', (req: Request, res: Response) => {
-  res.redirect('/');
-});
-
-app.get('/landing-page.html', (req: Request, res: Response) => {
-  res.redirect('/');
-});
-
-app.get('/screener', (req: Request, res: Response) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const filePath = path.join(process.cwd(), isProd ? 'dist/screener.html' : 'screener.html');
-  res.sendFile(filePath);
-});
-
-app.get('/screener.html', (req: Request, res: Response) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const filePath = path.join(process.cwd(), isProd ? 'dist/screener.html' : 'screener.html');
-  res.sendFile(filePath);
-});
-
-app.get('/dashboard', (req: Request, res: Response) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const filePath = path.join(process.cwd(), isProd ? 'dist/dashboard.html' : 'dashboard.html');
-  res.sendFile(filePath);
-});
-
-app.get('/fo', (req: Request, res: Response) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const filePath = path.join(process.cwd(), isProd ? 'dist/fo.html' : 'fo.html');
-  res.sendFile(filePath);
-});
-
-app.get('/dashboard.html', (req: Request, res: Response) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const filePath = path.join(process.cwd(), isProd ? 'dist/dashboard.html' : 'dashboard.html');
-  res.sendFile(filePath);
-});
-
-app.get('/fo.html', (req: Request, res: Response) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const filePath = path.join(process.cwd(), isProd ? 'dist/fo.html' : 'fo.html');
-  res.sendFile(filePath);
-});
-
-app.get('/live-data.js', (req: Request, res: Response) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const filePath = path.join(process.cwd(), isProd ? 'dist/live-data.js' : 'live-data.js');
-  res.sendFile(filePath);
-});
-
 // ZIP Download API Endpoint
 app.get('/api/download-zip', (req: Request, res: Response) => {
   try {
