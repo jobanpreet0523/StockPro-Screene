@@ -1,0 +1,5 @@
+name = "stockpro-screener"
+compatibility_date = "2026-06-08"
+
+[assets]
+directory = "./dist" # Vite compiles static files to the ./dist directory by default
