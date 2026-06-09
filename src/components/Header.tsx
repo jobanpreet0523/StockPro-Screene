@@ -24,6 +24,7 @@ export default function Header({
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showApiModal, setShowApiModal] = useState(false);
   const [prevPrices, setPrevPrices] = useState<Record<string, number>>({});
   const [flashStates, setFlashStates] = useState<Record<string, 'up' | 'down' | null>>({});
   const [marketStatus, setMarketStatus] = useState<{
@@ -117,18 +118,15 @@ export default function Header({
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white sticky top-0 z-50 shadow-md transition-all duration-300" id="app_header">
       {/* Ticker Marquee Bar */}
-      <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-hidden text-xs transition-all duration-300">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-          <div className="flex flex-wrap items-center gap-2" title="Simulated data for demonstration">
+      <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-x-auto sm:overflow-hidden text-[11px] sm:text-xs transition-all duration-300">
+        <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4 sm:flex-row sm:items-center sm:gap-1.5 whitespace-nowrap">
+          <div className="flex items-center gap-2" title="Simulated data for demonstration">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-amber-600 dark:text-amber-400">
               <span className="w-2 h-2 rounded-full animate-pulse bg-amber-500" />
-              DEMO FEED ACTIVE — Connect API for live data
+              DEMO FEED ACTIVE
             </div>
             <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25">
-              DEMO MODE
-            </span>
-            <span className="text-[9px] text-slate-500 dark:text-slate-450 hidden md:inline font-medium">
-              — Simulated data for demonstration
+              DEMO
             </span>
           </div>
           <div className="flex-1 overflow-hidden ml-6 relative">
@@ -304,10 +302,31 @@ export default function Header({
             <ExternalLink size={11} className="opacity-80" />
           </a>
 
-          <div className="hidden lg:flex items-center gap-2 py-1.5 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+          <div className="hidden lg:flex items-center gap-2 py-1.5 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition-colors"
+               onClick={() => setShowApiModal(true)}>
             <ShieldCheck size={13} />
             Secure API
           </div>
+
+          {/* API Documentation Modal */}
+          {showApiModal && (
+            <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-lg">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">API Documentation</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  Placeholder for API documentation. Here you can find details about accessing StockPro's secure endpoints.
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowApiModal(false)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
