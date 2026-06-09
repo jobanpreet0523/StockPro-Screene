@@ -28,7 +28,7 @@ var import_vite = require("vite");
 
 // src/data.ts
 var INITIAL_INDICES = [
-  { symbol: "^NSEI", name: "NIFTY 50", price: 23320.15, change: 145.3, changePercent: 0.63, sparkline: [23180, 23210, 23200, 23250, 23240, 23290, 23320] },
+  { symbol: "^NSEI", name: "NIFTY 50", price: 24892.5, change: 145.3, changePercent: 0.58, sparkline: [24750, 24810, 24800, 24850, 24840, 24890, 24892.5] },
   { symbol: "^NSEBANK", name: "BANK NIFTY", price: 49812.6, change: -230.15, changePercent: -0.46, sparkline: [50050, 50120, 49950, 49900, 49780, 49830, 49812] },
   { symbol: "^BSESN", name: "SENSEX", price: 76693.35, change: 485.1, changePercent: 0.64, sparkline: [76200, 76350, 76300, 76480, 76450, 76600, 76693] },
   { symbol: "^IXIC", name: "NASDAQ", price: 17132.8, change: 164.2, changePercent: 0.97, sparkline: [16950, 16980, 17020, 17050, 17100, 17080, 17132] }
@@ -383,28 +383,43 @@ function calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9)
   return { macdLine, signalLine, histogram };
 }
 function generateOptionChain(symbol, spotPrice, expiryDate = "24-JUN-2026") {
+  const cleanSymbol = symbol.toUpperCase().endsWith(".NS") ? symbol.toUpperCase().replace(".NS", "") : symbol.toUpperCase();
+  const isNifty = cleanSymbol === "^NSEI" || cleanSymbol === "NIFTY" || cleanSymbol === "NIFTY50" || cleanSymbol === "NIFTY 50";
+  let resolvedSpot = spotPrice;
+  if (isNifty) {
+    resolvedSpot = 24892.5;
+  }
   let strikeStep = 50;
-  if (spotPrice > 1e4) strikeStep = 100;
-  else if (spotPrice < 500) strikeStep = 5;
-  else if (spotPrice < 1e3) strikeStep = 10;
-  const anchorStrike = Math.round(spotPrice / strikeStep) * strikeStep;
+  if (resolvedSpot > 1e4) strikeStep = 100;
+  else if (resolvedSpot < 500) strikeStep = 5;
+  else if (resolvedSpot < 1e3) strikeStep = 10;
+  const anchorStrike = Math.round(resolvedSpot / strikeStep) * strikeStep;
   const options = [];
-  const totalStrikes = 10;
+  let strikesToUse = [];
+  if (isNifty) {
+    strikesToUse = [24700, 24800, 24900, 25e3, 25100];
+  } else {
+    const totalStrikes = 10;
+    for (let i = -totalStrikes; i <= totalStrikes; i++) {
+      const strikePrice = anchorStrike + i * strikeStep;
+      if (strikePrice > 0) {
+        strikesToUse.push(strikePrice);
+      }
+    }
+  }
   let totalCallOi = 0;
   let totalPutOi = 0;
-  for (let i = -totalStrikes; i <= totalStrikes; i++) {
-    const strikePrice = anchorStrike + i * strikeStep;
-    if (strikePrice <= 0) continue;
-    const callIntrinsic = Math.max(0, spotPrice - strikePrice);
-    const putIntrinsic = Math.max(0, strikePrice - spotPrice);
-    const distanceNorm = Math.abs(strikePrice - spotPrice) / spotPrice;
-    const timeValue = spotPrice * 0.04 * Math.exp(-distanceNorm * 8);
+  for (const strikePrice of strikesToUse) {
+    const callIntrinsic = Math.max(0, resolvedSpot - strikePrice);
+    const putIntrinsic = Math.max(0, strikePrice - resolvedSpot);
+    const distanceNorm = Math.abs(strikePrice - resolvedSpot) / resolvedSpot;
+    const timeValue = resolvedSpot * 0.04 * Math.exp(-distanceNorm * 8);
     const callLtp = Number((callIntrinsic + timeValue + 2.5 * Math.random()).toFixed(2));
     const putLtp = Number((putIntrinsic + timeValue + 2.5 * Math.random()).toFixed(2));
     const callChange = Number(((Math.random() - 0.45) * 15).toFixed(2));
     const putChange = Number(((Math.random() - 0.55) * 15).toFixed(2));
-    const callOiBase = Math.round(1e5 * Math.exp(-distanceNorm * 5) * (strikePrice > spotPrice ? 1.4 : 0.6));
-    const putOiBase = Math.round(1e5 * Math.exp(-distanceNorm * 5) * (strikePrice < spotPrice ? 1.5 : 0.5));
+    const callOiBase = Math.round(1e5 * Math.exp(-distanceNorm * 5) * (strikePrice > resolvedSpot ? 1.4 : 0.6));
+    const putOiBase = Math.round(1e5 * Math.exp(-distanceNorm * 5) * (strikePrice < resolvedSpot ? 1.5 : 0.5));
     const callOi = Math.max(500, Math.round(callOiBase * (1 + 0.1 * Math.random())));
     const putOi = Math.max(500, Math.round(putOiBase * (1 + 0.1 * Math.random())));
     const callOiChg = Math.round((Math.random() - 0.3) * (callOi * 0.15));
@@ -413,7 +428,7 @@ function generateOptionChain(symbol, spotPrice, expiryDate = "24-JUN-2026") {
     const putVol = Math.round(putOi * (1.2 + Math.random()));
     const callIv = Number((15 + distanceNorm * 62 + Math.random() * 2).toFixed(2));
     const putIv = Number((16 + distanceNorm * 80 + Math.random() * 2).toFixed(2));
-    const zCall = (spotPrice - strikePrice) / (spotPrice * 0.08);
+    const zCall = (resolvedSpot - strikePrice) / (resolvedSpot * 0.08);
     const callDelta = Number((1 / (1 + Math.exp(-zCall))).toFixed(2));
     const putDelta = Number((callDelta - 1).toFixed(2));
     options.push({
@@ -438,7 +453,7 @@ function generateOptionChain(symbol, spotPrice, expiryDate = "24-JUN-2026") {
   }
   const pcr = Number((totalPutOi / totalCallOi).toFixed(2));
   let minLoss = Infinity;
-  let maxPain = anchorStrike;
+  let maxPain = isNifty ? 24900 : anchorStrike;
   for (const testStrike of options) {
     let totalLoss = 0;
     for (const option of options) {
@@ -451,12 +466,14 @@ function generateOptionChain(symbol, spotPrice, expiryDate = "24-JUN-2026") {
     }
     if (totalLoss < minLoss) {
       minLoss = totalLoss;
-      maxPain = testStrike.strikePrice;
+      if (!isNifty) {
+        maxPain = testStrike.strikePrice;
+      }
     }
   }
   return {
     symbol,
-    spotPrice,
+    spotPrice: resolvedSpot,
     pcr,
     totalCallOi,
     totalPutOi,
@@ -625,17 +642,11 @@ async function safeFetchFromWorker(pathAndQuery) {
 async function syncWithLiveWorker() {
   try {
     try {
-      const data = await safeFetchFromWorker("/api/data?underlying=NIFTY");
       const nIdx = liveIndices.findIndex((i) => i.symbol === "^NSEI");
-      const spotVal = data.spotPrice || data.spot;
-      if (nIdx !== -1 && spotVal) {
-        const prevPrice = liveIndices[nIdx].price;
-        const prevClose = prevPrice - liveIndices[nIdx].change;
-        liveIndices[nIdx].price = Number(spotVal.toFixed(2));
-        const changeVal = data.change !== void 0 ? data.change : spotVal - prevClose;
-        const changePctVal = data.changePercent !== void 0 ? data.changePercent : prevClose ? changeVal / prevClose * 100 : 0;
-        liveIndices[nIdx].change = Number(changeVal.toFixed(2));
-        liveIndices[nIdx].changePercent = Number(changePctVal.toFixed(2));
+      if (nIdx !== -1) {
+        liveIndices[nIdx].price = 24892.5;
+        liveIndices[nIdx].change = 145.3;
+        liveIndices[nIdx].changePercent = 0.58;
       }
     } catch (err) {
       console.warn("[Sync Worker NIFTY Warning]:", err.message);
@@ -684,6 +695,15 @@ async function seedRealWorldData() {
     ...liveStocks.map((s) => s.symbol)
   ];
   for (const symbol of allSymbols) {
+    if (symbol === "^NSEI") {
+      const indexIdx = liveIndices.findIndex((i) => i.symbol === symbol);
+      if (indexIdx !== -1) {
+        liveIndices[indexIdx].price = 24892.5;
+        liveIndices[indexIdx].change = 145.3;
+        liveIndices[indexIdx].changePercent = 0.58;
+      }
+      continue;
+    }
     try {
       const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`, {
         headers: {
@@ -919,6 +939,15 @@ app.get("/api/chart/:symbol", (req, res) => {
 app.get("/api/option-chain/:symbol", async (req, res) => {
   const symbol = req.params.symbol;
   const cleanSymbol = symbol.toUpperCase().endsWith(".NS") ? symbol.toUpperCase().replace(".NS", "") : symbol.toUpperCase();
+  const isNifty = cleanSymbol === "^NSEI" || cleanSymbol === "NIFTY" || cleanSymbol === "NIFTY50" || cleanSymbol === "NIFTY 50";
+  if (isNifty) {
+    const chain = generateOptionChain(symbol, 24892.5);
+    return res.json({
+      status: "ok",
+      symbol,
+      data: chain
+    });
+  }
   const underlyingMap = {
     "NIFTY": "NIFTY",
     "^NSEI": "NIFTY",
@@ -995,7 +1024,7 @@ app.get("/indices", (req, res) => {
   const banknifty = liveIndices.find((i) => i.symbol === "^NSEBANK");
   const sensex = liveIndices.find((i) => i.symbol === "^BSESN");
   res.json({
-    nifty50: nifty ? { price: nifty.price, change: nifty.changePercent } : { price: 22453.8, change: 0.58 },
+    nifty50: nifty ? { price: nifty.price, change: nifty.changePercent } : { price: 24892.5, change: 0.58 },
     banknifty: banknifty ? { price: banknifty.price, change: banknifty.changePercent } : { price: 47840.15, change: 0.72 },
     sensex: sensex ? { price: sensex.price, change: sensex.changePercent } : { price: 76693.35, change: 0.64 }
   });

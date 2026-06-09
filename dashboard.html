@@ -647,7 +647,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 //  STATE
 // ═══════════════════════════════════════════════════
 const IDX={
-  NIFTY:     {spot:22480,step:50, lot:75 },
+  NIFTY:     {spot:24892.50,step:100, lot:75 },
   BANKNIFTY: {spot:48250,step:100,lot:15 },
   FINNIFTY:  {spot:21150,step:50, lot:40 },
 };
@@ -689,12 +689,22 @@ function ri(a,b,s){return Math.floor(a+(b-a)*sr(hs(s)));}
 // ─── GENERATE CHAIN ───────────────────────────────
 function genChain(){
   const cfg=IDX[curIdx];
-  const spot=cfg.spot+rn(-cfg.step*1.5,cfg.step*1.5,curIdx+Date.now()%2000);
-  const atm=Math.round(spot/cfg.step)*cfg.step;
-  const half=Math.floor(strikesN/2);
+  const isNifty = curIdx === "NIFTY";
+  const spot = isNifty ? 24892.50 : (cfg.spot + rn(-cfg.step*1.5,cfg.step*1.5,curIdx+Date.now()%2000));
+  const atm = isNifty ? 24900 : (Math.round(spot/cfg.step)*cfg.step);
+  
+  let strikesList = [];
+  if (isNifty) {
+    strikesList = [24700, 24800, 24900, 25000, 25100];
+  } else {
+    const half=Math.floor(strikesN/2);
+    for(let i=-half;i<=half;i++){
+      strikesList.push(atm+i*cfg.step);
+    }
+  }
+  
   const rows=[];
-  for(let i=-half;i<=half;i++){
-    const strike=atm+i*cfg.step;
+  for(const strike of strikesList){
     const d=Math.abs((strike-atm)/atm);
     const ceIV=+(14+d*40+rn(-2,3,strike+"civ")).toFixed(1);
     const peIV=+(14+d*45+rn(-2,3,strike+"piv")).toFixed(1);
