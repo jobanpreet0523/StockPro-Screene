@@ -116,21 +116,13 @@ async function safeFetchFromWorker(pathAndQuery: string): Promise<any> {
 
 async function syncWithLiveWorker() {
   try {
-    // 1. Sync NIFTY index
+    // 1. Sync NIFTY index (Locked to 24892.50 as requested)
     try {
-      const data = await safeFetchFromWorker('/api/data?underlying=NIFTY');
       const nIdx = liveIndices.findIndex(i => i.symbol === '^NSEI');
-      const spotVal = data.spotPrice || data.spot;
-      if (nIdx !== -1 && spotVal) {
-        const prevPrice = liveIndices[nIdx].price;
-        const prevClose = prevPrice - liveIndices[nIdx].change;
-        liveIndices[nIdx].price = Number(spotVal.toFixed(2));
-        
-        const changeVal = data.change !== undefined ? data.change : (spotVal - prevClose);
-        const changePctVal = data.changePercent !== undefined ? data.changePercent : (prevClose ? (changeVal / prevClose) * 100 : 0);
-        
-        liveIndices[nIdx].change = Number(changeVal.toFixed(2));
-        liveIndices[nIdx].changePercent = Number(changePctVal.toFixed(2));
+      if (nIdx !== -1) {
+        liveIndices[nIdx].price = 24892.50;
+        liveIndices[nIdx].change = 145.30;
+        liveIndices[nIdx].changePercent = 0.58;
       }
     } catch (err: any) {
       console.warn('[Sync Worker NIFTY Warning]:', err.message);
@@ -194,6 +186,16 @@ async function seedRealWorldData() {
   ];
 
   for (const symbol of allSymbols) {
+    if (symbol === '^NSEI') {
+      const indexIdx = liveIndices.findIndex(i => i.symbol === symbol);
+      if (indexIdx !== -1) {
+        liveIndices[indexIdx].price = 24892.50;
+        liveIndices[indexIdx].change = 145.30;
+        liveIndices[indexIdx].changePercent = 0.58;
+      }
+      continue;
+    }
+    
     try {
       // Fetching from Yahoo Finance chart endpoint
       const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`, {
@@ -476,6 +478,16 @@ app.get('/api/chart/:symbol', (req: Request, res: Response) => {
 app.get('/api/option-chain/:symbol', async (req: Request, res: Response) => {
   const symbol = req.params.symbol;
   const cleanSymbol = symbol.toUpperCase().endsWith('.NS') ? symbol.toUpperCase().replace('.NS', '') : symbol.toUpperCase();
+  const isNifty = cleanSymbol === '^NSEI' || cleanSymbol === 'NIFTY' || cleanSymbol === 'NIFTY50' || cleanSymbol === 'NIFTY 50';
+
+  if (isNifty) {
+    const chain = generateOptionChain(symbol, 24892.50);
+    return res.json({
+      status: 'ok',
+      symbol,
+      data: chain
+    });
+  }
   
   // Decide worker-compatible index name NIFTY, BANKNIFTY, FINNIFTY
   const underlyingMap: Record<string, string> = {
@@ -567,7 +579,7 @@ app.get('/indices', (req: Request, res: Response) => {
   const sensex = liveIndices.find(i => i.symbol === '^BSESN');
 
   res.json({
-    nifty50: nifty ? { price: nifty.price, change: nifty.changePercent } : { price: 22453.80, change: 0.58 },
+    nifty50: nifty ? { price: nifty.price, change: nifty.changePercent } : { price: 24892.50, change: 0.58 },
     banknifty: banknifty ? { price: banknifty.price, change: banknifty.changePercent } : { price: 47840.15, change: 0.72 },
     sensex: sensex ? { price: sensex.price, change: sensex.changePercent } : { price: 76693.35, change: 0.64 }
   });

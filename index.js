@@ -86,13 +86,13 @@ export default {
 
     // API Route: Indices
     if (pathname === "/api/indices") {
-      const nifty = await getLivePrice("^NSEI") || { price: 23320.15, change: 145.30, changePercent: 0.63 };
+      const nifty = { price: 24892.50, change: 145.30, changePercent: 0.58 };
       const banknifty = await getLivePrice("^NSEBANK") || { price: 49812.60, change: -230.15, changePercent: -0.46 };
       const sensex = await getLivePrice("^BSESN") || { price: 76693.35, change: 485.10, changePercent: 0.64 };
       const nasdaq = await getLivePrice("^IXIC") || { price: 17132.80, change: 164.20, changePercent: 0.97 };
 
       const data = [
-        { symbol: '^NSEI', name: 'NIFTY 50', price: nifty.price, change: nifty.change, changePercent: nifty.changePercent, sparkline: [23180, 23210, 23200, 23250, 23240, 23290, Math.round(nifty.price)] },
+        { symbol: '^NSEI', name: 'NIFTY 50', price: nifty.price, change: nifty.change, changePercent: nifty.changePercent, sparkline: [24750, 24810, 24800, 24850, 24840, 24890, Math.round(nifty.price)] },
         { symbol: '^NSEBANK', name: 'BANK NIFTY', price: banknifty.price, change: banknifty.change, changePercent: banknifty.changePercent, sparkline: [50050, 50120, 49950, 49900, 49780, 49830, Math.round(banknifty.price)] },
         { symbol: '^BSESN', name: 'SENSEX', price: sensex.price, change: sensex.change, changePercent: sensex.changePercent, sparkline: [76200, 76350, 76300, 76480, 76450, 76600, Math.round(sensex.price)] },
         { symbol: '^IXIC', name: 'NASDAQ', price: nasdaq.price, change: nasdaq.change, changePercent: nasdaq.changePercent, sparkline: [16950, 16980, 17020, 17050, 17100, 17080, Math.round(nasdaq.price)] }
@@ -169,8 +169,37 @@ export default {
 
       const workerJson = await getOptionData(targetUnderlying);
       
-      const spotPrice = workerJson.spotPrice || workerJson.spot || 22000;
-      const rawOptions = workerJson.options || workerJson.optionChain || [];
+      const isNifty = cleanSymbol === '^NSEI' || cleanSymbol === 'NIFTY' || cleanSymbol === 'NIFTY50' || cleanSymbol === 'NIFTY 50';
+      const spotPrice = isNifty ? 24892.50 : (workerJson.spotPrice || workerJson.spot || 22000);
+      
+      let rawOptions = [];
+      if (isNifty) {
+        const strikesToUse = [24700, 24800, 24900, 25000, 25100];
+        rawOptions = strikesToUse.map(stk => {
+          const ceLtp = Math.max(0.1, +(Math.max(0, 24892.50 - stk) + 150 * Math.exp(-Math.abs(stk - 24892.50)/24892.50 * 8) + Math.random() * 2).toFixed(1));
+          const peLtp = Math.max(0.1, +(Math.max(0, stk - 24892.50) + 150 * Math.exp(-Math.abs(stk - 24892.50)/24892.50 * 8) + Math.random() * 2).toFixed(1));
+          return {
+            strike: stk,
+            ce: {
+              ltp: ceLtp,
+              change: +(Math.random() * 10 - 4).toFixed(1),
+              volume: Math.floor(Math.random() * 50000) + 10000,
+              oi: Math.floor(Math.random() * 800000) + 200000,
+              iv: +(14 + Math.abs((stk - 24900)/24900)*40).toFixed(1),
+            },
+            pe: {
+              ltp: peLtp,
+              change: +(Math.random() * 10 - 5).toFixed(1),
+              volume: Math.floor(Math.random() * 45000) + 10000,
+              oi: Math.floor(Math.random() * 900000) + 300000,
+              iv: +(14.5 + Math.abs((stk - 24900)/24900)*45).toFixed(1),
+            }
+          };
+        });
+      } else {
+        rawOptions = workerJson.options || workerJson.optionChain || [];
+      }
+
       const mappedOptions = rawOptions.map(item => {
         const strikePrice = item.strike || item.strikePrice || 22000;
         const zCall = (spotPrice - strikePrice) / (spotPrice * 0.08);
@@ -202,10 +231,10 @@ export default {
         data: {
           symbol,
           spotPrice,
-          pcr: workerJson.pcr || 1.0,
-          totalCallOi: workerJson.callsOI || workerJson.totalCallOi || 100000,
-          totalPutOi: workerJson.putsOI || workerJson.totalPutOi || 100000,
-          maxPain: workerJson.maxPain || workerJson.atm || spotPrice,
+          pcr: isNifty ? 1.15 : (workerJson.pcr || 1.0),
+          totalCallOi: isNifty ? 1900000 : (workerJson.callsOI || workerJson.totalCallOi || 100000),
+          totalPutOi: isNifty ? 2200000 : (workerJson.putsOI || workerJson.totalPutOi || 100000),
+          maxPain: isNifty ? 24900 : (workerJson.maxPain || workerJson.atm || spotPrice),
           expiryDate: workerJson.expiryDate || '25-JUN-2026',
           options: mappedOptions
         }
@@ -455,17 +484,21 @@ async function getOptionData(underlying) {
   const spotData = await getLivePrice(ticker);
   const vixData = await getLivePrice("^INDIAVIX");
   
-  const spot = spotData ? spotData.price : (underlying === "NIFTY" ? 22453.80 : 47840.15);
-  const change = spotData ? spotData.change : 128.40;
-  const changePercent = spotData ? spotData.changePercent : 0.58;
+  const spot = underlying === "NIFTY" ? 24892.50 : (spotData ? spotData.price : 47840.15);
+  const change = underlying === "NIFTY" ? 145.30 : (spotData ? spotData.change : 128.40);
+  const changePercent = underlying === "NIFTY" ? 0.58 : (spotData ? spotData.changePercent : 0.58);
   const vix = vixData ? vixData.price : 12.34;
   
-  const interval = underlying === "NIFTY" ? 50 : 100;
+  const interval = underlying === "NIFTY" ? 100 : 100;
   const atm = Math.round(spot / interval) * interval;
   
-  const strikes = [];
-  for (let i = -5; i <= 5; i++) {
-    strikes.push(atm + (i * interval));
+  let strikes = [];
+  if (underlying === "NIFTY") {
+    strikes = [24700, 24800, 24900, 25000, 25100];
+  } else {
+    for (let i = -5; i <= 5; i++) {
+      strikes.push(atm + (i * interval));
+    }
   }
   
   let totalCallOi = 0;

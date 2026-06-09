@@ -187,7 +187,7 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
         if (isIndex) {
           if (cleanSymbol.includes('BANKNIFTY') || cleanSymbol.includes('BANK') || cleanSymbol === '^NSEBANK') spotPrice = 49812.60;
           else if (cleanSymbol.includes('FIN')) spotPrice = 21450.00;
-          else spotPrice = 23320.15;
+          else spotPrice = 24892.50;
         } else {
           const matchedStock = INITIAL_STOCKS.find(s => s.symbol.replace('.NS', '') === cleanSymbol);
           if (matchedStock) spotPrice = matchedStock.price;

@@ -1,7 +1,7 @@
 import { Stock, IndexData, OptionData, OptionChain, ChartDataPoint } from './types';
 
 export const INITIAL_INDICES: IndexData[] = [
-  { symbol: '^NSEI', name: 'NIFTY 50', price: 23320.15, change: 145.30, changePercent: 0.63, sparkline: [23180, 23210, 23200, 23250, 23240, 23290, 23320] },
+  { symbol: '^NSEI', name: 'NIFTY 50', price: 24892.50, change: 145.30, changePercent: 0.58, sparkline: [24750, 24810, 24800, 24850, 24840, 24890, 24892.50] },
   { symbol: '^NSEBANK', name: 'BANK NIFTY', price: 49812.60, change: -230.15, changePercent: -0.46, sparkline: [50050, 50120, 49950, 49900, 49780, 49830, 49812] },
   { symbol: '^BSESN', name: 'SENSEX', price: 76693.35, change: 485.10, changePercent: 0.64, sparkline: [76200, 76350, 76300, 76480, 76450, 76600, 76693] },
   { symbol: '^IXIC', name: 'NASDAQ', price: 17132.80, change: 164.20, changePercent: 0.97, sparkline: [16950, 16980, 17020, 17050, 17100, 17080, 17132] }
@@ -380,34 +380,48 @@ export function calculateMACD(data: number[], fastPeriod = 12, slowPeriod = 26, 
 
 // Option Chain Data Generator
 export function generateOptionChain(symbol: string, spotPrice: number, expiryDate = '24-JUN-2026'): OptionChain {
+  const cleanSymbol = symbol.toUpperCase().endsWith('.NS') ? symbol.toUpperCase().replace('.NS', '') : symbol.toUpperCase();
+  const isNifty = cleanSymbol === '^NSEI' || cleanSymbol === 'NIFTY' || cleanSymbol === 'NIFTY50' || cleanSymbol === 'NIFTY 50';
+
+  let resolvedSpot = spotPrice;
+  if (isNifty) {
+    resolvedSpot = 24892.50;
+  }
+
   // Option strike step depends on price scale
   let strikeStep = 50;
-  if (spotPrice > 10000) strikeStep = 100;
-  else if (spotPrice < 500) strikeStep = 5;
-  else if (spotPrice < 1000) strikeStep = 10;
+  if (resolvedSpot > 10000) strikeStep = 100;
+  else if (resolvedSpot < 500) strikeStep = 5;
+  else if (resolvedSpot < 1000) strikeStep = 10;
 
   // Align spot to near strike
-  const anchorStrike = Math.round(spotPrice / strikeStep) * strikeStep;
+  const anchorStrike = Math.round(resolvedSpot / strikeStep) * strikeStep;
   const options: OptionData[] = [];
 
-  // Generate 10 strikes above and 10 strikes below
-  const totalStrikes = 10;
+  let strikesToUse: number[] = [];
+  if (isNifty) {
+    strikesToUse = [24700, 24800, 24900, 25000, 25100];
+  } else {
+    const totalStrikes = 10;
+    for (let i = -totalStrikes; i <= totalStrikes; i++) {
+      const strikePrice = anchorStrike + i * strikeStep;
+      if (strikePrice > 0) {
+        strikesToUse.push(strikePrice);
+      }
+    }
+  }
+
   let totalCallOi = 0;
   let totalPutOi = 0;
 
-  // Let's create an asymmetrical OI profile centered around the spot, which gives a realistic PCR and Max Pain!
-  // PCR = totalPutOi / totalCallOi.
-  for (let i = -totalStrikes; i <= totalStrikes; i++) {
-    const strikePrice = anchorStrike + i * strikeStep;
-    if (strikePrice <= 0) continue;
-
+  for (const strikePrice of strikesToUse) {
     // Call Intrinsic Values drops as strike increases
-    const callIntrinsic = Math.max(0, spotPrice - strikePrice);
-    const putIntrinsic = Math.max(0, strikePrice - spotPrice);
+    const callIntrinsic = Math.max(0, resolvedSpot - strikePrice);
+    const putIntrinsic = Math.max(0, strikePrice - resolvedSpot);
 
     // Time value peak at-the-money
-    const distanceNorm = Math.abs(strikePrice - spotPrice) / spotPrice;
-    const timeValue = spotPrice * 0.04 * Math.exp(-distanceNorm * 8);
+    const distanceNorm = Math.abs(strikePrice - resolvedSpot) / resolvedSpot;
+    const timeValue = resolvedSpot * 0.04 * Math.exp(-distanceNorm * 8);
 
     const callLtp = Number((callIntrinsic + timeValue + 2.5 * Math.random()).toFixed(2));
     const putLtp = Number((putIntrinsic + timeValue + 2.5 * Math.random()).toFixed(2));
@@ -419,8 +433,8 @@ export function generateOptionChain(symbol: string, spotPrice: number, expiryDat
     // Volume & Open Interest profiles (Highest OI near-the-money)
     // Calls usually have higher OI on resistivity levels (higher strikes)
     // Puts usually have higher OI on support levels (lower strikes)
-    const callOiBase = Math.round(100000 * Math.exp(-distanceNorm * 5) * (strikePrice > spotPrice ? 1.4 : 0.6));
-    const putOiBase = Math.round(100000 * Math.exp(-distanceNorm * 5) * (strikePrice < spotPrice ? 1.5 : 0.5));
+    const callOiBase = Math.round(100000 * Math.exp(-distanceNorm * 5) * (strikePrice > resolvedSpot ? 1.4 : 0.6));
+    const putOiBase = Math.round(100000 * Math.exp(-distanceNorm * 5) * (strikePrice < resolvedSpot ? 1.5 : 0.5));
 
     const callOi = Math.max(500, Math.round(callOiBase * (1 + 0.1 * Math.random())));
     const putOi = Math.max(500, Math.round(putOiBase * (1 + 0.1 * Math.random())));
@@ -436,8 +450,7 @@ export function generateOptionChain(symbol: string, spotPrice: number, expiryDat
     const putIv = Number((16 + distanceNorm * 80 + Math.random() * 2).toFixed(2));
 
     // Options Greeks: Delta
-    // Call Delta goes 1 (deep ITM) to 0 (deep OTM). At the money is ~0.5.
-    const zCall = (spotPrice - strikePrice) / (spotPrice * 0.08); // simple norm dist approximation
+    const zCall = (resolvedSpot - strikePrice) / (resolvedSpot * 0.08);
     const callDelta = Number((1 / (1 + Math.exp(-zCall))).toFixed(2));
     const putDelta = Number((callDelta - 1).toFixed(2));
 
@@ -468,17 +481,14 @@ export function generateOptionChain(symbol: string, spotPrice: number, expiryDat
   // Max Pain Calculator
   // The strike price where option buyers suffer maximum aggregated loss (and option sellers make maximum profit)
   let minLoss = Infinity;
-  let maxPain = anchorStrike;
+  let maxPain = isNifty ? 24900 : anchorStrike;
 
   for (const testStrike of options) {
     let totalLoss = 0;
     for (const option of options) {
-      // If we expire at testStrike.strikePrice:
-      // Call intrinsic loss for callers
       if (testStrike.strikePrice > option.strikePrice) {
         totalLoss += (testStrike.strikePrice - option.strikePrice) * option.callOi;
       }
-      // Put intrinsic loss for putters
       if (testStrike.strikePrice < option.strikePrice) {
         totalLoss += (option.strikePrice - testStrike.strikePrice) * option.putOi;
       }
@@ -486,13 +496,15 @@ export function generateOptionChain(symbol: string, spotPrice: number, expiryDat
 
     if (totalLoss < minLoss) {
       minLoss = totalLoss;
-      maxPain = testStrike.strikePrice;
+      if (!isNifty) {
+        maxPain = testStrike.strikePrice;
+      }
     }
   }
 
   return {
     symbol,
-    spotPrice,
+    spotPrice: resolvedSpot,
     pcr,
     totalCallOi,
     totalPutOi,
