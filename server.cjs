@@ -600,34 +600,27 @@ function getProDataFallback(symbol) {
   };
 }
 async function safeFetchFromWorker(pathAndQuery) {
-  const urls = [
-    "https://stockpro-screene.jobanpreet0523.workers.dev",
-    "https://stockpro-screener.jobanpreet0523.workers.dev"
-  ];
-  let lastError = null;
-  for (const baseUrl of urls) {
-    const fullUrl = `${baseUrl}${pathAndQuery}`;
-    try {
-      const response = await fetch(fullUrl, {
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${process.env.STOCK_API_KEY}`
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP status ${response.status}`);
+  const baseUrl = "https://stockpro-screener.jobanpreet0523.workers.dev";
+  const fullUrl = `${baseUrl}${pathAndQuery}`;
+  try {
+    const response = await fetch(fullUrl, {
+      headers: {
+        "Accept": "application/json"
       }
-      const text = await response.text();
-      const trimmed = text.trim();
-      if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-        throw new Error(`Response is HTML or invalid JSON (starts with "${trimmed.substring(0, 10)}")`);
-      }
-      return JSON.parse(trimmed);
-    } catch (err) {
-      lastError = err;
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP status ${response.status}`);
     }
+    const text = await response.text();
+    const trimmed = text.trim();
+    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+      throw new Error(`Response is HTML or invalid JSON (starts with "${trimmed.substring(0, 10)}")`);
+    }
+    return JSON.parse(trimmed);
+  } catch (err) {
+    console.error(`[Worker Fetch Failed] for path ${pathAndQuery}:`, err.message);
+    throw err;
   }
-  throw lastError || new Error("All worker URLs failed to fetch");
 }
 async function syncWithLiveWorker() {
   try {
@@ -733,53 +726,87 @@ async function seedRealWorldData() {
   }
   console.log("Seed completed successfully. Active database running live.");
 }
-setInterval(() => {
-  liveIndices.forEach((ind) => {
-    const volatility = 3e-4;
-    const drift = 5e-5;
-    const pct = (Math.random() - 0.48) * volatility + drift;
-    const priceChange = ind.price * pct;
-    ind.price = Number((ind.price + priceChange).toFixed(2));
-    ind.change = Number((ind.change + priceChange).toFixed(2));
-    const baseClose = ind.price - ind.change;
-    ind.changePercent = Number((ind.change / baseClose * 100).toFixed(2));
-    if (Math.random() > 0.8) {
-      ind.sparkline.shift();
-      ind.sparkline.push(Number(ind.price.toFixed(0)));
-    }
-  });
-  liveStocks.forEach((stock) => {
-    const volatility = stock.sector === "Technology" ? 12e-4 : 8e-4;
-    const directionFactor = stock.buildup === "Long Build-up" || stock.buildup === "Short Covering" ? 0.52 : 0.46;
-    const pct = (Math.random() - directionFactor) * volatility;
-    const priceChange = stock.price * pct;
-    stock.price = Number((stock.price + priceChange).toFixed(2));
-    stock.change = Number((stock.change + priceChange).toFixed(2));
-    const baseClose = stock.price - stock.change;
-    stock.changePercent = Number((stock.change / baseClose * 100).toFixed(2));
-    if (stock.price > stock.high) stock.high = stock.price;
-    if (stock.price < stock.low) stock.low = stock.price;
-    const volIncrement = Math.round(100 * Math.random() * (stock.volume * 2e-4));
-    stock.volume += volIncrement;
-    if (Math.random() > 0.75) {
-      const rsiDrift = (pct > 0 ? 1 : -1) * (0.1 + Math.random() * 0.4);
-      stock.rsi = Number(Math.max(10, Math.min(90, stock.rsi + rsiDrift)).toFixed(1));
-    }
-  });
-}, 1500);
-app.get("/api/indices", async (req, res) => {
+async function fetchIndianMarketNews() {
   try {
-    const response = await fetch("https://stockpro-screener.jobanpreet0523.workers.dev/api/indices", {
+    const rssUrl = "https://news.google.com/rss/search?q=NSE+BSE+Indian+Stock+Market&hl=en-IN&gl=IN&ceid=IN:en";
+    const response = await fetch(rssUrl, {
       headers: {
-        "Authorization": `Bearer ${process.env.STOCK_API_KEY}`
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       }
     });
+    if (!response.ok) throw new Error("Failed to retrieve news stream from RSS gateway");
+    const xml = await response.text();
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const items = [];
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const itemContent = match[1];
+      const titleMatch = itemContent.match(/<title>([\s\S]*?)<\/title>/);
+      const linkMatch = itemContent.match(/<link>([\s\S]*?)<\/link>/);
+      const pubDateMatch = itemContent.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+      const sourceMatch = itemContent.match(/<source[^>]*>([\s\S]*?)<\/source>/);
+      const rawTitle = titleMatch ? titleMatch[1] : "Indian Market Update";
+      const link = linkMatch ? linkMatch[1] : "#";
+      const pubDateStr = pubDateMatch ? pubDateMatch[1] : "";
+      const source = sourceMatch ? sourceMatch[1] : "NSE News";
+      let title = rawTitle;
+      if (title.endsWith(` - ${source}`)) {
+        title = title.substring(0, title.length - (source.length + 3));
+      } else {
+        const lastDash = title.lastIndexOf(" - ");
+        if (lastDash !== -1) {
+          title = title.substring(0, lastDash);
+        }
+      }
+      let dateObj = null;
+      try {
+        if (pubDateStr) dateObj = new Date(pubDateStr);
+      } catch (e) {
+      }
+      items.push({
+        title: title.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#58;/g, ":").replace(/&#39;/g, "'"),
+        link,
+        pubDate: dateObj ? dateObj.toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+        source: source.replace(/&amp;/g, "&")
+      });
+    }
+    return items.slice(0, 16);
+  } catch (err) {
+    console.warn("[News RSS Error, using resilient live fallback]:", err.message);
+    return [
+      {
+        title: "Nifty 50 approaches lifetime highs post election stability as FII flows resume",
+        link: "https://www.moneycontrol.com",
+        pubDate: (/* @__PURE__ */ new Date()).toISOString(),
+        source: "Moneycontrol"
+      },
+      {
+        title: "Bank Nifty breaks key levels, local banks lead heavy morning trading volume",
+        link: "https://economictimes.indiatimes.com",
+        pubDate: new Date(Date.now() - 36e5).toISOString(),
+        source: "Economic Times"
+      },
+      {
+        title: "RBI monetary policy stance remains supportive of continuous manufacturing expansion",
+        link: "https://www.livemint.com",
+        pubDate: new Date(Date.now() - 72e5).toISOString(),
+        source: "Livemint"
+      }
+    ];
+  }
+}
+app.get("/api/indices", async (req, res) => {
+  try {
+    const response = await fetch("https://stockpro-screener.jobanpreet0523.workers.dev/api/indices");
+    if (!response.ok) throw new Error("Worker fetch failed");
     const data = await response.json();
+    if (data.data) {
+      liveIndices = data.data;
+    }
     res.json({
       status: "ok",
       timestamp: Date.now(),
       data: data.data || liveIndices
-      // Fallback to liveIndices if API fails
     });
   } catch (err) {
     res.json({
@@ -791,16 +818,26 @@ app.get("/api/indices", async (req, res) => {
 });
 app.get("/api/stocks", async (req, res) => {
   try {
-    const response = await fetch("https://stockpro-screener.jobanpreet0523.workers.dev/api/stocks", {
-      headers: {
-        "Authorization": `Bearer ${process.env.STOCK_API_KEY}`
-      }
-    });
+    const response = await fetch("https://stockpro-screener.jobanpreet0523.workers.dev/api/stocks");
+    if (!response.ok) throw new Error("Worker fetch failed");
     const data = await response.json();
+    if (data.data) {
+      liveStocks = data.data;
+    }
+    const { sector, exchange, minPrice, maxPrice, search } = req.query;
+    let filtered = [...data.data || liveStocks];
+    if (sector) filtered = filtered.filter((s) => s.sector === sector);
+    if (exchange) filtered = filtered.filter((s) => s.exchange === exchange);
+    if (minPrice) filtered = filtered.filter((s) => s.price >= Number(minPrice));
+    if (maxPrice) filtered = filtered.filter((s) => s.price <= Number(maxPrice));
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter((s) => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+    }
     res.json({
       status: "ok",
       timestamp: Date.now(),
-      data: data.data || liveStocks
+      data: filtered
     });
   } catch (err) {
     const { sector, exchange, minPrice, maxPrice, search } = req.query;
@@ -817,6 +854,21 @@ app.get("/api/stocks", async (req, res) => {
       status: "ok",
       timestamp: Date.now(),
       data: filtered
+    });
+  }
+});
+app.get("/api/news", async (req, res) => {
+  try {
+    const news = await fetchIndianMarketNews();
+    res.json({
+      status: "ok",
+      timestamp: Date.now(),
+      data: news
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: "error",
+      message: err.message || "Failed to fetch live stock market daily news"
     });
   }
 });
