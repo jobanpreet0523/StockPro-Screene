@@ -4,19 +4,20 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // 1. Authentication Layer (DISABLED for open public access)
-    // if (pathname.startsWith("/api/")) {
-    //   const authHeader = request.headers.get("Authorization");
-    //   if (authHeader !== "Bearer StockProSecureToken2026!") {
-    //     return new Response(JSON.stringify({ error: "Unauthorized access to financial data feeds." }), {
-    //       status: 401,
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //         "Access-Control-Allow-Origin": "*"
-    //       }
-    //     });
-    //   }
-    // }
+    // 1. Authentication Layer
+    const isPublicApi = pathname === "/api/indices" || pathname === "/api/stocks" || pathname.startsWith("/api/option-chain/");
+    if (pathname.startsWith("/api/") && !isPublicApi) {
+      const authHeader = request.headers.get("Authorization");
+      if (authHeader !== "Bearer StockProSecureToken2026!") {
+        return new Response(JSON.stringify({ error: "Unauthorized access to financial data feeds." }), {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
+    }
 
     // Handle CORS preflight requirements
     if (request.method === "OPTIONS") {
@@ -82,20 +83,155 @@ export default {
       });
     }
 
+    // API Route: Indices
+    if (pathname === "/api/indices") {
+      const nifty = await getLivePrice("^NSEI") || { price: 23320.15, change: 145.30, changePercent: 0.63 };
+      const banknifty = await getLivePrice("^NSEBANK") || { price: 49812.60, change: -230.15, changePercent: -0.46 };
+      const sensex = await getLivePrice("^BSESN") || { price: 76693.35, change: 485.10, changePercent: 0.64 };
+      const nasdaq = await getLivePrice("^IXIC") || { price: 17132.80, change: 164.20, changePercent: 0.97 };
+
+      const data = [
+        { symbol: '^NSEI', name: 'NIFTY 50', price: nifty.price, change: nifty.change, changePercent: nifty.changePercent, sparkline: [23180, 23210, 23200, 23250, 23240, 23290, Math.round(nifty.price)] },
+        { symbol: '^NSEBANK', name: 'BANK NIFTY', price: banknifty.price, change: banknifty.change, changePercent: banknifty.changePercent, sparkline: [50050, 50120, 49950, 49900, 49780, 49830, Math.round(banknifty.price)] },
+        { symbol: '^BSESN', name: 'SENSEX', price: sensex.price, change: sensex.change, changePercent: sensex.changePercent, sparkline: [76200, 76350, 76300, 76480, 76450, 76600, Math.round(sensex.price)] },
+        { symbol: '^IXIC', name: 'NASDAQ', price: nasdaq.price, change: nasdaq.change, changePercent: nasdaq.changePercent, sparkline: [16950, 16980, 17020, 17050, 17100, 17080, Math.round(nasdaq.price)] }
+      ];
+
+      return new Response(JSON.stringify({
+        status: "ok",
+        timestamp: Date.now(),
+        data
+      }), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    // API Route: Stocks list
+    if (pathname === "/api/stocks") {
+      const initialStocks = [
+        { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd.', price: 2942.50, change: 32.40, changePercent: 1.11, volume: 6850000, marketCap: 1985000, peRatio: 26.4, rsi: 58.2, dividendYield: 0.34, sector: 'Energy', open: 2915.00, high: 2954.80, low: 2910.10, close: 2910.10, exchange: 'NSE', isFoEnabled: true, futuresOi: 32450000, futuresOiChange: 4.8, buildup: 'Long Build-up' },
+        { symbol: 'TCS.NS', name: 'Tata Consultancy Services', price: 3825.10, change: 54.20, changePercent: 1.44, volume: 1850000, marketCap: 1384000, peRatio: 30.1, rsi: 61.5, dividendYield: 1.25, sector: 'Technology', open: 3780.00, high: 3840.00, low: 3775.00, close: 3770.90, exchange: 'NSE', isFoEnabled: true, futuresOi: 14500000, futuresOiChange: -1.2, buildup: 'Long Unwinding' },
+        { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Ltd.', price: 1572.85, change: -18.40, changePercent: -1.16, volume: 14500000, marketCap: 1195000, peRatio: 18.2, rsi: 41.8, dividendYield: 1.21, sector: 'Banking', open: 1592.00, high: 1595.00, low: 1568.00, close: 1591.20, exchange: 'NSE', isFoEnabled: true, futuresOi: 54800000, futuresOiChange: 8.5, buildup: 'Short Build-up' },
+        { symbol: 'INFY.NS', name: 'Infosys Ltd.', price: 1485.40, change: 22.15, changePercent: 1.51, volume: 5200000, marketCap: 616000, peRatio: 24.5, rsi: 54.3, dividendYield: 2.35, sector: 'Technology', open: 1466.00, high: 1492.00, low: 1464.00, close: 1463.25, exchange: 'NSE', isFoEnabled: true, futuresOi: 28400000, futuresOiChange: 2.3, buildup: 'Long Build-up' },
+        { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Ltd.', price: 1122.90, change: -4.30, changePercent: -0.38, volume: 8100000, marketCap: 789000, peRatio: 17.8, rsi: 48.9, dividendYield: 0.89, sector: 'Banking', open: 1130.00, high: 1135.00, low: 1118.00, close: 1127.20, exchange: 'NSE', isFoEnabled: true, futuresOi: 31200000, futuresOiChange: -3.4, buildup: 'Short Covering' },
+        { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd.', price: 1380.12, change: 12.45, changePercent: 0.91, volume: 3200000, marketCap: 812000, peRatio: 45.2, rsi: 65.4, dividendYield: 0.29, sector: 'Telecom', open: 1365.00, high: 1388.00, low: 1362.00, close: 1367.67, exchange: 'NSE', isFoEnabled: true, futuresOi: 19800000, futuresOiChange: 6.2, buildup: 'Long Build-up' },
+        { symbol: 'SBI.NS', name: 'State Bank of India', price: 818.50, change: -12.30, changePercent: -1.48, volume: 11200000, marketCap: 730000, peRatio: 12.1, rsi: 44.5, dividendYield: 1.67, sector: 'Banking', open: 832.00, high: 834.00, low: 815.00, close: 830.80, exchange: 'NSE', isFoEnabled: true, futuresOi: 48500000, futuresOiChange: 1.2, buildup: 'Long Unwinding' },
+        { symbol: 'L&T.NS', name: 'Larsen & Toubro Ltd.', price: 3450.00, change: -24.50, changePercent: -0.71, volume: 145000, marketCap: 485000, peRatio: 33.5, rsi: 49.2, dividendYield: 0.81, sector: 'Industrial', open: 3480.00, high: 3495.00, low: 3440.00, close: 3474.50, exchange: 'NSE', isFoEnabled: true, futuresOi: 11200000, futuresOiChange: -2.3, buildup: 'Short Unwinding' },
+        { symbol: 'ITC.NS', name: 'ITC Ltd.', price: 428.15, change: 1.85, changePercent: 0.43, volume: 9800000, marketCap: 535000, peRatio: 21.8, rsi: 52.1, dividendYield: 3.65, sector: 'Consumer Goods', open: 426.00, high: 430.50, low: 425.80, close: 426.30, exchange: 'NSE', isFoEnabled: true, futuresOi: 32400000, futuresOiChange: -1.1, buildup: 'Short Covering' },
+        { symbol: 'KOTAKBANK.NS', name: 'Kotak Mahindra Bank', price: 1682.40, change: -28.10, changePercent: -1.64, volume: 3400000, marketCap: 334000, peRatio: 19.4, rsi: 38.2, dividendYield: 0.12, sector: 'Banking', open: 1712.00, high: 1715.00, low: 1675.00, close: 1710.50, exchange: 'NSE', isFoEnabled: true, futuresOi: 22100000, futuresOiChange: 4.5, buildup: 'Short Build-up' }
+      ];
+
+      // Simulate micro-ticking
+      const randomizedStocks = initialStocks.map(s => {
+        const tick = (Math.random() - 0.5) * (s.price * 0.002);
+        const newPrice = Number((s.price + tick).toFixed(2));
+        const newChg = Number((s.change + tick).toFixed(2));
+        const newChgPct = Number(((newChg / (newPrice - newChg)) * 100).toFixed(2));
+        return {
+          ...s,
+          price: newPrice,
+          change: newChg,
+          changePercent: newChgPct
+        };
+      });
+
+      return new Response(JSON.stringify({
+        status: "ok",
+        timestamp: Date.now(),
+        data: randomizedStocks
+      }), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    // API Route: Option Chain formatting adapter for /api/option-chain/:symbol
+    if (pathname.startsWith("/api/option-chain/")) {
+      const parts = pathname.split("/");
+      const symbol = parts[parts.length - 1];
+      const cleanSymbol = symbol.toUpperCase().endsWith('.NS') ? symbol.toUpperCase().replace('.NS', '') : symbol.toUpperCase();
+      
+      const underlyingMap = {
+        'NIFTY': 'NIFTY',
+        '^NSEI': 'NIFTY',
+        'BANKNIFTY': 'BANKNIFTY',
+        '^NSEBANK': 'BANKNIFTY',
+        'FINNIFTY': 'FINNIFTY',
+        '^NSEFN': 'FINNIFTY'
+      };
+      const targetUnderlying = underlyingMap[cleanSymbol] || cleanSymbol;
+
+      const workerJson = await getOptionData(targetUnderlying);
+      
+      const spotPrice = workerJson.spotPrice || workerJson.spot || 22000;
+      const rawOptions = workerJson.options || workerJson.optionChain || [];
+      const mappedOptions = rawOptions.map(item => {
+        const strikePrice = item.strike || item.strikePrice || 22000;
+        const zCall = (spotPrice - strikePrice) / (spotPrice * 0.08);
+        const callDelta = Number((1 / (1 + Math.exp(-zCall))).toFixed(2));
+        const putDelta = Number((callDelta - 1).toFixed(2));
+
+        return {
+          strikePrice,
+          callLtp: item.ce?.ltp || 100,
+          callChange: item.ce?.chgPercent || item.ce?.change || Number(((Math.random() - 0.45) * 8).toFixed(2)),
+          callVol: item.ce?.volume || item.ce?.vol || 1000,
+          callOi: item.ce?.oi || 50000,
+          callOiChg: item.ce?.changeOi !== undefined ? item.ce?.changeOi : (item.ce?.oiChg || Math.round((Math.random() - 0.3) * (item.ce?.oi || 50000) * 0.1)),
+          callIv: item.ce?.iv || 14.5,
+          callDelta: item.ce?.delta || callDelta,
+          putLtp: item.pe?.ltp || 100,
+          putChange: item.pe?.chgPercent || item.pe?.change || Number(((Math.random() - 0.55) * 8).toFixed(2)),
+          putVol: item.pe?.volume || item.pe?.vol || 1000,
+          putOi: item.pe?.oi || 50000,
+          putOiChg: item.pe?.changeOi !== undefined ? item.pe?.changeOi : (item.pe?.oiChg || Math.round((Math.random() - 0.4) * (item.pe?.oi || 50000) * 0.08)),
+          putIv: item.pe?.iv || 14.8,
+          putDelta: item.pe?.delta || putDelta,
+        };
+      });
+
+      const responseBody = {
+        status: "ok",
+        symbol,
+        data: {
+          symbol,
+          spotPrice,
+          pcr: workerJson.pcr || 1.0,
+          totalCallOi: workerJson.callsOI || workerJson.totalCallOi || 100000,
+          totalPutOi: workerJson.putsOI || workerJson.totalPutOi || 100000,
+          maxPain: workerJson.maxPain || workerJson.atm || spotPrice,
+          expiryDate: workerJson.expiryDate || '25-JUN-2026',
+          options: mappedOptions
+        }
+      };
+
+      return new Response(JSON.stringify(responseBody), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
     if (pathname === "/screene" || pathname === "/screene/") {
       return Response.redirect(url.origin + "/screener", 301);
     }
 
-    if (pathname === "/screener" || pathname === "/screener/") {
-      return handleStaticAssetsProxy("screener.html");
+    if (pathname === "/screener" || pathname === "/screener/" || pathname.startsWith("/screener/")) {
+      return handleStaticAssetsProxy("screener.html", request, env);
     }
 
-    if (pathname === "/dashboard" || pathname === "/dashboard/") {
-      return handleStaticAssetsProxy("dashboard.html");
+    if (pathname === "/dashboard" || pathname === "/dashboard/" || pathname.startsWith("/dashboard/")) {
+      return handleStaticAssetsProxy("dashboard.html", request, env);
     }
 
-    if (pathname === "/fo" || pathname === "/fo/") {
-      return handleStaticAssetsProxy("fo.html");
+    if (pathname === "/fo" || pathname === "/fo/" || pathname.startsWith("/fo/")) {
+      return handleStaticAssetsProxy("fo.html", request, env);
     }
 
     // Handle static assets or assets mapped within the repository
@@ -108,13 +244,13 @@ export default {
       if (resolvedFile.startsWith("/")) {
         resolvedFile = resolvedFile.substring(1);
       }
-      return handleStaticAssetsProxy(resolvedFile);
+      return handleStaticAssetsProxy(resolvedFile, request, env);
     }
     
     // Default page content (Serve root/index.html via proxy, fallback to local string)
     if (pathname === "/" || pathname === "/index.html") {
       try {
-        const proxyResponse = await handleStaticAssetsProxy("index.html");
+        const proxyResponse = await handleStaticAssetsProxy("index.html", request, env);
         if (proxyResponse.status === 200) {
           return proxyResponse;
         }
@@ -129,12 +265,27 @@ export default {
     }
 
     // Fallback response for single-page routing
-    return await handleStaticAssetsProxy("index.html");
+    return await handleStaticAssetsProxy("index.html", request, env);
   }
 };
 
 // HELPER: Dynamic static asset fetcher with clean headers & MIME-type overrides
-async function handleStaticAssetsProxy(filename) {
+async function handleStaticAssetsProxy(filename, request, env) {
+  // If Cloudflare Worker Assets exists, try to fetch it from the assets bundle
+  if (env && env.ASSETS && request) {
+    try {
+      const url = new URL(request.url);
+      url.pathname = "/" + filename;
+      const localRequest = new Request(url.toString(), request);
+      const assetResponse = await env.ASSETS.fetch(localRequest);
+      if (assetResponse.status === 200 || assetResponse.status === 304) {
+        return assetResponse;
+      }
+    } catch (err) {
+      console.error("Local ASSETS fetch failed, falling back to network proxy:", err);
+    }
+  }
+
   const GITHUB_PAGES_BASE = "https://jobanpreet0523.github.io/StockPro-Screene";
   
   let cleanFilename = filename;
@@ -283,6 +434,16 @@ async function getLivePrice(symbol) {
 
 // HELPER: Get Options Chain Spot & Strike Pricing Models
 async function getOptionData(underlying) {
+  try {
+    const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=${underlying}`;
+    const response = await fetch(backendUrl);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err) {
+    console.error("Live options chain fetch failed, falling back to local calculation engine:", err);
+  }
+
   const symbolMap = {
     "NIFTY": "^NSEI",
     "BANKNIFTY": "^NSEBANK",
@@ -334,6 +495,16 @@ async function getOptionData(underlying) {
 
 // HELPER: Fetch, Calculate & Package InvestingPro Live Metrics
 async function getProData(symbol) {
+  try {
+    const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/pro-data?symbol=${symbol}`;
+    const response = await fetch(backendUrl);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (err) {
+    console.error("Live InvestingPro data fetch failed, falling back to Yahoo Finance:", err);
+  }
+
   try {
     const res = await fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=financialData,defaultKeyStatistics,summaryDetail,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,assetProfile`, {
       headers: { 'User-Agent': 'Mozilla/5.0' }
@@ -799,14 +970,14 @@ const HTML_CONTENT = `
     async function fetchLiveMetrics() {
       const underlying = document.getElementById('underlyingSelect').value;
       try {
-        const response = await fetch(`/api/data?underlying=\${underlying}`);
+        const response = await fetch(\`/api/data?underlying=\${underlying}\`);
         const data = await response.json();
         
-        document.getElementById('term-nifty').innerText = underlying === 'NIFTY' ? `\${data.spot.toFixed(2)}` : '...';
-        document.getElementById('term-bank').innerText = underlying === 'BANKNIFTY' ? `\${data.spot.toFixed(2)}` : '...';
-        document.getElementById('term-vix').innerText = `\${data.vix.toFixed(2)}`;
+        document.getElementById('term-nifty').innerText = underlying === 'NIFTY' ? \`\${data.spot.toFixed(2)}\` : '...';
+        document.getElementById('term-bank').innerText = underlying === 'BANKNIFTY' ? \`\${data.spot.toFixed(2)}\` : '...';
+        document.getElementById('term-vix').innerText = \`\${data.vix.toFixed(2)}\`;
 
-        document.getElementById('pcr-badge').innerText = `PCR: \${data.pcr}`;
+        document.getElementById('pcr-badge').innerText = \`PCR: \${data.pcr}\`;
         document.getElementById('meta-maxpain').innerText = data.maxPain;
 
         const tbody = document.getElementById('option-chain-body');
@@ -815,9 +986,9 @@ const HTML_CONTENT = `
         data.optionChain.forEach(row => {
           const isAtm = row.strike === data.atm;
           const tr = document.createElement('tr');
-          tr.className = `hover:bg-slate-50/80 \${isAtm ? 'bg-blue-50/40 border-y border-blue-200' : ''}`;
+          tr.className = \`hover:bg-slate-50/80 \${isAtm ? 'bg-blue-50/40 border-y border-blue-200' : ''}\`;
 
-          tr.innerHTML = `
+          tr.innerHTML = \`
             <td class="p-2 text-center text-rose-600 font-bold">\${row.ce.oi}</td>
             <td class="p-2 text-center text-rose-600">\${row.ce.chgPercent}%</td>
             <td class="p-2 text-center text-slate-400">\${row.ce.vol}K</td>
@@ -839,7 +1010,7 @@ const HTML_CONTENT = `
             <td class="p-2 text-center text-slate-400">\${row.pe.vol}K</td>
             <td class="p-2 text-center text-emerald-600">\${row.pe.chgPercent}%</td>
             <td class="p-2 text-center text-emerald-600 font-bold">\${row.pe.oi}</td>
-          `;
+          \`;
           tbody.appendChild(tr);
         });
       } catch (err) {
@@ -851,15 +1022,15 @@ const HTML_CONTENT = `
     async function fetchProStock() {
       const inputVal = document.getElementById('proSearchSymbol').value || "AAPL";
       try {
-        const res = await fetch(`/api/pro-data?symbol=\${inputVal}`);
+        const res = await fetch(\`/api/pro-data?symbol=\${inputVal}\`);
         const data = await res.json();
 
         // Update Overview Cards
-        document.getElementById('pro-stock-name').innerText = `\${data.name} (\${data.symbol})`;
-        document.getElementById('pro-stock-details').innerText = `\${data.sector} Sector | \${data.industry}`;
-        document.getElementById('pro-stock-price').innerText = `$\${data.price.toFixed(2)}`;
-        document.getElementById('pro-stock-fairval').innerText = `$\${data.fairValue.toFixed(2)}`;
-        document.getElementById('pro-stock-upside').innerText = `+\${data.upsidePercent}%`;
+        document.getElementById('pro-stock-name').innerText = \`\${data.name} (\${data.symbol})\`;
+        document.getElementById('pro-stock-details').innerText = \`\${data.sector} Sector | \${data.industry}\`;
+        document.getElementById('pro-stock-price').innerText = \`$\${data.price.toFixed(2)}\`;
+        document.getElementById('pro-stock-fairval').innerText = \`$\${data.fairValue.toFixed(2)}\`;
+        document.getElementById('pro-stock-upside').innerText = \`+\${data.upsidePercent}%\`;
         document.getElementById('pro-stock-uncertainty').innerText = data.uncertainty;
         document.getElementById('pro-desc').innerText = data.description;
 
@@ -874,31 +1045,31 @@ const HTML_CONTENT = `
         }
 
         // Key Ratios
-        document.getElementById('ratio-pe').innerText = `\${data.keyStats.pe.toFixed(1)}x`;
-        document.getElementById('ratio-yield').innerText = `\${(data.keyStats.divYield * 100).toFixed(2)}%`;
-        document.getElementById('ratio-quick').innerText = `\${data.keyStats.quickRatio.toFixed(2)}x`;
-        document.getElementById('ratio-margin').innerText = `\${(data.keyStats.grossMargin * 100).toFixed(1)}%`;
+        document.getElementById('ratio-pe').innerText = \`\${data.keyStats.pe.toFixed(1)}x\`;
+        document.getElementById('ratio-yield').innerText = \`\${(data.keyStats.divYield * 100).toFixed(2)}%\`;
+        document.getElementById('ratio-quick').innerText = \`\${data.keyStats.quickRatio.toFixed(2)}x\`;
+        document.getElementById('ratio-margin').innerText = \`\${(data.keyStats.grossMargin * 100).toFixed(1)}%\`;
 
         // Financial Health scores (1-5 Scale)
         const healthMap = { 5: "Excellent", 4: "Great", 3: "Fair", 2: "Weak", 1: "At Risk" };
-        document.getElementById('health-overall').innerText = `\${data.financialHealth.overallScore}/5 - \${healthMap[data.financialHealth.overallScore]}`;
+        document.getElementById('health-overall').innerText = \`\${data.financialHealth.overallScore}/5 - \${healthMap[data.financialHealth.overallScore]}\`;
         
-        document.getElementById('health-cash').innerText = `\${data.financialHealth.cashFlowHealth}/5`;
-        document.getElementById('bar-cash').style.width = `\${data.financialHealth.cashFlowHealth * 20}%`;
+        document.getElementById('health-cash').innerText = \`\${data.financialHealth.cashFlowHealth}/5\`;
+        document.getElementById('bar-cash').style.width = \`\${data.financialHealth.cashFlowHealth * 20}%\`;
 
-        document.getElementById('health-growth').innerText = `\${data.financialHealth.growthHealth}/5`;
-        document.getElementById('bar-growth').style.width = `\${data.financialHealth.growthHealth * 20}%`;
+        document.getElementById('health-growth').innerText = \`\${data.financialHealth.growthHealth}/5\`;
+        document.getElementById('bar-growth').style.width = \`\${data.financialHealth.growthHealth * 20}%\`;
 
-        document.getElementById('health-profit').innerText = `\${data.financialHealth.profitHealth}/5`;
-        document.getElementById('bar-profit').style.width = `\${data.financialHealth.profitHealth * 20}%`;
+        document.getElementById('health-profit').innerText = \`\${data.financialHealth.profitHealth}/5\`;
+        document.getElementById('bar-profit').style.width = \`\${data.financialHealth.profitHealth * 20}%\`;
 
-        document.getElementById('health-value').innerText = `\${data.financialHealth.valueHealth}/5`;
-        document.getElementById('bar-value').style.width = `\${data.financialHealth.valueHealth * 20}%`;
+        document.getElementById('health-value').innerText = \`\${data.financialHealth.valueHealth}/5\`;
+        document.getElementById('bar-value').style.width = \`\${data.financialHealth.valueHealth * 20}%\`;
 
         // Valuation Models calculations
-        document.getElementById('model-dcf-ebitda').innerText = `$\${(data.fairValue * 0.98).toFixed(2)}`;
-        document.getElementById('model-dcf-revenue').innerText = `$\${(data.fairValue * 1.02).toFixed(2)}`;
-        document.getElementById('model-ddm').innerText = data.keyStats.divYield > 0 ? `$\${(data.price * 0.85).toFixed(2)}` : "N/A";
+        document.getElementById('model-dcf-ebitda').innerText = \`$\${(data.fairValue * 0.98).toFixed(2)}\`;
+        document.getElementById('model-dcf-revenue').innerText = \`$\${(data.fairValue * 1.02).toFixed(2)}\`;
+        document.getElementById('model-ddm').innerText = data.keyStats.divYield > 0 ? \`$\${(data.price * 0.85).toFixed(2)}\` : "N/A";
 
         // Draw Income Statement table columns dynamically
         const yearsHeader = document.getElementById('statement-years-header');
@@ -923,14 +1094,14 @@ const HTML_CONTENT = `
         metricsDef.forEach(metric => {
           const tr = document.createElement('tr');
           tr.className = "hover:bg-slate-50";
-          let rowHtml = `<td class="py-2.5 font-bold text-slate-800 font-sans text-xs">\${metric.label}</td>`;
+          let rowHtml = \`<td class="py-2.5 font-bold text-slate-800 font-sans text-xs">\${metric.label}</td>\`;
           
           data.statementYears.forEach(col => {
             const val = col[metric.key];
             const formatted = val >= 1000000000 
-              ? `\${(val / 1000000000).toFixed(1)}B` 
-              : `\${(val / 1000000).toFixed(1)}M`;
-            rowHtml += `<td class="py-2.5 text-right font-medium text-slate-700">\${formatted}</td>`;
+              ? \`\${(val / 1000000000).toFixed(1)}B\` 
+              : \`\${(val / 1000000).toFixed(1)}M\`;
+            rowHtml += \`<td class="py-2.5 text-right font-medium text-slate-700">\${formatted}</td>\`;
           });
           
           tr.innerHTML = rowHtml;
