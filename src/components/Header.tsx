@@ -119,23 +119,17 @@ export default function Header({
       {/* Ticker Marquee Bar */}
       <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-hidden text-xs transition-all duration-300">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className={`flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] ${marketStatus.isOpen ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-              <span className={`w-2 h-2 rounded-full animate-pulse ${marketStatus.isOpen ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-              {marketStatus.isOpen ? 'LIVE FEED ACTIVE' : 'VIRTUAL FEED ACTIVE'}
+          <div className="flex flex-wrap items-center gap-2" title="Simulated data for demonstration">
+            <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-amber-600 dark:text-amber-400">
+              <span className="w-2 h-2 rounded-full animate-pulse bg-amber-500" />
+              DEMO FEED ACTIVE — Connect API for live data
             </div>
-            <span className={`text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono ${
-              marketStatus.isOpen 
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25' 
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25'
-            }`}>
-              {marketStatus.statusText}
+            <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25">
+              DEMO MODE
             </span>
-            {!marketStatus.isOpen && (
-              <span className="text-[9px] text-slate-500 dark:text-slate-450 hidden md:inline font-medium">
-                — Offline practice mode enabled (micro-ticks active)
-              </span>
-            )}
+            <span className="text-[9px] text-slate-500 dark:text-slate-450 hidden md:inline font-medium">
+              — Simulated data for demonstration
+            </span>
           </div>
           <div className="flex-1 overflow-hidden ml-6 relative">
             <div className="flex items-center gap-8 animate-marquee whitespace-nowrap min-w-max">
