@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download, Presentation } from 'lucide-react';
 import { OptionChain, OptionData, Position } from '../types';
 import { generateOptionChain, INITIAL_STOCKS } from '../data';
 import { useTheme } from './ThemeContext';
+import StockChart from './StockChart';
 
 interface OptionChainViewProps {
   symbol: string;
@@ -22,6 +23,16 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
   const [sortField, setSortField] = useState<'NONE' | 'CALL_LTP' | 'CALL_IV' | 'CALL_OICHG' | 'PUT_LTP' | 'PUT_IV' | 'PUT_OICHG'>('NONE');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
   const [strikeSearch, setStrikeSearch] = useState<string>('');
+  const [showChart, setShowChart] = useState<boolean>(true);
+
+  const stockName = useMemo(() => {
+    if (symbol === '^NSEI') return 'NIFTY 50 Index';
+    if (symbol === '^NSEBANK') return 'BANK NIFTY Index';
+    if (symbol === '^BSESN') return 'SENSEX Index';
+    if (symbol === '^IXIC') return 'NASDAQ Composite Index';
+    const found = INITIAL_STOCKS.find(s => s.symbol === symbol || s.symbol.replace('.NS', '') === symbol);
+    return found ? found.name : symbol;
+  }, [symbol]);
 
   const handleSort = (field: 'CALL_LTP' | 'CALL_IV' | 'CALL_OICHG' | 'PUT_LTP' | 'PUT_IV' | 'PUT_OICHG') => {
     if (sortField === field) {
@@ -353,6 +364,34 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
         </div>
       </div>
 
+      {/* Dynamic TradingView Chart Overlay with Stocks */}
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+        <div 
+          onClick={() => setShowChart(!showChart)}
+          className="bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3.5 flex justify-between items-center px-4 cursor-pointer select-none transition-all duration-200"
+          id="fo_chart_header"
+        >
+          <div className="flex items-center gap-2">
+            <Presentation size={14} className="text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider font-mono">
+              Live Advanced Technical Chart: {stockName}
+            </h3>
+          </div>
+          <button 
+            type="button"
+            className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 font-mono px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/85 rounded transition active:scale-95 cursor-pointer"
+          >
+            {showChart ? 'COLLAPSE CHART [-]' : 'SHOW LIVE CHART [+]'}
+          </button>
+        </div>
+        
+        {showChart && (
+          <div className="p-4 bg-slate-50 dark:bg-slate-900/5" id="fo_chart_body">
+            <StockChart symbol={symbol} name={stockName} />
+          </div>
+        )}
+      </div>
+
       {/* Main Option Chain side-by-side Sheet Grid */}
       <div id="option-matrix" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl">
         <div className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3 flex flex-col sm:flex-row justify-between items-center px-4 gap-3">
@@ -463,6 +502,9 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
                   // Puts are ITM when spot < strike
                   const isPutItm = spot < strike;
 
+                  const isCallIvHigh = option.callIv > 30;
+                  const isPutIvHigh = option.putIv > 30;
+
                   return (
                     <tr
                       key={strike}
@@ -478,7 +520,16 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
                       <td className={`py-2 px-1 text-right text-slate-500 dark:text-slate-455 ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
                         {formatVolume(option.callVol)}
                       </td>
-                      <td className={`py-2 px-1 text-slate-500 dark:text-slate-400 text-[10px] ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                      <td 
+                        title={isCallIvHigh ? 'Unusual Market Activity: Implied Volatility exceeds 30%' : undefined}
+                        className={`py-2 px-1 text-[10px] transition-colors duration-200 ${
+                          isCallIvHigh
+                            ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold border-l border-r border-amber-500/20 dark:bg-amber-500/10'
+                            : isCallItm
+                              ? 'bg-amber-100/20 dark:bg-[#292211]/30 text-slate-600 dark:text-slate-350'
+                              : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
                         {option.callIv}%
                       </td>
                       
@@ -508,13 +559,22 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
                       <td
                         onClick={() => handleAddPositionFromStrike(option, 'PUT', 'BUY')}
                         title="Click to Simulate BUY PUT Order"
-                        className={`py-2 px-2 text-left font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-950 cursor-pointer active:scale-95 transition ${
+                        className={`py-2 px-2 text-left font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-955 cursor-pointer active:scale-95 transition ${
                           isPutItm ? 'bg-amber-200/40 dark:bg-[#403310]/50' : 'bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
                         {option.putLtp.toFixed(1)}
                       </td>
-                      <td className={`py-2 px-1 text-slate-500 dark:text-slate-400 text-[10px] ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                      <td 
+                        title={isPutIvHigh ? 'Unusual Market Activity: Implied Volatility exceeds 30%' : undefined}
+                        className={`py-2 px-1 text-[10px] transition-colors duration-200 ${
+                          isPutIvHigh
+                            ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold border-l border-r border-amber-500/20 dark:bg-amber-500/10'
+                            : isPutItm
+                              ? 'bg-amber-100/20 dark:bg-[#292211]/30 text-slate-600 dark:text-slate-350'
+                              : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
                         {option.putIv}%
                       </td>
                       <td className={`py-2 px-1 text-left text-slate-500 dark:text-slate-455 ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>

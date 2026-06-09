@@ -1,19 +1,45 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from './ThemeContext';
+import { TrendingUp, Clock } from 'lucide-react';
 
 interface StockChartProps {
   symbol: string;
   name: string;
 }
 
+const INTERVALS = [
+  { label: '5m', value: '5' },
+  { label: '15m', value: '15' },
+  { label: '1H', value: '60' },
+  { label: 'D', value: 'D' },
+  { label: 'W', value: 'W' },
+];
+
 export default function StockChart({ symbol, name }: StockChartProps) {
   const { theme } = useTheme();
+  const [interval, setIntervalVal] = useState<string>('D');
+
+  // Intelligent symbol mapping for Indian Stock Market
+  const mappedSymbol = React.useMemo(() => {
+    if (symbol === '^NSEI') return 'NSE:NIFTY';
+    if (symbol === '^NSEBANK') return 'NSE:BANKNIFTY';
+    if (symbol === '^BSESN') return 'BSE:SENSEX';
+    if (symbol === '^IXIC') return 'NASDAQ:IXIC';
+    
+    if (symbol.endsWith('.NS')) {
+      return 'NSE:' + symbol.replace('.NS', '');
+    }
+    if (symbol.endsWith('.BO')) {
+      return 'BSE:' + symbol.replace('.BO', '');
+    }
+    return symbol;
+  }, [symbol]);
 
   useEffect(() => {
     const container = document.getElementById('tradingview-widget-container');
     if (!container) return;
     
-    // Clear previous
+    // Clear previous widget
     container.innerHTML = '';
     
     const script = document.createElement('script');
@@ -22,33 +48,61 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     script.async = true;
     script.innerHTML = JSON.stringify({
       "autosize": true,
-      "symbol": symbol,
-      "interval": "D",
-      "timezone": "Etc/UTC",
+      "symbol": mappedSymbol,
+      "interval": interval,
+      "timezone": "Asia/Kolkata",
       "theme": theme === 'dark' ? 'dark' : 'light',
       "style": "1",
       "locale": "en",
+      "enable_publishing": false,
+      "hide_side_toolbar": false,
       "allow_symbol_change": true,
       "calendar": false,
+      "studies": [
+        "RSI@tv-basicstudies",
+        "MASimple@tv-basicstudies"
+      ],
       "support_host": "https://www.tradingview.com"
     });
     container.appendChild(script);
-  }, [symbol, theme]);
+  }, [mappedSymbol, theme, interval]);
 
   return (
-    <div className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl mb-6 flex flex-col transition-all duration-300" id="chart_section">
+    <div className="bg-white dark:bg-slate-950 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl mb-6 flex flex-col transition-all duration-300" id="chart_section">
       {/* Chart Headers and controls */}
-      <div className="flex flex-col md:flex-row items-baseline md:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100 dark:border-slate-850">
+      <div className="flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100 dark:border-slate-850">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-extrabold font-mono tracking-tight text-slate-900 dark:text-white">{symbol}</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold truncate max-w-[200px]">{name}</span>
+            <span className="text-sm font-extrabold font-mono tracking-tight text-slate-900 dark:text-white bg-slate-105 dark:bg-slate-900/60 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800">
+              {mappedSymbol}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold truncate max-w-[180px] sm:max-w-[220px]" title={name}>
+              {name}
+            </span>
           </div>
+        </div>
+
+        {/* Dynamic Interval toggles */}
+        <div className="flex items-center gap-1.5 self-end sm:self-auto bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800/80">
+          <Clock size={11} className="text-slate-400 ml-1.5 mr-0.5" />
+          {INTERVALS.map((item) => (
+            <button
+              key={item.value}
+              onClick={() => setIntervalVal(item.value)}
+              className={`text-[10px] font-bold font-mono px-2 py-1 rounded transition duration-150 cursor-pointer ${
+                interval === item.value
+                  ? 'bg-indigo-650 dark:bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* TradingView Container */}
-      <div className="w-full h-[500px]" id="tradingview-widget-container"></div>
+      <div className="w-full h-[500px] rounded-lg overflow-hidden border border-slate-250 dark:border-slate-850 bg-slate-50 dark:bg-slate-900" id="tradingview-widget-container"></div>
     </div>
   );
 }
