@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search } from 'lucide-react';
 import { OptionChain, OptionData, Position } from '../types';
 import { generateOptionChain, INITIAL_STOCKS } from '../data';
 import { useTheme } from './ThemeContext';
@@ -21,6 +21,7 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
 
   const [sortField, setSortField] = useState<'NONE' | 'CALL_LTP' | 'CALL_IV' | 'CALL_OICHG' | 'PUT_LTP' | 'PUT_IV' | 'PUT_OICHG'>('NONE');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
+  const [strikeSearch, setStrikeSearch] = useState<string>('');
 
   const handleSort = (field: 'CALL_LTP' | 'CALL_IV' | 'CALL_OICHG' | 'PUT_LTP' | 'PUT_IV' | 'PUT_OICHG') => {
     if (sortField === field) {
@@ -81,6 +82,15 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
       return a.strikePrice - b.strikePrice;
     });
   }, [chain?.options, sortField, sortOrder]);
+
+  const filteredOptions = useMemo(() => {
+    let list = sortedOptions;
+    if (strikeSearch.trim() !== '') {
+      const q = strikeSearch.trim();
+      list = list.filter(opt => opt.strikePrice.toString().includes(q));
+    }
+    return list;
+  }, [sortedOptions, strikeSearch]);
 
   // Fetch option chain data from Express API
   useEffect(() => {
@@ -289,13 +299,29 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
 
       {/* Main Option Chain side-by-side Sheet Grid */}
       <div id="option-matrix" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl">
-        <div className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3 flex justify-between items-center px-4">
+        <div className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3 flex flex-col sm:flex-row justify-between items-center px-4 gap-3">
           <h3 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider font-mono">
             Derivatives Matrix ({chain.symbol}) — Expiry: {chain.expiryDate}
           </h3>
-          <span className="text-[10px] text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800/40">
-            ITM Golden Highlight Enabled
-          </span>
+          
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-48">
+              <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <Search size={12} />
+              </span>
+              <input
+                type="text"
+                placeholder="Search Strike Price..."
+                value={strikeSearch}
+                onChange={(e) => setStrikeSearch(e.target.value)}
+                className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded pl-7 pr-3 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-450"
+              />
+            </div>
+            
+            <span className="shrink-0 text-[10px] text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800/40">
+              ITM Golden Highlight Enabled
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto font-mono text-xs">
@@ -357,79 +383,87 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
               </tr>
             </thead>
             <tbody>
-              {sortedOptions.map(option => {
-                const strike = option.strikePrice;
-                // Calls are ITM when spot > strike
-                const isCallItm = spot > strike;
-                // Puts are ITM when spot < strike
-                const isPutItm = spot < strike;
+              {filteredOptions.length === 0 ? (
+                <tr>
+                  <td colSpan={13} className="py-12 text-center text-slate-500 dark:text-slate-400 font-mono text-xs">
+                    No active strike price nodes matching "{strikeSearch}" found.
+                  </td>
+                </tr>
+              ) : (
+                filteredOptions.map(option => {
+                  const strike = option.strikePrice;
+                  // Calls are ITM when spot > strike
+                  const isCallItm = spot > strike;
+                  // Puts are ITM when spot < strike
+                  const isPutItm = spot < strike;
 
-                return (
-                  <tr
-                    key={strike}
-                    className="border-b border-slate-100 dark:border-slate-850/60 hover:bg-slate-50 dark:hover:bg-slate-900/20 text-center select-none"
-                  >
-                    {/* CALLS */}
-                    <td className={`py-2 px-2 text-slate-600 dark:text-slate-350 border-l ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30 font-semibold' : ''}`}>
-                      {formatVolume(option.callOi)}
-                    </td>
-                    <td className={`py-2 px-1 ${option.callOiChg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
-                      {option.callOiChg >= 0 ? '+' : ''}{formatVolume(option.callOiChg)}
-                    </td>
-                    <td className={`py-2 px-1 text-right text-slate-500 dark:text-slate-455 ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
-                      {formatVolume(option.callVol)}
-                    </td>
-                    <td className={`py-2 px-1 text-slate-500 dark:text-slate-400 text-[10px] ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
-                      {option.callIv}%
-                    </td>
-                    
-                    {/* LTP - Click trigger simulation */}
-                    <td
-                      onClick={() => handleAddPositionFromStrike(option, 'CALL', 'BUY')}
-                      title="Click to Simulate BUY CALL Order"
-                      className={`py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-900 cursor-pointer active:scale-95 transition ${
-                        isCallItm ? 'bg-amber-200/40 dark:bg-[#403310]/50' : 'bg-slate-50 dark:bg-slate-950/20'
-                      }`}
+                  return (
+                    <tr
+                      key={strike}
+                      className="border-b border-slate-100 dark:border-slate-850/60 hover:bg-slate-50 dark:hover:bg-slate-900/20 text-center select-none"
                     >
-                      {option.callLtp.toFixed(1)}
-                    </td>
-                    <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-850 text-[10px] ${option.callChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
-                      {option.callChange >= 0 ? '+' : ''}{option.callChange}%
-                    </td>
+                      {/* CALLS */}
+                      <td className={`py-2 px-2 text-slate-600 dark:text-slate-350 border-l ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30 font-semibold' : ''}`}>
+                        {formatVolume(option.callOi)}
+                      </td>
+                      <td className={`py-2 px-1 ${option.callOiChg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                        {option.callOiChg >= 0 ? '+' : ''}{formatVolume(option.callOiChg)}
+                      </td>
+                      <td className={`py-2 px-1 text-right text-slate-500 dark:text-slate-455 ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                        {formatVolume(option.callVol)}
+                      </td>
+                      <td className={`py-2 px-1 text-slate-500 dark:text-slate-400 text-[10px] ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                        {option.callIv}%
+                      </td>
+                      
+                      {/* LTP - Click trigger simulation */}
+                      <td
+                        onClick={() => handleAddPositionFromStrike(option, 'CALL', 'BUY')}
+                        title="Click to Simulate BUY CALL Order"
+                        className={`py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-900 cursor-pointer active:scale-95 transition ${
+                          isCallItm ? 'bg-amber-200/40 dark:bg-[#403310]/50' : 'bg-slate-50 dark:bg-slate-950/20'
+                        }`}
+                      >
+                        {option.callLtp.toFixed(1)}
+                      </td>
+                      <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-850 text-[10px] ${option.callChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                        {option.callChange >= 0 ? '+' : ''}{option.callChange}%
+                      </td>
 
-                    {/* STRIKE PRICE */}
-                    <td className="py-2 px-3 text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95 font-extrabold text-[12px] border-r border-slate-200 dark:border-slate-800 text-center">
-                      {strike}
-                    </td>
+                      {/* STRIKE PRICE */}
+                      <td className="py-2 px-3 text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95 font-extrabold text-[12px] border-r border-slate-200 dark:border-slate-800 text-center">
+                        {strike}
+                      </td>
 
-                    {/* PUTS */}
-                    <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-800 text-[10px] ${option.putChange >= 0 ? 'text-emerald-600 dark:text-emerald-405' : 'text-rose-600 dark:text-rose-400'} ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
-                      {option.putChange >= 0 ? '+' : ''}{option.putChange}%
-                    </td>
-                    <td
-                      onClick={() => handleAddPositionFromStrike(option, 'PUT', 'BUY')}
-                      title="Click to Simulate BUY PUT Order"
-                      className={`py-2 px-2 text-left font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-900 cursor-pointer active:scale-95 transition ${
-                        isPutItm ? 'bg-amber-200/40 dark:bg-[#403310]/50' : 'bg-slate-50 dark:bg-slate-950/20'
-                      }`}
-                    >
-                      {option.putLtp.toFixed(1)}
-                    </td>
-                    <td className={`py-2 px-1 text-slate-500 dark:text-slate-400 text-[10px] ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
-                      {option.putIv}%
-                    </td>
-                    <td className={`py-2 px-1 text-left text-slate-500 dark:text-slate-455 ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
-                      {formatVolume(option.putVol)}
-                    </td>
-                    <td className={`py-2 px-1 ${option.putOiChg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
-                      {option.putOiChg >= 0 ? '+' : ''}{formatVolume(option.putOiChg)}
-                    </td>
-                    <td className={`py-2 px-2 text-slate-600 dark:text-slate-350 border-r border-slate-200 dark:border-slate-850 ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30 font-semibold' : ''}`}>
-                      {formatVolume(option.putOi)}
-                    </td>
-                  </tr>
-                );
-              })}
+                      {/* PUTS */}
+                      <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-800 text-[10px] ${option.putChange >= 0 ? 'text-emerald-600 dark:text-emerald-405' : 'text-rose-600 dark:text-rose-400'} ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                        {option.putChange >= 0 ? '+' : ''}{option.putChange}%
+                      </td>
+                      <td
+                        onClick={() => handleAddPositionFromStrike(option, 'PUT', 'BUY')}
+                        title="Click to Simulate BUY PUT Order"
+                        className={`py-2 px-2 text-left font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-950 cursor-pointer active:scale-95 transition ${
+                          isPutItm ? 'bg-amber-200/40 dark:bg-[#403310]/50' : 'bg-slate-50 dark:bg-slate-950/20'
+                        }`}
+                      >
+                        {option.putLtp.toFixed(1)}
+                      </td>
+                      <td className={`py-2 px-1 text-slate-500 dark:text-slate-400 text-[10px] ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                        {option.putIv}%
+                      </td>
+                      <td className={`py-2 px-1 text-left text-slate-500 dark:text-slate-455 ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                        {formatVolume(option.putVol)}
+                      </td>
+                      <td className={`py-2 px-1 ${option.putOiChg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                        {option.putOiChg >= 0 ? '+' : ''}{formatVolume(option.putOiChg)}
+                      </td>
+                      <td className={`py-2 px-2 text-slate-600 dark:text-slate-350 border-r border-slate-200 dark:border-slate-850 ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30 font-semibold' : ''}`}>
+                        {formatVolume(option.putOi)}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
