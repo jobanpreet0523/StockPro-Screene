@@ -19,6 +19,68 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
   const [simOptionType, setSimOptionType] = useState<'CALL' | 'PUT'>('CALL');
   const [simQty, setSimQty] = useState<number>(50); // Lot size default for index
 
+  const [sortField, setSortField] = useState<'NONE' | 'CALL_LTP' | 'CALL_IV' | 'CALL_OICHG' | 'PUT_LTP' | 'PUT_IV' | 'PUT_OICHG'>('NONE');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
+
+  const handleSort = (field: 'CALL_LTP' | 'CALL_IV' | 'CALL_OICHG' | 'PUT_LTP' | 'PUT_IV' | 'PUT_OICHG') => {
+    if (sortField === field) {
+      if (sortOrder === 'ASC') {
+        setSortOrder('DESC');
+      } else {
+        setSortField('NONE');
+      }
+    } else {
+      setSortField(field);
+      setSortOrder('ASC');
+    }
+  };
+
+  const sortedOptions = useMemo(() => {
+    if (!chain?.options) return [];
+    const optionsCopy = [...chain.options];
+    if (sortField === 'NONE') return optionsCopy;
+
+    return optionsCopy.sort((a, b) => {
+      let valA = 0;
+      let valB = 0;
+
+      switch (sortField) {
+        case 'CALL_OICHG':
+          valA = a.callOiChg;
+          valB = b.callOiChg;
+          break;
+        case 'CALL_IV':
+          valA = a.callIv;
+          valB = b.callIv;
+          break;
+        case 'CALL_LTP':
+          valA = a.callLtp;
+          valB = b.callLtp;
+          break;
+        case 'PUT_LTP':
+          valA = a.putLtp;
+          valB = b.putLtp;
+          break;
+        case 'PUT_IV':
+          valA = a.putIv;
+          valB = b.putIv;
+          break;
+        case 'PUT_OICHG':
+          valA = a.putOiChg;
+          valB = b.putOiChg;
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortOrder === 'ASC') {
+        return valA - valB;
+      } else {
+        return valB - valA;
+      }
+    });
+  }, [chain?.options, sortField, sortOrder]);
+
   // Fetch option chain data from Express API
   useEffect(() => {
     async function fetchChain() {
@@ -212,7 +274,7 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
       </div>
 
       {/* Main Option Chain side-by-side Sheet Grid */}
-      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl">
+      <div id="option-matrix" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl">
         <div className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3 flex justify-between items-center px-4">
           <h3 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider font-mono">
             Derivatives Matrix ({chain.symbol}) — Expiry: {chain.expiryDate}
@@ -222,8 +284,8 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse font-mono text-xs">
+        <div className="overflow-x-auto font-mono text-xs">
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
               {/* Calls Side / Strike / Puts Side Labels */}
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-sans text-[10px] font-extrabold text-center uppercase text-slate-500 dark:text-slate-400">
@@ -234,24 +296,54 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
               {/* Header Parameters */}
               <tr className="border-b border-slate-200 dark:border-slate-850 text-[9px] text-slate-550 dark:text-slate-400 text-center font-bold">
                 <th className="py-2 px-2">OI (Lot)</th>
-                <th className="py-2 px-1 text-center">Chg OI</th>
+                <th 
+                  onClick={() => handleSort('CALL_OICHG')}
+                  className="py-2 px-1 text-center cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors"
+                >
+                  Chg OI {sortField === 'CALL_OICHG' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
                 <th className="py-2 px-1 text-right">Volume</th>
-                <th className="py-2 px-1">IV %</th>
-                <th className="py-2 px-2 text-right">LTP (₹)</th>
+                <th 
+                  onClick={() => handleSort('CALL_IV')}
+                  className="py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors text-center"
+                >
+                  IV % {sortField === 'CALL_IV' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
+                <th 
+                  onClick={() => handleSort('CALL_LTP')}
+                  className="py-2 px-2 text-right cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors"
+                >
+                  LTP (₹) {sortField === 'CALL_LTP' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
                 <th className="py-2 px-1 text-center border-r border-slate-200 dark:border-slate-850">% Chg</th>
                 
                 <th className="py-2 px-3 text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900 font-extrabold border-r border-slate-200 dark:border-slate-800 text-center">STRIKE</th>
                 
                 <th className="py-2 px-1 text-center font-semibold border-r border-slate-200 dark:border-slate-800">% Chg</th>
-                <th className="py-2 px-2 text-left">LTP (₹)</th>
-                <th className="py-2 px-1">IV %</th>
-                <th className="py-2 px-1 text-left">Volume</th>
-                <th className="py-2 px-1 text-center">Chg OI</th>
-                <th className="py-2 px-2">OI (Lot)</th>
+                <th 
+                  onClick={() => handleSort('PUT_LTP')}
+                  className="py-2 px-2 text-left cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors"
+                >
+                  LTP (₹) {sortField === 'PUT_LTP' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
+                <th 
+                  onClick={() => handleSort('PUT_IV')}
+                  className="py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors text-center"
+                >
+                  IV % {sortField === 'PUT_IV' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
+                <th className="py-2 px-1 text-left col-volume">Volume</th>
+                <th 
+                  onClick={() => handleSort('PUT_OICHG')}
+                  className="py-2 px-1 text-center cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors"
+                >
+                  Chg OI {sortField === 'PUT_OICHG' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
+                </th>
+                <th className="py-2 px-2 font-semibold">OI (Lot)</th>
               </tr>
             </thead>
             <tbody>
-              {chain.options.map(option => {
+              {sortedOptions.map(option => {
                 const strike = option.strikePrice;
                 // Calls are ITM when spot > strike
                 const isCallItm = spot > strike;
