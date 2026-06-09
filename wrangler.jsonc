@@ -2,6 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "stockpro-screene",
   "compatibility_date": "2026-06-07",
+  "name": "stockpro-screener",
+  "compatibility_date": "2026-06-08",
   "observability": {
     "enabled": true
   },
