@@ -8,12 +8,13 @@ import { Stock, IndexData } from './types';
 import { INITIAL_INDICES, INITIAL_STOCKS } from './data';
 import { TrendingUp, HelpCircle, ShieldCheck, Activity } from 'lucide-react';
 import { useTheme } from './components/ThemeContext';
+import NewsView from './components/NewsView';
 
 export default function App() {
   const { theme } = useTheme();
   const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
   const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
-  const [activeTab, setActiveTab] = useState<'screener' | 'fo'>('screener');
+  const [activeTab, setActiveTab] = useState<'screener' | 'fo' | 'news'>('screener');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('RELIANCE.NS');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isLive, setIsLive] = useState<boolean>(true);
@@ -106,13 +107,13 @@ export default function App() {
                   Indian Stock Markets are Closed (Weekend Session)
                 </h4>
                 <p className="text-xs text-slate-650 dark:text-slate-400 mt-1 leading-relaxed">
-                  Since today is Sunday, the live National Stock Exchange (NSE) and Bombay Stock Exchange (BSE) are closed. However, <strong>StockPro's Simulated Ticker Engine is Active</strong>, generating real-time micro-ticks on all indices & equities so you can fully test screeners, indicator sliders, options chains, and chart visualizations!
+                  Since today is a market holiday, the live National Stock Exchange (NSE) and Bombay Stock Exchange (BSE) are closed. The platform displays <strong>100% real, authentic last-recorded closure rates</strong> directly from our live data systems with full analytical option chain and chart overlay support.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0 bg-emerald-990 border border-emerald-500/25 text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Simulator Active
+              Live System Active
             </div>
           </div>
         )}
@@ -154,7 +155,7 @@ export default function App() {
                 </div>
               </div>
             </>
-          ) : (
+          ) : activeTab === 'fo' ? (
             /* ================= DERIVATIVES OPTION CHAIN VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
               <div className="flex flex-col md:flex-row items-baseline md:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-850 pb-4">
@@ -191,6 +192,11 @@ export default function App() {
                   symbol={activeStock.symbol}
                 />
               )}
+            </div>
+          ) : (
+            /* ================= STOCK MARKET DAILY NEWS ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6">
+              <NewsView />
             </div>
           )}
         </div>

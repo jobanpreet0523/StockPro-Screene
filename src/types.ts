@@ -88,3 +88,11 @@ export interface Position {
   currentPrice: number;
   quantity: number;
 }
+
+export interface NewsArticle {
+  title: string;
+  link: string;
+  pubDate: string;
+  source: string;
+}
+

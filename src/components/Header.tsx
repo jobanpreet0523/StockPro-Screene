@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper } from 'lucide-react';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
 
 interface HeaderProps {
   indices: IndexData[];
   stocks: Stock[];
-  activeTab: 'screener' | 'fo';
-  setActiveTab: (tab: 'screener' | 'fo') => void;
+  activeTab: 'screener' | 'fo' | 'news';
+  setActiveTab: (tab: 'screener' | 'fo' | 'news') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
@@ -271,6 +271,17 @@ export default function Header({
             >
               <Cpu size={14} />
               F&O Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('news')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
+                activeTab === 'news'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Newspaper size={14} />
+              STOCK MARKET DAILY NEWS
             </button>
           </nav>
 
