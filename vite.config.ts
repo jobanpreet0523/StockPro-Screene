@@ -17,6 +17,10 @@ export default {
         screener: path.resolve(__dirname, 'screener.html'),
         dashboard: path.resolve(__dirname, 'dashboard.html'),
         fo: path.resolve(__dirname, 'fo.html'),
+        privacy: path.resolve(__dirname, 'privacy.html'),
+        terms: path.resolve(__dirname, 'terms.html'),
+        disclaimer: path.resolve(__dirname, 'disclaimer.html'),
+        sebiDisclosure: path.resolve(__dirname, 'sebi-disclosure.html'),
         liveData: path.resolve(__dirname, 'live-data.js')
       }
     }
