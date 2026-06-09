@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download } from 'lucide-react';
 import { OptionChain, OptionData, Position } from '../types';
 import { generateOptionChain, INITIAL_STOCKS } from '../data';
 import { useTheme } from './ThemeContext';
@@ -91,6 +91,62 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
     }
     return list;
   }, [sortedOptions, strikeSearch]);
+
+  const handleDownloadCSV = () => {
+    if (!chain || !filteredOptions.length) return;
+
+    const headers = [
+      'Call OI (Lot)',
+      'Call Chg OI',
+      'Call Volume',
+      'Call IV (%)',
+      'Call LTP (INR)',
+      'Call Change (%)',
+      'Strike Price',
+      'Put Change (%)',
+      'Put LTP (INR)',
+      'Put IV (%)',
+      'Put Volume',
+      'Put Chg OI',
+      'Put OI (Lot)'
+    ];
+
+    const rows = filteredOptions.map(option => [
+      option.callOi,
+      option.callOiChg,
+      option.callVol,
+      option.callIv,
+      option.callLtp,
+      option.callChange,
+      option.strikePrice,
+      option.putChange,
+      option.putLtp,
+      option.putIv,
+      option.putVol,
+      option.putOiChg,
+      option.putOi
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => {
+        if (val === null || val === undefined) return '';
+        const strVal = String(val);
+        return strVal.includes(',') || strVal.includes('"') || strVal.includes('\n')
+          ? `"${strVal.replace(/"/g, '""')}"`
+          : strVal;
+      }).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${chain.symbol}_option_chain_${chain.expiryDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Fetch option chain data from Express API
   useEffect(() => {
@@ -304,7 +360,7 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
             Derivatives Matrix ({chain.symbol}) — Expiry: {chain.expiryDate}
           </h3>
           
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <div className="relative w-full sm:w-48">
               <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
                 <Search size={12} />
@@ -317,8 +373,18 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
                 className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded pl-7 pr-3 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-450"
               />
             </div>
+
+            <button
+              onClick={handleDownloadCSV}
+              id="download-csv-btn"
+              title="Download currently filtered and sorted chain data as CSV"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold rounded text-xs transition duration-150 shadow-sm cursor-pointer shrink-0"
+            >
+              <Download size={13} />
+              <span>Download CSV</span>
+            </button>
             
-            <span className="shrink-0 text-[10px] text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800/40">
+            <span className="shrink-0 w-full sm:w-auto text-center text-[10px] text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800/40">
               ITM Golden Highlight Enabled
             </span>
           </div>
