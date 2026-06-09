@@ -140,19 +140,39 @@ type SortOrder = 'asc' | 'desc';
 
 export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }: StockScreenerProps) {
   const [activePreset, setActivePreset] = useState<string>('all');
-  const [selectedSector, setSelectedSector] = useState<string>('All');
-  const [minPrice, setMinPrice] = useState<number>(0);
-  const [maxPe, setMaxPe] = useState<number>(100);
-  const [minRsi, setMinRsi] = useState<number>(10);
-  const [maxRsi, setMaxRsi] = useState<number>(90);
+  
+  // Draft filter state (for UI)
+  const [draftSector, setDraftSector] = useState<string>('All');
+  const [draftMarketCap, setDraftMarketCap] = useState<string>('All');
+  const [draftRsiMin, setDraftRsiMin] = useState<number>(0);
+  const [draftRsiMax, setDraftRsiMax] = useState<number>(100);
+  const [draftMinVolume, setDraftMinVolume] = useState<number>(0);
+
+  // Applied filter state (triggers the filtering logic)
+  const [appliedFilters, setAppliedFilters] = useState({
+    sector: 'All',
+    marketCap: 'All',
+    rsiMin: 0,
+    rsiMax: 100,
+    minVolume: 0
+  });
+
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [sortField, setSortField] = useState<SortField>('changePercent');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-  // Available sectors from inventory
-  const sectors = useMemo(() => {
-    return ['All', ...Array.from(new Set(stocks.map(s => s.sector)))];
-  }, [stocks]);
+  // Specific sector options requested by user
+  const sectorOptions = ['All', 'Technology', 'Banking', 'Energy', 'Pharma', 'Auto'];
+
+  const applyFilters = () => {
+    setAppliedFilters({
+      sector: draftSector,
+      marketCap: draftMarketCap,
+      rsiMin: draftRsiMin,
+      rsiMax: draftRsiMax,
+      minVolume: draftMinVolume
+    });
+  };
 
   // Set preset query filters
   const presetFilteredStocks = useMemo(() => {
@@ -178,13 +198,19 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
   const finalFilteredStocks = useMemo(() => {
     let result = [...presetFilteredStocks];
     
-    if (selectedSector !== 'All') {
-      result = result.filter(s => s.sector === selectedSector);
+    if (appliedFilters.sector !== 'All') {
+      result = result.filter(s => s.sector === appliedFilters.sector);
     }
     
-    result = result.filter(s => s.price >= minPrice);
-    result = result.filter(s => s.peRatio <= maxPe);
-    result = result.filter(s => s.rsi >= minRsi && s.rsi <= maxRsi);
+    if (appliedFilters.marketCap !== 'All') {
+      // Simple logic for illustration
+      if (appliedFilters.marketCap === 'Large Cap') result = result.filter(s => s.marketCap > 200000);
+      else if (appliedFilters.marketCap === 'Mid Cap') result = result.filter(s => s.marketCap <= 200000 && s.marketCap > 50000);
+      else if (appliedFilters.marketCap === 'Small Cap') result = result.filter(s => s.marketCap <= 50000);
+    }
+    
+    result = result.filter(s => s.rsi >= appliedFilters.rsiMin && s.rsi <= appliedFilters.rsiMax);
+    result = result.filter(s => s.volume >= appliedFilters.minVolume);
 
     // Apply sorting
     result.sort((a, b) => {
@@ -202,7 +228,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
     });
 
     return result;
-  }, [presetFilteredStocks, selectedSector, minPrice, maxPe, minRsi, maxRsi, sortField, sortOrder]);
+  }, [presetFilteredStocks, appliedFilters, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -345,7 +371,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
             <SlidersHorizontal size={14} className={showFilters ? 'text-emerald-500 dark:text-emerald-400' : ''} />
             {showFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
             <span className="bg-slate-200 dark:bg-slate-800 text-slate-705 dark:text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
-              {selectedSector !== 'All' || minPrice > 0 || maxPe < 100 || minRsi > 10 || maxRsi < 90 ? 'Active' : 'Off'}
+              {appliedFilters.sector !== 'All' || appliedFilters.marketCap !== 'All' || appliedFilters.rsiMin > 0 || appliedFilters.rsiMax < 100 || appliedFilters.minVolume > 0 ? 'Active' : 'Off'}
             </span>
           </button>
 
@@ -364,80 +390,70 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-850 animate-fadeIn" id="advanced_filters_panel">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-850 animate-fadeIn" id="advanced_filters_panel">
             {/* Sector Choose */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Sector Group</label>
+              <label className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Sector</label>
               <select
-                value={selectedSector}
-                onChange={(e) => setSelectedSector(e.target.value)}
+                value={draftSector}
+                onChange={(e) => setDraftSector(e.target.value)}
                 className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs rounded-lg p-2.5 outline-none focus:border-emerald-500 transition font-medium shadow-sm"
               >
-                {sectors.map(s => (
-                  <option key={s} value={s}>{s === 'All' ? 'All Sectors' : s}</option>
+                {sectorOptions.map(s => (
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
 
-            {/* Price floor slider */}
+            {/* Market Cap */}
             <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between text-[11px] text-slate-505 dark:text-slate-400 font-bold uppercase tracking-wider">
-                <span>Min Price</span>
-                <span className="text-emerald-600 dark:text-emerald-405 font-mono">₹{minPrice}</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="3000"
-                step="50"
-                value={minPrice}
-                onChange={(e) => setMinPrice(Number(e.target.value))}
-                className="accent-emerald-500 dark:accent-emerald-400 mt-2 cursor-pointer h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none"
-              />
-            </div>
-
-            {/* PE Ceiling Slider */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between text-[11px] text-slate-505 dark:text-slate-400 font-bold uppercase tracking-wider">
-                <span>Max PE Ratio</span>
-                <span className="text-emerald-600 dark:text-emerald-405 font-mono">{maxPe >= 100 ? 'Any' : maxPe}</span>
-              </div>
-              <input
-                type="range"
-                min="5"
-                max="100"
-                step="2"
-                value={maxPe}
-                onChange={(e) => setMaxPe(Number(e.target.value))}
-                className="accent-emerald-500 dark:accent-emerald-400 mt-2 cursor-pointer h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none"
-              />
+              <label className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Market Cap</label>
+              <select
+                value={draftMarketCap}
+                onChange={(e) => setDraftMarketCap(e.target.value)}
+                className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs rounded-lg p-2.5 outline-none focus:border-emerald-500 transition font-medium shadow-sm"
+              >
+                {['All', 'Large Cap', 'Mid Cap', 'Small Cap'].map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
 
             {/* RSI Range Filter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between text-[11px] text-slate-505 dark:text-slate-400 font-bold uppercase tracking-wider">
-                <span>RSI Boundaries</span>
-                <span className="text-emerald-600 dark:text-emerald-405 font-mono">{minRsi} - {maxRsi}</span>
+                <span>RSI Range</span>
+                <span className="text-emerald-600 dark:text-emerald-405 font-mono">{draftRsiMin} - {draftRsiMax}</span>
               </div>
-              <div className="flex gap-2 items-center mt-1">
-                <input
-                  type="number"
-                  min="5"
-                  max="45"
-                  value={minRsi}
-                  onChange={(e) => setMinRsi(Math.max(5, Number(e.target.value)))}
-                  className="w-1/2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center text-xs font-mono py-1 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-                <span className="text-slate-550 text-xs">-</span>
-                <input
-                  type="number"
-                  min="50"
-                  max="95"
-                  value={maxRsi}
-                  onChange={(e) => setMaxRsi(Math.min(95, Number(e.target.value)))}
-                  className="w-1/2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center text-xs font-mono py-1 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={draftRsiMax}
+                onChange={(e) => setDraftRsiMax(Number(e.target.value))}
+                className="accent-emerald-500 dark:accent-emerald-400 mt-2 cursor-pointer h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none"
+              />
+            </div>
+
+             {/* Min Volume */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Min Volume</label>
+              <input
+                type="number"
+                value={draftMinVolume}
+                onChange={(e) => setDraftMinVolume(Number(e.target.value))}
+                className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs rounded-lg p-2.5 outline-none focus:border-emerald-500 transition font-medium shadow-sm"
+              />
+            </div>
+
+            {/* Apply Button */}
+            <div className="flex items-end">
+              <button
+                onClick={applyFilters}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg transition-all shadow-sm"
+              >
+                Apply Filters
+              </button>
             </div>
           </div>
         )}

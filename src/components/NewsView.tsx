@@ -130,6 +130,13 @@ export default function NewsView() {
               className="group bg-slate-50 hover:bg-white dark:bg-slate-900/40 dark:hover:bg-slate-900/90 border border-slate-100 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-750 p-4 rounded-xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-4 cursor-pointer text-inherit decoration-none"
             >
               <div className="flex flex-col gap-2">
+                {art.title.includes('Global Bond Yields') && (
+                  <img 
+                    src="https://images.unsplash.com/photo-1590283603385-fc7ffb099951?auto=format&fit=crop&q=80&w=400" 
+                    alt="Global Bond Yields" 
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                )}
                 <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-450">
                   <span className="flex items-center gap-1 bg-slate-200/50 dark:bg-slate-800 border border-slate-200/25 dark:border-slate-750 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider text-slate-650 dark:text-slate-300">
                     <Globe size={10} className="text-emerald-500" />
