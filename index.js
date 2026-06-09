@@ -4,8 +4,20 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
+    // Handle CORS preflight requirements (at absolute top to prevent auth blocks)
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS, POST, PUT, DELETE",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+          "Access-Control-Max-Age": "86400"
+        }
+      });
+    }
+
     // 1. Authentication Layer
-    const isPublicApi = pathname === "/api/indices" || pathname === "/api/stocks" || pathname.startsWith("/api/option-chain/");
+    const isPublicApi = pathname === "/api/indices" || pathname === "/api/stocks" || pathname.startsWith("/api/option-chain/") || pathname === "/api/data" || pathname === "/api/pro-data" || pathname === "/api/chart";
     if (pathname.startsWith("/api/") && !isPublicApi) {
       const authHeader = request.headers.get("Authorization");
       if (authHeader !== "Bearer StockProSecureToken2026!") {
@@ -17,17 +29,6 @@ export default {
           }
         });
       }
-    }
-
-    // Handle CORS preflight requirements
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-          "Access-Control-Allow-Headers": "*"
-        }
-      });
     }
     
     // 2. Explicit Screener Route Interceptor (Removed - now handled by fallback)
