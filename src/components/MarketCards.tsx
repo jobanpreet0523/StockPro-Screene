@@ -62,22 +62,22 @@ export default function MarketCards({ indices, onSelectIndex }: MarketCardsProps
             key={idx.symbol}
             onClick={() => onSelectIndex(idx.symbol)}
             id={`index-card-${idx.symbol.toLowerCase().replace('^', '')}`}
-            className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 p-4 rounded-xl cursor-pointer shadow hover:shadow-lg transition-all duration-300 flex items-center justify-between group"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700/80 p-4 rounded-xl cursor-pointer shadow-sm dark:shadow hover:shadow-md dark:hover:shadow-lg transition-all duration-300 flex items-center justify-between group"
           >
             <div className="flex-1">
-              <span className="text-slate-400 font-medium text-[11px] block uppercase tracking-wider">
+              <span className="text-slate-500 dark:text-slate-400 font-semibold text-[10px] block uppercase tracking-wider">
                 {idx.name}
               </span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-sans font-extrabold text-lg text-white group-hover:text-emerald-400 transition-colors font-mono">
+                <span className="font-sans font-extrabold text-lg text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors font-mono">
                   {formatPrice(idx.price)}
                 </span>
-                <span className={`flex items-center text-xs font-semibold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <span className={`flex items-center text-xs font-semibold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                   <span className="font-mono">{isPositive ? '+' : ''}{idx.changePercent}%</span>
                 </span>
               </div>
-              <p className={`text-[10px] font-mono mt-0.5 ${isPositive ? 'text-emerald-550' : 'text-rose-550'} font-medium`}>
+              <p className={`text-[10px] font-mono mt-0.5 ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} font-medium`}>
                 {isPositive ? '+' : ''}{idx.change.toFixed(2)}
               </p>
             </div>
