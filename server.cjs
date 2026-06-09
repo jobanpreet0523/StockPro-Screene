@@ -1093,6 +1093,18 @@ async function startServer() {
   app.get("/dashboard", (req, res) => {
     res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/dashboard.html" : "dashboard.html"));
   });
+  app.get("/privacy", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/privacy.html" : "privacy.html"));
+  });
+  app.get("/terms", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/terms.html" : "terms.html"));
+  });
+  app.get("/disclaimer", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/disclaimer.html" : "disclaimer.html"));
+  });
+  app.get("/sebi-disclosure", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/sebi-disclosure.html" : "sebi-disclosure.html"));
+  });
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
