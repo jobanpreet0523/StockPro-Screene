@@ -19,7 +19,6 @@ export default function StockChart({ symbol, name }: StockChartProps) {
   const { theme } = useTheme();
   const [interval, setIntervalVal] = useState<string>('D');
 
-  // Intelligent symbol mapping for Indian Stock Market
   const mappedSymbol = React.useMemo(() => {
     if (symbol === '^NSEI') return 'NSE:NIFTY';
     if (symbol === '^NSEBANK') return 'NSE:BANKNIFTY';
@@ -35,37 +34,20 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     return symbol;
   }, [symbol]);
 
-  useEffect(() => {
-    const container = document.getElementById('tradingview-widget-container');
-    if (!container) return;
-    
-    // Clear previous widget
-    container.innerHTML = '';
-    
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      "autosize": true,
-      "symbol": mappedSymbol,
-      "interval": interval,
-      "timezone": "Asia/Kolkata",
-      "theme": theme === 'dark' ? 'dark' : 'light',
-      "style": "1",
-      "locale": "en",
-      "enable_publishing": false,
-      "hide_side_toolbar": false,
-      "allow_symbol_change": true,
-      "calendar": false,
-      "studies": [
-        "RSI@tv-basicstudies",
-        "MASimple@tv-basicstudies"
-      ],
-      "support_host": "https://www.tradingview.com"
+  const iframeSrc = React.useMemo(() => {
+    const params = new URLSearchParams({
+      symbol: mappedSymbol,
+      interval: interval,
+      theme: theme === 'dark' ? 'dark' : 'light',
+      style: '1', // 1 indicates candle representation
+      timezone: 'Asia/Kolkata',
+      locale: 'en',
+      enable_publishing: 'false',
+      hide_side_toolbar: 'false',
+      allow_symbol_change: 'true',
     });
-    container.appendChild(script);
-  }, [mappedSymbol, theme, interval]);
+    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+  }, [mappedSymbol, interval, theme]);
 
   return (
     <div className="bg-white dark:bg-slate-950 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl mb-6 flex flex-col transition-all duration-300" id="chart_section">
@@ -101,8 +83,17 @@ export default function StockChart({ symbol, name }: StockChartProps) {
         </div>
       </div>
 
-      {/* TradingView Container */}
-      <div className="w-full h-[500px] rounded-lg overflow-hidden border border-slate-250 dark:border-slate-850 bg-slate-50 dark:bg-slate-900" id="tradingview-widget-container"></div>
+      {/* TradingView Container - Embed direct iframe */}
+      <div className="w-full h-[500px] rounded-lg overflow-hidden border border-slate-250 dark:border-slate-850 bg-slate-50 dark:bg-slate-900" id="tradingview-widget-container">
+        <iframe
+          key={iframeSrc}
+          src={iframeSrc}
+          title={`TradingView chart for ${mappedSymbol}`}
+          className="w-full h-full border-0"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+          referrerPolicy="no-referrer"
+        />
+      </div>
     </div>
   );
 }
