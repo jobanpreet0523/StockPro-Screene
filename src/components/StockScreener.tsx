@@ -45,7 +45,7 @@ function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, form
       {/* Ticker Symbol */}
       <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
         <div className="flex items-center gap-1.5">
-          <span onClick={() => onSelectStock(stock.symbol)} className="hover:text-emerald-500 dark:hover:text-emerald-400 cursor-pointer transition underline decoration-dotted underline-offset-4">
+          <span onClick={() => onSelectStock('NSE:' + stock.symbol.replace('.NS', ''))} className="hover:text-emerald-500 dark:hover:text-emerald-400 cursor-pointer transition underline decoration-dotted underline-offset-4">
             {stock.symbol.replace('.NS', '')}
           </span>
           {stock.isFoEnabled && (
@@ -106,7 +106,7 @@ function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, form
       <td className="py-3.5 px-4 text-right">
         <div className="flex items-center justify-end gap-1.5">
           <button
-            onClick={() => onSelectStock(stock.symbol)}
+            onClick={() => onSelectStock('NSE:' + stock.symbol.replace('.NS', ''))}
             title="Open Interactive Chart"
             className="p-1 px-2.5 rounded bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-500 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-950/10 text-emerald-700 dark:text-emerald-400 hover:text-white transition text-xs font-bold flex items-center gap-1 cursor-pointer"
           >

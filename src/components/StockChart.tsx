@@ -20,18 +20,27 @@ export default function StockChart({ symbol, name }: StockChartProps) {
   const [interval, setIntervalVal] = useState<string>('D');
 
   const mappedSymbol = React.useMemo(() => {
-    if (symbol === '^NSEI') return 'NSE:NIFTY';
-    if (symbol === '^NSEBANK') return 'NSE:BANKNIFTY';
-    if (symbol === '^BSESN') return 'BSE:SENSEX';
-    if (symbol === '^IXIC') return 'NASDAQ:IXIC';
+    let target = symbol || 'NSE:TCS';
+    if (target === 'TCS') return 'NSE:TCS';
+    if (target === '^NSEI') return 'NSE:NIFTY';
+    if (target === '^NSEBANK') return 'NSE:BANKNIFTY';
+    if (target === '^BSESN') return 'BSE:SENSEX';
+    if (target === '^IXIC') return 'NASDAQ:IXIC';
     
-    if (symbol.endsWith('.NS')) {
-      return 'NSE:' + symbol.replace('.NS', '');
+    let clean = target;
+    if (clean.endsWith('.NS')) {
+      clean = clean.replace('.NS', '');
     }
-    if (symbol.endsWith('.BO')) {
-      return 'BSE:' + symbol.replace('.BO', '');
+    if (clean.endsWith('.BO')) {
+      return 'BSE:' + clean.replace('.BO', '');
     }
-    return symbol;
+    
+    // Prepend NSE: exchange prefix if it's an Indian stock symbol without exchange prefix
+    if (!clean.includes(':')) {
+      return 'NSE:' + clean;
+    }
+    
+    return clean;
   }, [symbol]);
 
   const iframeSrc = React.useMemo(() => {

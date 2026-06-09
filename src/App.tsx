@@ -54,7 +54,11 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const activeStock = stocks.find(s => s.symbol === selectedStockSymbol) || stocks[0];
+  const activeStock = stocks.find(s => {
+    const cleanLeft = selectedStockSymbol.replace('NSE:', '').replace('.NS', '');
+    const cleanRight = s.symbol.replace('.NS', '');
+    return cleanLeft === cleanRight;
+  }) || stocks[0];
 
   const handleSelectStock = (symbol: string) => {
     setSelectedStockSymbol(symbol);
@@ -173,7 +177,11 @@ export default function App() {
                 <div className="flex items-center gap-2 mt-2 md:mt-0 font-mono text-xs">
                   <span className="text-slate-500 dark:text-slate-450 uppercase font-bold">Select F&O Symbol:</span>
                   <select
-                    value={selectedStockSymbol}
+                    value={
+                      (selectedStockSymbol === '^NSEI' || selectedStockSymbol === '^NSEBANK') 
+                        ? selectedStockSymbol 
+                        : (activeStock ? activeStock.symbol : selectedStockSymbol)
+                    }
                     onChange={(e) => handleSelectStock(e.target.value)}
                     className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded px-2.5 py-1.5 focus:border-emerald-500 transition font-bold shadow-sm"
                   >
