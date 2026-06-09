@@ -73,11 +73,12 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
           return 0;
       }
 
-      if (sortOrder === 'ASC') {
-        return valA - valB;
-      } else {
-        return valB - valA;
+      if (valA !== valB) {
+        return sortOrder === 'ASC' ? valA - valB : valB - valA;
       }
+      
+      // Stable sorting tie-breaker using strike price
+      return a.strikePrice - b.strikePrice;
     });
   }, [chain?.options, sortField, sortOrder]);
 
