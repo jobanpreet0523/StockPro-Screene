@@ -1049,6 +1049,21 @@ app.get("/api/download-zip", (req, res) => {
 });
 seedRealWorldData();
 async function startServer() {
+  app.get("/", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/index.html" : "index.html"));
+  });
+  app.get("/landing", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/index.html" : "index.html"));
+  });
+  app.get("/screener", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/screener.html" : "screener.html"));
+  });
+  app.get("/fo", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/fo.html" : "fo.html"));
+  });
+  app.get("/dashboard", (req, res) => {
+    res.sendFile(import_path.default.join(process.cwd(), process.env.NODE_ENV === "production" ? "dist/dashboard.html" : "dashboard.html"));
+  });
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
