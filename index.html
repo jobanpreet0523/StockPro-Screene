@@ -2975,7 +2975,11 @@
 
     <!-- Initialize Lucide Icons -->
     <script>
-      lucide.createIcons();
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+      } else {
+        console.warn('Lucide is not globally loaded in index.html.');
+      }
     </script>
   </body>
 </html>

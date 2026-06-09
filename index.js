@@ -949,7 +949,11 @@ const HTML_CONTENT = `
   </main>
 
   <script>
-    lucide.createIcons();
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+      lucide.createIcons();
+    } else {
+      console.warn('Lucide is not globally loaded.');
+    }
 
     // Swappable Tab Navigation Logic
     function switchTab(tabId) {
