@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp } from 'lucide-react';
 import { OptionChain, OptionData, Position } from '../types';
+import { generateOptionChain, INITIAL_STOCKS } from '../data';
 
 interface OptionChainViewProps {
   symbol: string;
@@ -20,19 +21,41 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
   useEffect(() => {
     async function fetchChain() {
       setLoading(true);
+      const cleanSymbol = symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol;
       try {
-        const cleanSymbol = symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol;
         const res = await fetch(`/api/option-chain/${cleanSymbol}`);
-        const json = await res.json();
-        if (json.status === 'ok') {
-          setChain(json.data);
-          // Set anchor strike as default focus
-          if (json.data.options && json.data.options.length > 10) {
-            setSelectedStrike(json.data.options[10]);
+        const contentType = res.headers.get('content-type') || '';
+        
+        if (res.ok && contentType.includes('application/json')) {
+          const json = await res.json();
+          if (json.status === 'ok') {
+            setChain(json.data);
+            // Set anchor strike as default focus
+            if (json.data.options && json.data.options.length > 10) {
+              setSelectedStrike(json.data.options[10]);
+            }
+            return;
           }
         }
+        throw new Error('Backend offline or returned HTML fallback');
       } catch (err) {
-        console.error('Error fetching option chain:', err);
+        // Fallback option chain generation for serverless edge / static deploys
+        let spotPrice = 1500;
+        const isIndex = cleanSymbol === 'NIFTY' || cleanSymbol === 'BANKNIFTY' || cleanSymbol === 'FINNIFTY' || cleanSymbol.startsWith('^');
+        if (isIndex) {
+          if (cleanSymbol.includes('BANKNIFTY') || cleanSymbol.includes('BANK') || cleanSymbol === '^NSEBANK') spotPrice = 49812.60;
+          else if (cleanSymbol.includes('FIN')) spotPrice = 21450.00;
+          else spotPrice = 23320.15;
+        } else {
+          const matchedStock = INITIAL_STOCKS.find(s => s.symbol.replace('.NS', '') === cleanSymbol);
+          if (matchedStock) spotPrice = matchedStock.price;
+        }
+
+        const fallbackChain = generateOptionChain(cleanSymbol, spotPrice);
+        setChain(fallbackChain);
+        if (fallbackChain.options && fallbackChain.options.length > 10) {
+          setSelectedStrike(fallbackChain.options[Math.floor(fallbackChain.options.length / 2)]);
+        }
       } finally {
         setLoading(false);
       }

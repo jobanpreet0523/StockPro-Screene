@@ -1,6 +1,133 @@
-import React, { useState, useMemo } from 'react';
-import { SlidersHorizontal, ArrowUpDown, Play, Sparkles, Filter, CheckCircle2, ChevronRight, Calculator } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { SlidersHorizontal, ArrowUpDown, Play, Sparkles, Filter, CheckCircle2, ChevronRight, Calculator, Download } from 'lucide-react';
 import { Stock } from '../types';
+
+interface ScreenerRowProps {
+  key?: string;
+  stock: Stock;
+  onSelectStock: (symbol: string) => void;
+  onSelectFoStock: (symbol: string) => void;
+  formatVolume: (vol: number) => string;
+  formatMarketCap: (cap: number) => string;
+}
+
+function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, formatMarketCap }: ScreenerRowProps) {
+  const [prevPrice, setPrevPrice] = useState<number>(stock.price);
+  const [flash, setFlash] = useState<'up' | 'down' | null>(null);
+
+  useEffect(() => {
+    if (stock.price !== prevPrice) {
+      setFlash(stock.price > prevPrice ? 'up' : 'down');
+      setPrevPrice(stock.price);
+      const timer = setTimeout(() => {
+        setFlash(null);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [stock.price, prevPrice]);
+
+  const isPositive = stock.change >= 0;
+  const rsiColorClass = stock.rsi >= 70 
+    ? 'bg-rose-950/40 text-rose-400 border border-rose-900/30 font-bold' 
+    : stock.rsi <= 40 
+    ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/30 font-bold' 
+    : 'bg-slate-900 text-slate-300';
+
+  // Dynamic green/red flash visual background for price field
+  const flashBgClass = flash === 'up'
+    ? 'bg-emerald-500/20 text-emerald-300 font-bold scale-[1.02] shadow-sm shadow-emerald-500/20 rounded duration-150'
+    : flash === 'down'
+    ? 'bg-rose-500/20 text-rose-300 font-bold scale-[1.02] shadow-sm shadow-rose-500/20 rounded duration-150'
+    : 'duration-1000';
+
+  return (
+    <tr className="hover:bg-slate-900/30 transition duration-150 class_stock_row text-sm">
+      {/* Ticker Symbol */}
+      <td className="py-3.5 px-4 font-mono font-bold text-white">
+        <div className="flex items-center gap-1.5">
+          <span onClick={() => onSelectStock(stock.symbol)} className="hover:text-emerald-400 cursor-pointer transition underline decoration-dotted underline-offset-4">
+            {stock.symbol.replace('.NS', '')}
+          </span>
+          {stock.isFoEnabled && (
+            <span
+              onClick={() => onSelectFoStock(stock.symbol)}
+              title="Futures and Options Supported - Click to open Option Chain"
+              className="bg-purple-950 text-purple-300 text-[8px] font-extrabold px-1.5 py-0.5 rounded cursor-pointer border border-purple-800/40 hover:bg-purple-900 hover:text-white transition uppercase"
+            >
+              F&O
+            </span>
+          )}
+        </div>
+      </td>
+
+      {/* Company Name & Sector */}
+      <td className="py-3.5 px-3">
+        <span className="font-sans text-slate-200 block text-xs truncate max-w-[160px]">{stock.name}</span>
+        <span className="text-[10px] text-slate-450 font-mono uppercase">{stock.sector}</span>
+      </td>
+
+      {/* Spot Pricing */}
+      <td className="py-3.5 px-3 text-right font-mono text-xs font-semibold">
+        <span className={`inline-block px-1.5 py-0.5 transition-all text-right select-none ${flashBgClass}`}>
+          {stock.price >= 100 ? stock.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : stock.price.toFixed(2)}
+        </span>
+      </td>
+
+      {/* Today change % */}
+      <td className="py-3.5 px-3 text-right font-mono font-bold text-xs">
+        <span className={`inline-flex items-center ${isPositive ? 'text-emerald-450' : 'text-rose-450'}`}>
+          {isPositive ? '+' : ''}{stock.changePercent}%
+        </span>
+      </td>
+
+      {/* volume */}
+      <td className="py-3.5 px-3 text-right font-mono text-slate-400 text-xs">
+        {formatVolume(stock.volume)}
+      </td>
+
+      {/* market cap */}
+      <td className="py-3.5 px-3 text-right font-mono text-slate-400 text-xs">
+        {formatMarketCap(stock.marketCap)}
+      </td>
+
+      {/* PE Ratio */}
+      <td className="py-3.5 px-3 text-center font-mono text-slate-300 text-xs">
+        {stock.peRatio || '-'}
+      </td>
+
+      {/* RSI 14-day value */}
+      <td className="py-3.5 px-3 text-center font-mono text-xs">
+        <span className={`px-2 py-0.5 rounded text-[11px] ${rsiColorClass}`}>
+          {stock.rsi}
+        </span>
+      </td>
+
+      {/* Interactive Triggers */}
+      <td className="py-3.5 px-4 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={() => onSelectStock(stock.symbol)}
+            title="Open Interactive Chart"
+            className="p-1 px-2.5 rounded bg-emerald-950/40 hover:bg-emerald-900 text-emerald-400 hover:text-white transition text-xs font-semibold flex items-center gap-1 cursor-pointer"
+          >
+            <Play size={10} className="fill-current" />
+            Chart
+          </button>
+          {stock.isFoEnabled && (
+            <button
+              onClick={() => onSelectFoStock(stock.symbol)}
+              title="Open F&O Derivatives Console"
+              className="p-1 px-2.5 rounded bg-purple-950/45 hover:bg-purple-900 text-purple-300 hover:text-white transition text-xs font-semibold flex items-center gap-1 cursor-pointer"
+            >
+              <Calculator size={10} />
+              F&O
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 interface StockScreenerProps {
   stocks: Stock[];
@@ -97,6 +224,78 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
     return `₹${cap.toLocaleString()}Cr`;
   };
 
+  const handleExportCSV = () => {
+    // CSV Header row
+    const headers = [
+      'Ticker Code',
+      'Instrument Name',
+      'Sector',
+      'Spot Price (INR)',
+      'Change (%)',
+      'Change Value (INR)',
+      'Volume (24H)',
+      'Market Cap (INR Cr)',
+      'P/E Ratio',
+      'RSI (14)',
+      'High (INR)',
+      'Low (INR)',
+      'Open (INR)',
+      'Close (INR)',
+      'Exchange',
+      'F&O Segment'
+    ];
+
+    // Helper to escape CSV cell strings containing commas or quotes
+    const escapeCSVCell = (val: any) => {
+      if (val === null || val === undefined) return '';
+      const strVal = String(val);
+      if (strVal.includes(',') || strVal.includes('"') || strVal.includes('\n')) {
+        return `"${strVal.replace(/"/g, '""')}"`;
+      }
+      return strVal;
+    };
+
+    // Format individual stock records
+    const rows = finalFilteredStocks.map(stock => [
+      stock.symbol.replace('.NS', ''),
+      stock.name,
+      stock.sector,
+      stock.price,
+      stock.changePercent,
+      stock.change,
+      stock.volume,
+      stock.marketCap,
+      stock.peRatio || 'N/A',
+      stock.rsi,
+      stock.high || '',
+      stock.low || '',
+      stock.open || '',
+      stock.close || '',
+      stock.exchange,
+      stock.isFoEnabled ? 'Enabled' : 'Disabled'
+    ].map(escapeCSVCell));
+
+    // Combine headers and rows
+    const csvContent = [headers.map(escapeCSVCell).join(','), ...rows.map(r => r.join(','))].join('\n');
+
+    // Create Download Blob and trigger anchor click
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Generate clean filename matching preset / selector
+    const presetLabel = activePreset.charAt(0).toUpperCase() + activePreset.slice(1);
+    const sectorName = selectedSector.replace(/\s+/g, '_');
+    const filename = `StockPro_Screener_${presetLabel}_${sectorName}_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="bg-slate-950 rounded-xl border border-slate-800 p-5 shadow-xl" id="screener_viewport">
       {/* Search Presets Row */}
@@ -137,17 +336,32 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
 
       {/* Advanced Filters Toggle & Sliders */}
       <div className="mb-6">
-        <button
-          onClick={() => setShowFilters(prev => !prev)}
-          className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-emerald-400 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg cursor-pointer transition"
-          id="toggle_filters_btn"
-        >
-          <SlidersHorizontal size={14} className={showFilters ? 'text-emerald-400' : ''} />
-          {showFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
-          <span className="bg-slate-800 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-mono">
-            {selectedSector !== 'All' || minPrice > 0 || maxPe < 100 || minRsi > 10 || maxRsi < 90 ? 'Active' : 'Off'}
-          </span>
-        </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="screener_controls">
+          <button
+            onClick={() => setShowFilters(prev => !prev)}
+            className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-emerald-400 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg cursor-pointer transition select-none"
+            id="toggle_filters_btn"
+          >
+            <SlidersHorizontal size={14} className={showFilters ? 'text-emerald-400' : ''} />
+            {showFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
+            <span className="bg-slate-800 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-mono font-medium">
+              {selectedSector !== 'All' || minPrice > 0 || maxPe < 100 || minRsi > 10 || maxRsi < 90 ? 'Active' : 'Off'}
+            </span>
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-400 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/25 hover:border-emerald-500/60 px-4 py-2 rounded-lg cursor-pointer transition shadow-lg shadow-emerald-950/20"
+            id="btn_export_csv"
+            title="Download filtered stock list as a CSV spreadsheet"
+          >
+            <Download size={14} className="text-emerald-400" />
+            Export to CSV
+            <span className="bg-emerald-900/50 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">
+              {finalFilteredStocks.length} Stock{finalFilteredStocks.length !== 1 ? 's' : ''}
+            </span>
+          </button>
+        </div>
 
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-4 p-4 rounded-xl bg-slate-900/50 border border-slate-850 animate-fadeIn" id="advanced_filters_panel">
@@ -282,105 +496,16 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
           </thead>
           <tbody className="divide-y divide-slate-850/60">
             {finalFilteredStocks.length > 0 ? (
-              finalFilteredStocks.map(stock => {
-                const isPositive = stock.change >= 0;
-                
-                // Estimate RSI category background
-                const rsiColorClass = stock.rsi >= 70 
-                  ? 'bg-rose-950/40 text-rose-400 border border-rose-900/30 font-bold' 
-                  : stock.rsi <= 40 
-                  ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/30 font-bold' 
-                  : 'bg-slate-900 text-slate-300';
-
-                return (
-                  <tr
-                    key={stock.symbol}
-                    className="hover:bg-slate-900/30 transition duration-150 class_stock_row text-sm"
-                  >
-                    {/* Ticker Symbol */}
-                    <td className="py-3.5 px-4 font-mono font-bold text-white">
-                      <div className="flex items-center gap-1.5">
-                        <span onClick={() => onSelectStock(stock.symbol)} className="hover:text-emerald-400 cursor-pointer transition underline decoration-dotted underline-offset-4">
-                          {stock.symbol.replace('.NS', '')}
-                        </span>
-                        {stock.isFoEnabled && (
-                          <span
-                            onClick={() => onSelectFoStock(stock.symbol)}
-                            title="Futures and Options Supported - Click to open Option Chain"
-                            className="bg-purple-950 text-purple-300 text-[8px] font-extrabold px-1.5 py-0.5 rounded cursor-pointer border border-purple-800/40 hover:bg-purple-900 hover:text-white transition uppercase"
-                          >
-                            F&O
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Company Name & Sector */}
-                    <td className="py-3.5 px-3">
-                      <span className="font-sans text-slate-200 block text-xs truncate max-w-[160px]">{stock.name}</span>
-                      <span className="text-[10px] text-slate-450 font-mono uppercase">{stock.sector}</span>
-                    </td>
-
-                    {/* Spot Pricing */}
-                    <td className="py-3.5 px-3 text-right font-mono text-white text-xs font-semibold">
-                      {stock.price >= 100 ? stock.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : stock.price.toFixed(2)}
-                    </td>
-
-                    {/* Today change % */}
-                    <td className="py-3.5 px-3 text-right font-mono font-bold text-xs">
-                      <span className={`inline-flex items-center ${isPositive ? 'text-emerald-405' : 'text-rose-405'}`}>
-                        {isPositive ? '+' : ''}{stock.changePercent}%
-                      </span>
-                    </td>
-
-                    {/* volume */}
-                    <td className="py-3.5 px-3 text-right font-mono text-slate-400 text-xs">
-                      {formatVolume(stock.volume)}
-                    </td>
-
-                    {/* market cap */}
-                    <td className="py-3.5 px-3 text-right font-mono text-slate-400 text-xs">
-                      {formatMarketCap(stock.marketCap)}
-                    </td>
-
-                    {/* PE Ratio */}
-                    <td className="py-3.5 px-3 text-center font-mono text-slate-300 text-xs">
-                      {stock.peRatio || '-'}
-                    </td>
-
-                    {/* RSI 14-day value */}
-                    <td className="py-3.5 px-3 text-center font-mono text-xs">
-                      <span className={`px-2 py-0.5 rounded text-[11px] ${rsiColorClass}`}>
-                        {stock.rsi}
-                      </span>
-                    </td>
-
-                    {/* Interactive Triggers */}
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => onSelectStock(stock.symbol)}
-                          title="Open Interactive Chart"
-                          className="p-1 px-2.5 rounded bg-emerald-950/40 hover:bg-emerald-900 text-emerald-400 hover:text-white transition text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                        >
-                          <Play size={10} className="fill-current" />
-                          Chart
-                        </button>
-                        {stock.isFoEnabled && (
-                          <button
-                            onClick={() => onSelectFoStock(stock.symbol)}
-                            title="Open F&O Derivatives Console"
-                            className="p-1 px-2.5 rounded bg-purple-950/45 hover:bg-purple-900 text-purple-300 hover:text-white transition text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                          >
-                            <Calculator size={10} />
-                            F&O
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
+              finalFilteredStocks.map(stock => (
+                <ScreenerRow
+                  key={stock.symbol}
+                  stock={stock}
+                  onSelectStock={onSelectStock}
+                  onSelectFoStock={onSelectFoStock}
+                  formatVolume={formatVolume}
+                  formatMarketCap={formatMarketCap}
+                />
+              ))
             ) : (
               <tr>
                 <td colSpan={9} className="py-10 px-4 text-center text-xs font-mono text-slate-500">

@@ -365,36 +365,63 @@
         if (cells.length < 7) return;
 
         const isATM = d.strike === d.atm;
-        if (isATM) tr.style.background = "rgba(250,197,22,.08)";
+        if (isATM) tr.style.background = "rgba(250, 197, 22, 0.08)";
 
         // Detect column count to decide layout
         const n = cells.length;
-        if (n >= 13) {
-          // Full chain: [ceOI, ceCHG%, ceVOL, ceIV, ceBID, ceASK, ceLTP, ceCHG, STRIKE, pCHG, pLTP, pBID, pASK, pIV, pVOL, pCHG%, pOI]
-          safeSet(cells[0], fmtOI(d.ce.oi), "#00ff80");
-          safeSet(cells[1], (d.ce.oiChg >= 0 ? "+" : "") + fmtOI(d.ce.oiChg), d.ce.oiChg >= 0 ? "#00ff80" : "#ff4d4d");
+        if (n >= 17) {
+          // Full 17-column layout
+          const upCe = d.ce.chg >= 0;
+          const upPe = d.pe.chg >= 0;
+          
+          // Call Side (Indices 0 - 7)
+          safeSet(cells[0], fmtOI(d.ce.oi), "#10b981");
+          safeSet(cells[1], (upCe ? "+" : "") + d.ce.chg.toFixed(1) + "%", upCe ? "#10b981" : "#ef4444");
+          safeSet(cells[2], fmtOI(d.ce.vol), "#64748b");
+          safeSet(cells[3], d.ce.iv.toFixed(1), "#a855f7");
+          safeSet(cells[4], (d.ce.ltp * 0.998).toFixed(1), "#64748b");
+          safeSet(cells[5], (d.ce.ltp * 1.002).toFixed(1), "#64748b");
+          safeSet(cells[6], d.ce.ltp.toFixed(1), "#0f172a");
+          safeSet(cells[7], (upCe ? "+" : "") + (d.ce.chg * d.ce.ltp / 100).toFixed(1), upCe ? "#10b981" : "#ef4444");
+          
+          // Sticky STRIKE Column (Index 8)
+          safeSet(cells[8], d.strike.toLocaleString("en-IN") + (isATM ? " ATM" : ""), isATM ? "#eab308" : "#1e293b");
+          
+          // Put Side (Indices 9 - 16)
+          safeSet(cells[9], (upPe ? "+" : "") + (d.pe.chg * d.pe.ltp / 100).toFixed(1), upPe ? "#10b981" : "#ef4444");
+          safeSet(cells[10], d.pe.ltp.toFixed(1), "#0f172a");
+          safeSet(cells[11], (d.pe.ltp * 0.998).toFixed(1), "#64748b");
+          safeSet(cells[12], (d.pe.ltp * 1.002).toFixed(1), "#64748b");
+          safeSet(cells[13], d.pe.iv.toFixed(1), "#a855f7");
+          safeSet(cells[14], fmtOI(d.pe.vol), "#64748b");
+          safeSet(cells[15], (upPe ? "+" : "") + d.pe.chg.toFixed(1) + "%", upPe ? "#10b981" : "#ef4444");
+          safeSet(cells[16], fmtOI(d.pe.oi), "#ef4444");
+        } else if (n >= 13) {
+          // Adaptive backup for 13 columns
+          safeSet(cells[0], fmtOI(d.ce.oi), "#10b981");
+          safeSet(cells[1], (d.ce.chg >= 0 ? "+" : "") + d.ce.chg.toFixed(1) + "%", d.ce.chg >= 0 ? "#10b981" : "#ef4444");
           safeSet(cells[2], fmtOI(d.ce.vol));
-          safeSet(cells[3], d.ce.iv.toFixed(1), "#bc8cff");
-          safeSet(cells[4], d.ce.ltp.toFixed(1), "#00ff80");
-          safeSet(cells[5], (d.ce.chg >= 0 ? "+" : "") + d.ce.chg.toFixed(1), d.ce.chg >= 0 ? "#00ff80" : "#ff4d4d");
-          // Middle strike
+          safeSet(cells[3], d.ce.iv.toFixed(1), "#a855f7");
+          safeSet(cells[4], d.ce.ltp.toFixed(1), "#0f172a");
+          safeSet(cells[5], (d.ce.chg >= 0 ? "+" : "") + (d.ce.chg * d.ce.ltp / 100).toFixed(1), d.ce.chg >= 0 ? "#10b981" : "#ef4444");
+          
           const strikeCell = cells[Math.floor(n / 2)];
-          safeSet(strikeCell, d.strike.toLocaleString("en-IN") + (isATM ? " ATM" : ""), isATM ? "#fac516" : "#e6edf3");
-          // Put side
-          safeSet(cells[n - 6], (d.pe.chg >= 0 ? "+" : "") + d.pe.chg.toFixed(1), d.pe.chg >= 0 ? "#00ff80" : "#ff4d4d");
-          safeSet(cells[n - 5], d.pe.ltp.toFixed(1), "#ff4d4d");
-          safeSet(cells[n - 4], d.pe.iv.toFixed(1), "#bc8cff");
+          safeSet(strikeCell, d.strike.toLocaleString("en-IN") + (isATM ? " ATM" : ""), isATM ? "#eab308" : "#1e293b");
+          
+          safeSet(cells[n - 6], (d.pe.chg >= 0 ? "+" : "") + (d.pe.chg * d.pe.ltp / 100).toFixed(1), d.pe.chg >= 0 ? "#10b981" : "#ef4444");
+          safeSet(cells[n - 5], d.pe.ltp.toFixed(1), "#0f172a");
+          safeSet(cells[n - 4], d.pe.iv.toFixed(1), "#a855f7");
           safeSet(cells[n - 3], fmtOI(d.pe.vol));
-          safeSet(cells[n - 2], (d.pe.oiChg >= 0 ? "+" : "") + fmtOI(d.pe.oiChg), d.pe.oiChg >= 0 ? "#00ff80" : "#ff4d4d");
-          safeSet(cells[n - 1], fmtOI(d.pe.oi), "#ff4d4d");
+          safeSet(cells[n - 2], (d.pe.chg >= 0 ? "+" : "") + d.pe.chg.toFixed(1) + "%", d.pe.chg >= 0 ? "#10b981" : "#ef4444");
+          safeSet(cells[n - 1], fmtOI(d.pe.oi), "#ef4444");
         } else if (n >= 7) {
           // Compact chain: CE-OI, CE-LTP, STRIKE, PE-LTP, PE-CHG, PE-OI
-          safeSet(cells[0], fmtOI(d.ce.oi), "#00ff80");
-          safeSet(cells[1], d.ce.ltp.toFixed(1), "#00ff80");
-          safeSet(cells[Math.floor(n / 2)], d.strike.toLocaleString("en-IN") + (isATM ? " ATM" : ""), isATM ? "#fac516" : "#e6edf3");
-          safeSet(cells[n - 3], d.pe.ltp.toFixed(1), "#ff4d4d");
-          safeSet(cells[n - 2], (d.pe.chg >= 0 ? "+" : "") + d.pe.chg.toFixed(1), d.pe.chg >= 0 ? "#00ff80" : "#ff4d4d");
-          safeSet(cells[n - 1], fmtOI(d.pe.oi), "#ff4d4d");
+          safeSet(cells[0], fmtOI(d.ce.oi), "#10b981");
+          safeSet(cells[1], d.ce.ltp.toFixed(1), "#0f172a");
+          safeSet(cells[Math.floor(n / 2)], d.strike.toLocaleString("en-IN") + (isATM ? " ATM" : ""), isATM ? "#eab308" : "#1e293b");
+          safeSet(cells[n - 3], d.pe.ltp.toFixed(1), "#0f172a");
+          safeSet(cells[n - 2], (d.pe.chg >= 0 ? "+" : "") + d.pe.chg.toFixed(1) + "%", d.pe.chg >= 0 ? "#10b981" : "#ef4444");
+          safeSet(cells[n - 1], fmtOI(d.pe.oi), "#ef4444");
         }
       });
     });

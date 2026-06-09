@@ -5,11 +5,12 @@ import StockScreener from './components/StockScreener';
 import StockChart from './components/StockChart';
 import OptionChainView from './components/OptionChainView';
 import { Stock, IndexData } from './types';
+import { INITIAL_INDICES, INITIAL_STOCKS } from './data';
 import { TrendingUp, HelpCircle, ShieldCheck, Activity } from 'lucide-react';
 
 export default function App() {
-  const [indices, setIndices] = useState<IndexData[]>([]);
-  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
+  const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
   const [activeTab, setActiveTab] = useState<'screener' | 'fo'>('screener');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('RELIANCE.NS');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -20,21 +21,25 @@ export default function App() {
     async function syncRealTimeMetrics() {
       try {
         const [indicesRes, stocksRes] = await Promise.all([
-          fetch('/api/indices'),
-          fetch('/api/stocks')
+          fetch('/api/indices', { headers: {} }),
+          fetch('/api/stocks', { headers: {} })
         ]);
 
         if (indicesRes.ok && stocksRes.ok) {
           const indicesJson = await indicesRes.json();
           const stocksJson = await stocksRes.json();
-
-          if (indicesJson.status === 'ok') setIndices(indicesJson.data);
-          if (stocksJson.status === 'ok') setStocks(stocksJson.data);
+          
+          if (indicesJson.data) setIndices(indicesJson.data);
+          if (stocksJson.data) setStocks(stocksJson.data);
+          
           setIsLive(true);
+        } else {
+          throw new Error('API response not ok');
         }
       } catch (err) {
-        console.warn('Real-time sync connection waiting/interrupted:', err);
+        console.error("API Fetch failed:", err);
         setIsLive(false);
+        // Retain existing state to prevent disruption on minor network blips
       }
     }
 
@@ -87,11 +92,26 @@ export default function App() {
           />
         )}
 
-        {/* Sync Disconnection Warn Alert */}
-        {!isLive && (
-          <div className="mb-4 bg-amber-950/40 border border-amber-800/50 text-amber-300 p-3 rounded-lg text-xs font-mono flex items-center gap-2 animate-pulse justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            Backend connecting... If updates pause, please check port connection or reload.
+        {/* Indian Market Closed Weekend Alert */}
+        {(new Date().getDay() === 0 || new Date().getDay() === 6) && (
+          <div className="mb-6 bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4" id="weekend_market_indicator">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-2.5 rounded-lg shrink-0">
+                <HelpCircle size={18} className="text-amber-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  Indian Stock Markets are Closed (Weekend Session)
+                </h4>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Since today is Sunday, the live National Stock Exchange (NSE) and Bombay Stock Exchange (BSE) are closed. However, <strong>StockPro's Simulated Ticker Engine is Active</strong>, generating real-time micro-ticks on all indices & equities so you can fully test screeners, indicator sliders, options chains, and chart visualizations!
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0 bg-emerald-990 border border-emerald-500/25 text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Simulator Active
+            </div>
           </div>
         )}
 
@@ -175,12 +195,27 @@ export default function App() {
       </main>
 
       {/* Humble Footer footer bar */}
-      <footer className="bg-slate-950/80 border-t border-slate-850/60 text-slate-500 text-center py-4 font-mono text-[10px] mt-10">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>&copy; StockPro Screener. All derivative analytics calculated real-time.</span>
-          <div className="flex gap-4">
-            <span className="hover:text-slate-350 transition cursor-pointer">Security Protocol v4.1</span>
-            <span className="hover:text-slate-350 transition cursor-pointer">Live Node Status: Active</span>
+      <footer className="bg-slate-950/80 border-t border-slate-850/60 text-slate-500 font-mono text-[10px] mt-16 py-10">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="flex flex-col gap-2">
+            <h4 className="text-slate-300 font-bold uppercase tracking-wider">StockPro Screener</h4>
+            <p>&copy; {new Date().getFullYear()} StockPro. All rights reserved.</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-slate-300 font-bold uppercase tracking-wider">Protocol</h4>
+            <span className="hover:text-slate-300 transition cursor-pointer">Security v4.1</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">Status: Active</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-slate-300 font-bold uppercase tracking-wider">Disclaimer</h4>
+            <p className="leading-relaxed">
+              Financial data provided for educational purposes only. Not investment advice. Analyze with caution.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h4 className="text-slate-300 font-bold uppercase tracking-wider">Support</h4>
+            <span className="hover:text-slate-300 transition cursor-pointer">Contact Us</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">Privacy Policy</span>
           </div>
         </div>
       </footer>

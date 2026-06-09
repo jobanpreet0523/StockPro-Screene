@@ -360,19 +360,18 @@ export function calculateMACD(data: number[], fastPeriod = 12, slowPeriod = 26, 
   const leadingUndefinedCount = fileLen - validMacds.length;
 
   for (let i = 0; i < fileLen; i++) {
-    if (i < leadingUndefinedCount + signalPeriod - 1) {
+    if (i < leadingUndefinedCount) {
       signalLine.push(undefined);
       histogram.push(undefined);
     } else {
-      const sigVal = rawSignalVec[signalIdx];
-      const macdVal = macdLine[i];
+      const sigVal = rawSignalVec[i - leadingUndefinedCount];
       signalLine.push(sigVal);
-      if (macdVal !== undefined && sigVal !== undefined) {
+      const macdVal = macdLine[i];
+      if (macdVal !== undefined && sigVal !== undefined && macdVal !== null && sigVal !== null) {
         histogram.push(macdVal - sigVal);
       } else {
         histogram.push(undefined);
       }
-      signalIdx++;
     }
   }
 
@@ -564,17 +563,21 @@ export function generateHistoricalCandles(basePrice: number, pointsCount = 100, 
   const { macdLine, signalLine, histogram } = calculateMACD(closeArray, 12, 26, 9);
 
   for (let idx = 0; idx < result.length; idx++) {
-    if (sma20[idx] !== undefined) result[idx].sma20 = Number((sma20[idx] as number).toFixed(2));
-    if (ema50[idx] !== undefined) result[idx].ema50 = Number((ema50[idx] as number).toFixed(2));
-    if (middle[idx] !== undefined) {
+    if (sma20[idx] !== undefined && sma20[idx] !== null) result[idx].sma20 = Number((sma20[idx] as number).toFixed(2));
+    if (ema50[idx] !== undefined && ema50[idx] !== null) result[idx].ema50 = Number((ema50[idx] as number).toFixed(2));
+    if (middle[idx] !== undefined && middle[idx] !== null && upper[idx] !== undefined && upper[idx] !== null && lower[idx] !== undefined && lower[idx] !== null) {
       result[idx].upperBand = Number((upper[idx] as number).toFixed(2));
       result[idx].lowerBand = Number((lower[idx] as number).toFixed(2));
     }
-    if (rsi[idx] !== undefined) result[idx].rsi = Number((rsi[idx] as number).toFixed(2));
-    if (macdLine[idx] !== undefined) {
+    if (rsi[idx] !== undefined && rsi[idx] !== null) result[idx].rsi = Number((rsi[idx] as number).toFixed(2));
+    if (macdLine[idx] !== undefined && macdLine[idx] !== null) {
       result[idx].macdLine = Number((macdLine[idx] as number).toFixed(2));
-      result[idx].signalLine = Number((signalLine[idx] as number).toFixed(2));
-      result[idx].histogram = Number((histogram[idx] as number).toFixed(2));
+      if (signalLine[idx] !== undefined && signalLine[idx] !== null) {
+        result[idx].signalLine = Number((signalLine[idx] as number).toFixed(2));
+      }
+      if (histogram[idx] !== undefined && histogram[idx] !== null) {
+        result[idx].histogram = Number((histogram[idx] as number).toFixed(2));
+      }
     }
   }
 
