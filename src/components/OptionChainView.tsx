@@ -197,6 +197,19 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
     return vol.toLocaleString();
   };
 
+  const getHeaderClassName = (
+    field: 'CALL_LTP' | 'CALL_IV' | 'CALL_OICHG' | 'PUT_LTP' | 'PUT_IV' | 'PUT_OICHG',
+    align: 'left' | 'right' | 'center',
+    padding: string = 'px-1'
+  ) => {
+    const isSorted = sortField === field;
+    return `py-2 ${padding} ${align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center'} cursor-pointer select-none transition-all duration-250 ${
+      isSorted
+        ? 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-extrabold border-b-2 border-b-indigo-500 dark:border-b-indigo-400 shadow-inner'
+        : 'hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900/50'
+    }`;
+  };
+
   if (loading && !chain) {
     return (
       <div className="h-[400px] flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm" id="option_chain_loader">
@@ -296,51 +309,51 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
               </tr>
               {/* Header Parameters */}
               <tr className="border-b border-slate-200 dark:border-slate-850 text-[9px] text-slate-550 dark:text-slate-400 text-center font-bold">
-                <th className="py-2 px-2">OI (Lot)</th>
+                <th className="py-2 px-2 text-slate-500 dark:text-slate-400 text-center">OI (Lot)</th>
                 <th 
                   onClick={() => handleSort('CALL_OICHG')}
-                  className="py-2 px-1 text-center cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors"
+                  className={getHeaderClassName('CALL_OICHG', 'center', 'px-1')}
                 >
                   Chg OI {sortField === 'CALL_OICHG' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
                 </th>
-                <th className="py-2 px-1 text-right">Volume</th>
+                <th className="py-2 px-1 text-right text-slate-500 dark:text-slate-400">Volume</th>
                 <th 
                   onClick={() => handleSort('CALL_IV')}
-                  className="py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors text-center"
+                  className={getHeaderClassName('CALL_IV', 'center', 'px-1')}
                 >
                   IV % {sortField === 'CALL_IV' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
                 </th>
                 <th 
                   onClick={() => handleSort('CALL_LTP')}
-                  className="py-2 px-2 text-right cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors"
+                  className={getHeaderClassName('CALL_LTP', 'right', 'px-2')}
                 >
                   LTP (₹) {sortField === 'CALL_LTP' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
                 </th>
-                <th className="py-2 px-1 text-center border-r border-slate-200 dark:border-slate-850">% Chg</th>
+                <th className="py-2 px-1 text-center text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-855">% Chg</th>
                 
                 <th className="py-2 px-3 text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900 font-extrabold border-r border-slate-200 dark:border-slate-800 text-center">STRIKE</th>
                 
-                <th className="py-2 px-1 text-center font-semibold border-r border-slate-200 dark:border-slate-800">% Chg</th>
+                <th className="py-2 px-1 text-center text-slate-500 dark:text-slate-400 font-semibold border-r border-slate-200 dark:border-slate-800">% Chg</th>
                 <th 
                   onClick={() => handleSort('PUT_LTP')}
-                  className="py-2 px-2 text-left cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors"
+                  className={getHeaderClassName('PUT_LTP', 'left', 'px-2')}
                 >
                   LTP (₹) {sortField === 'PUT_LTP' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
                 </th>
                 <th 
                   onClick={() => handleSort('PUT_IV')}
-                  className="py-2 px-1 cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors text-center"
+                  className={getHeaderClassName('PUT_IV', 'center', 'px-1')}
                 >
                   IV % {sortField === 'PUT_IV' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
                 </th>
-                <th className="py-2 px-1 text-left col-volume">Volume</th>
+                <th className="py-2 px-1 text-left text-slate-500 dark:text-slate-400 col-volume">Volume</th>
                 <th 
                   onClick={() => handleSort('PUT_OICHG')}
-                  className="py-2 px-1 text-center cursor-pointer hover:text-slate-900 dark:hover:text-white select-none hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors"
+                  className={getHeaderClassName('PUT_OICHG', 'center', 'px-1')}
                 >
                   Chg OI {sortField === 'PUT_OICHG' ? (sortOrder === 'ASC' ? '▲' : '▼') : '↕'}
                 </th>
-                <th className="py-2 px-2 font-semibold">OI (Lot)</th>
+                <th className="py-2 px-2 text-slate-500 dark:text-slate-400 font-semibold text-center">OI (Lot)</th>
               </tr>
             </thead>
             <tbody>
