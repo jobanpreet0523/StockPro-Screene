@@ -638,6 +638,27 @@ seedRealWorldData();
 
 // Configure Vite integration
 async function startServer() {
+  // Page routing for high-fidelity multi-view template structures
+  app.get('/', (req: Request, res: Response) => {
+    res.sendFile(path.join(process.cwd(), process.env.NODE_ENV === 'production' ? 'dist/index.html' : 'index.html'));
+  });
+
+  app.get('/landing', (req: Request, res: Response) => {
+    res.sendFile(path.join(process.cwd(), process.env.NODE_ENV === 'production' ? 'dist/index.html' : 'index.html'));
+  });
+
+  app.get('/screener', (req: Request, res: Response) => {
+    res.sendFile(path.join(process.cwd(), process.env.NODE_ENV === 'production' ? 'dist/screener.html' : 'screener.html'));
+  });
+
+  app.get('/fo', (req: Request, res: Response) => {
+    res.sendFile(path.join(process.cwd(), process.env.NODE_ENV === 'production' ? 'dist/fo.html' : 'fo.html'));
+  });
+
+  app.get('/dashboard', (req: Request, res: Response) => {
+    res.sendFile(path.join(process.cwd(), process.env.NODE_ENV === 'production' ? 'dist/dashboard.html' : 'dashboard.html'));
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
