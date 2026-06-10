@@ -55,6 +55,8 @@ interface PrebuiltScanner {
   description: string;
   logicalOperator: 'AND' | 'OR';
   conditions: ScanCondition[];
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 const PREBUILT_SCANNERS: PrebuiltScanner[] = [
@@ -62,10 +64,21 @@ const PREBUILT_SCANNERS: PrebuiltScanner[] = [
     id: 'pb-rsi-oversold',
     icon: '📈',
     name: 'RSI Oversold',
-    description: 'Simplified RSI drops indicating oversold territory (change% < -2).',
+    description: 'Simplified RSI drops indicating oversold territory (change% < -1.5 & high volume).',
     logicalOperator: 'AND',
     conditions: [
-      { id: 'pb-rsi-os-cond-1', indicator: 'rsi', timeframe: '1 Day', condition: 'Less than', value: 30 }
+      { id: 'pb-rsi-os-cond-1', indicator: 'change%', timeframe: '1 Day', condition: 'Less than', value: -1.5 },
+      { id: 'pb-rsi-os-cond-2', indicator: 'volume', timeframe: '1 Day', condition: 'Greater than', value: '2M' }
+    ]
+  },
+  {
+    id: 'pb-rsi-overbought',
+    icon: '📉',
+    name: 'RSI Overbought',
+    description: 'Stock is potentially overstretched with change% > 1.5.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-rsi-ob-cond-1', indicator: 'change%', timeframe: '1 Day', condition: 'Greater than', value: 1.5 }
     ]
   },
   {
@@ -75,17 +88,28 @@ const PREBUILT_SCANNERS: PrebuiltScanner[] = [
     description: 'Current volume exceeds 5M, indicating institutional interest.',
     logicalOperator: 'AND',
     conditions: [
-      { id: 'pb-vol-bo-cond-1', indicator: 'volume', timeframe: '1 Day', condition: 'Greater than', value: '5M' }
+      { id: 'pb-vol-bo-cond-1', indicator: 'volume', timeframe: '1 Day', condition: 'Greater than', value: '5M' },
+      { id: 'pb-vol-bo-cond-2', indicator: 'change%', timeframe: '1 Day', condition: 'Greater than', value: 0 }
     ]
   },
   {
     id: 'pb-52w-high',
     icon: '🚀',
-    name: '52-Week High Proximity',
+    name: '52-Week High Breakout',
     description: 'Closing price is within 2% of the 52-week highest traded price.',
     logicalOperator: 'AND',
     conditions: [
       { id: 'pb-52high-cond-1', indicator: '52wkhigh', timeframe: '1 Day', condition: 'Within 2%', value: 0 }
+    ]
+  },
+  {
+    id: 'pb-52w-low',
+    icon: '🔻',
+    name: '52-Week Low',
+    description: 'Price is within 2% of the 52-week lowest traded price.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-52low-cond-1', indicator: '52wklow', timeframe: '1 Day', condition: 'Within 2%', value: 0 }
     ]
   },
   {
@@ -95,8 +119,44 @@ const PREBUILT_SCANNERS: PrebuiltScanner[] = [
     description: 'Attractive fundamental entry: low price-to-earnings ratios.',
     logicalOperator: 'AND',
     conditions: [
-      { id: 'pb-uv-cond-1', indicator: 'pe', timeframe: '1 Day', condition: 'Less than', value: 15 }
+      { id: 'pb-uv-cond-1', indicator: 'pe', timeframe: '1 Day', condition: 'Less than', value: 20 },
+      { id: 'pb-uv-cond-2', indicator: 'pe', timeframe: '1 Day', condition: 'Greater than', value: 0 }
     ]
+  },
+  {
+    id: 'pb-doji',
+    icon: '🕯️',
+    name: 'Doji Pattern',
+    description: 'Identifies stocks with extremely narrow body signaling trend reversal.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-doji-cond-1', indicator: 'change% (abs)', timeframe: '1 Day', condition: 'Less than', value: 0.3 },
+      { id: 'pb-doji-cond-2', indicator: 'volume', timeframe: '1 Day', condition: 'Greater than', value: '1M' }
+    ]
+  },
+  {
+    id: 'pb-gainers',
+    icon: '🔥',
+    name: 'Top Gainers',
+    description: 'Top 10 highest percentage gaining stocks today.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-gain-cond-1', indicator: 'change%', timeframe: '1 Day', condition: 'Greater than', value: 0 }
+    ],
+    sortField: 'change%',
+    sortOrder: 'desc'
+  },
+  {
+    id: 'pb-losers',
+    icon: '🩸',
+    name: 'Top Losers',
+    description: 'Top 10 lowest percentage losing stocks today.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-lose-cond-1', indicator: 'change%', timeframe: '1 Day', condition: 'Less than', value: 0 }
+    ],
+    sortField: 'change%',
+    sortOrder: 'asc'
   }
 ];
 
@@ -167,7 +227,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
 
   // Dropdown lists
   const indicatorsList = [
-    'price', 'change%', 'volume', 'marketcap', 'pe', '52wkhigh', 'rsi'
+    'price', 'change%', 'volume', 'marketcap', 'pe', '52wkhigh', 'rsi', '52wklow', 'change% (abs)'
   ];
 
   const timeframesList = ['1 Day', '1 Week', '1 Month'];
@@ -230,6 +290,20 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
         if (cond.condition === 'Within 2%') {
            return price >= high * 0.98 && price <= high * 1.02;
         }
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
+      case '52wklow': {
+        const price = stock.regularMarketPrice || 0;
+        const low = stock.fiftyTwoWeekLow || price;
+        const val = low > 0 ? ((price / low) * 100) : 0;
+        
+        if (cond.condition === 'Within 2%') {
+           return price >= low * 0.98 && price <= low * 1.02;
+        }
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
+      case 'change% (abs)': {
+        const val = Math.abs(stock.regularMarketChangePercent || 0);
         return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
       }
       case 'rsi': {
@@ -344,18 +418,67 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
     setIsScanning(true);
 
     setTimeout(() => {
-      let results: Stock[] = [];
-      results = stocks.filter(stock => {
+      let activeSet = (stockData && stockData.length > 0) ? stockData : stocks;
+      let matchedItems: any[] = [];
+      matchedItems = activeSet.filter(stock => {
         if (scanner.logicalOperator === 'AND') {
           return preparedConditions.every(cond => evaluateCondition(stock, cond));
         } else {
           return preparedConditions.some(cond => evaluateCondition(stock, cond));
         }
       });
+      
+      // Handle custom sorting for the pre-built scanner
+      if (scanner.sortField === 'change%') {
+          matchedItems.sort((a,b) => {
+             const valA = a.regularMarketChangePercent || a.changePercent || 0;
+             const valB = b.regularMarketChangePercent || b.changePercent || 0;
+             return scanner.sortOrder === 'desc' ? valB - valA : valA - valB;
+          });
+      } else {
+          // Default volume sort
+          matchedItems.sort((a, b) => {
+             const volA = a.regularMarketVolume || a.volume || 0;
+             const volB = b.regularMarketVolume || b.volume || 0;
+             return volB - volA; // descending
+          });
+      }
+      
+      if (scanner.id === 'pb-gainers' || scanner.id === 'pb-losers') {
+          matchedItems = matchedItems.slice(0, 10);
+      }
+
+      // Map back to unified Stock interface
+      const results: Stock[] = matchedItems.map((item, index) => {
+        if ('regularMarketPrice' in item) {
+           return {
+             id: item.symbol || `mapped-${index}`,
+             symbol: item.symbol,
+             name: item.shortName || item.symbol,
+             price: item.regularMarketPrice || 0,
+             change: (item.regularMarketPrice || 0) * ((item.regularMarketChangePercent || 0) / 100),
+             changePercent: item.regularMarketChangePercent || 0,
+             volume: item.regularMarketVolume || 0,
+             marketCap: item.marketCap || 0,
+             peRatio: item.trailingPE || 0,
+             isFoEnabled: true,
+             rsi: (item.regularMarketChangePercent || 0) < -2 ? 25 : 55,
+             sector: 'Equity',
+             dividendYield: 0,
+             high: item.fiftyTwoWeekHigh || item.regularMarketPrice,
+             low: item.fiftyTwoWeekLow || item.regularMarketPrice,
+             open: item.regularMarketPrice || 0,
+             close: item.regularMarketPrice || 0,
+             exchange: 'NSE'
+           } as Stock;
+        }
+        return item as Stock;
+      });
+
       setFilteredStocks(results);
       setHasScanned(true);
       setIsScanning(false);
-    }, 380);
+    }, 1500);
   };
 
   // Load a Saved/Template Scanner
