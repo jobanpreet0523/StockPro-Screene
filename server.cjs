@@ -936,18 +936,96 @@ app.get("/api/chart/:symbol", (req, res) => {
     data
   });
 });
+function isMarketOpenIST() {
+  const now = /* @__PURE__ */ new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 6e4;
+  const istTime = new Date(utcMs + 5.5 * 60 * 6e4);
+  const day = istTime.getDay();
+  if (day === 0 || day === 6) return false;
+  const hours = istTime.getHours();
+  const minutes = istTime.getMinutes();
+  const timeInMinutes = hours * 60 + minutes;
+  if (timeInMinutes >= 555 && timeInMinutes <= 930) {
+    return true;
+  }
+  return false;
+}
+async function fetchNseOptionChain(symbol) {
+  const url = `https://www.nseindia.com/api/option-chain-indices?symbol=${encodeURIComponent(symbol)}`;
+  const headers = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "*/*",
+    "Referer": "https://www.nseindia.com"
+  };
+  try {
+    const homeRes = await fetch("https://www.nseindia.com", { headers });
+    let cookies = homeRes.headers.get("set-cookie") || "";
+    const response = await fetch(url, {
+      headers: { ...headers, "Cookie": cookies }
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (err) {
+    console.warn(`[NSE API Fetch Error] ${err}`);
+    return null;
+  }
+}
+function parseNseOptionChain(nseData, symbol) {
+  if (!nseData || !nseData.records || !nseData.records.data) {
+    return null;
+  }
+  const spotPrice = nseData.records.underlyingValue;
+  const timestamp = nseData.records.timestamp;
+  const rawOptions = nseData.records.data;
+  const activeExpiry = nseData.records.expiryDates[0];
+  const filteredOptions = rawOptions.filter((o) => o.expiryDate === activeExpiry);
+  let totalCallOi = 0;
+  let totalPutOi = 0;
+  const options = filteredOptions.map((item) => {
+    const ce = item.CE || {};
+    const pe = item.PE || {};
+    const callOi = ce.openInterest || 0;
+    const putOi = pe.openInterest || 0;
+    totalCallOi += callOi;
+    totalPutOi += putOi;
+    const strikePrice = item.strikePrice;
+    const zCall = (spotPrice - strikePrice) / (spotPrice * Math.max(0.01, ce.impliedVolatility ? ce.impliedVolatility / 100 : 0.08));
+    const callDelta = Number((1 / (1 + Math.exp(-zCall))).toFixed(2));
+    const putDelta = Number((callDelta - 1).toFixed(2));
+    return {
+      strikePrice,
+      callLtp: ce.lastPrice || 0,
+      callChange: ce.change || 0,
+      callVol: ce.totalTradedVolume || 0,
+      callOi,
+      callOiChg: ce.changeinOpenInterest || 0,
+      callIv: ce.impliedVolatility || 0,
+      callDelta,
+      putLtp: pe.lastPrice || 0,
+      putChange: pe.change || 0,
+      putVol: pe.totalTradedVolume || 0,
+      putOi,
+      putOiChg: pe.changeinOpenInterest || 0,
+      putIv: pe.impliedVolatility || 0,
+      putDelta
+    };
+  });
+  return {
+    symbol,
+    spotPrice,
+    pcr: totalCallOi > 0 ? Number((totalPutOi / totalCallOi).toFixed(2)) : 1,
+    totalCallOi,
+    totalPutOi,
+    maxPain: spotPrice,
+    // Approximation
+    expiryDate: activeExpiry || "Unknown",
+    timestamp,
+    options
+  };
+}
 app.get("/api/option-chain/:symbol", async (req, res) => {
   const symbol = req.params.symbol;
   const cleanSymbol = symbol.toUpperCase().endsWith(".NS") ? symbol.toUpperCase().replace(".NS", "") : symbol.toUpperCase();
-  const isNifty = cleanSymbol === "^NSEI" || cleanSymbol === "NIFTY" || cleanSymbol === "NIFTY50" || cleanSymbol === "NIFTY 50";
-  if (isNifty) {
-    const chain = generateOptionChain(symbol, 24892.5);
-    return res.json({
-      status: "ok",
-      symbol,
-      data: chain
-    });
-  }
   const underlyingMap = {
     "NIFTY": "NIFTY",
     "^NSEI": "NIFTY",
@@ -957,16 +1035,31 @@ app.get("/api/option-chain/:symbol", async (req, res) => {
     "^NSEFN": "FINNIFTY"
   };
   const targetUnderlying = underlyingMap[cleanSymbol] || cleanSymbol;
+  const isMarketOpen = isMarketOpenIST();
+  if (isMarketOpen) {
+    const nseData = await fetchNseOptionChain(targetUnderlying);
+    const parsedData = parseNseOptionChain(nseData, cleanSymbol);
+    if (parsedData) {
+      return res.json({
+        status: "ok",
+        symbol,
+        data: parsedData,
+        source: "real_nse",
+        timestamp: parsedData.timestamp
+      });
+    }
+  }
   try {
     const workerJson = await safeFetchFromWorker(`/api/data?underlying=${targetUnderlying}`);
     const mappedChain = mapWorkerToOptionChain(workerJson, cleanSymbol);
     return res.json({
       status: "ok",
       symbol,
-      data: mappedChain
+      data: mappedChain,
+      source: "live_worker"
     });
   } catch (err) {
-    console.warn(`[Option Chain API] Live data request failed for ${cleanSymbol}, using generator fallback. Error:`, err.message);
+    console.warn(`[Option Chain API] worker fallback failed for ${cleanSymbol}, using demo generator. Error:`, err.message);
     let spotPrice = 1e3;
     const foundStock = liveStocks.find((s) => s.symbol.toUpperCase() === symbol.toUpperCase());
     if (foundStock) {
@@ -988,7 +1081,8 @@ app.get("/api/option-chain/:symbol", async (req, res) => {
     res.json({
       status: "ok",
       symbol,
-      data: chain
+      data: chain,
+      source: "demo_data"
     });
   }
 });
