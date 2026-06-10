@@ -1116,6 +1116,22 @@ app.get("/api/yahoo-finance/:symbol", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+app.get("/api/yahoo-batch", async (req, res) => {
+  const symbols = req.query.symbols;
+  if (!symbols) return res.status(400).json({ error: "Missing symbols" });
+  try {
+    const response = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+    if (!response.ok) throw new Error("Yahoo batch API failed");
+    const json = await response.json();
+    return res.json(json.quoteResponse?.result || []);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 app.get("/api/pro-data", async (req, res) => {
   const symbol = req.query.symbol || "AAPL";
   try {
