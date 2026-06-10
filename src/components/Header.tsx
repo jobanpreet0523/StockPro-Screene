@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen, SlidersHorizontal } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen, SlidersHorizontal, ChevronDown, FolderHeart } from 'lucide-react';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +34,25 @@ export default function Header({
     statusText: string;
     isWeekend: boolean;
   }>({ isOpen: false, statusText: 'Checking Status...', isWeekend: false });
+
+  const [savedScannersList, setSavedScannersList] = useState<Record<string, { conditions: any[]; createdAt: string }>>({});
+  const [showScannersDropdown, setShowScannersDropdown] = useState(false);
+
+  useEffect(() => {
+    const loadScanners = () => {
+      try {
+        const stored = localStorage.getItem('savedScanners');
+        setSavedScannersList(stored ? JSON.parse(stored) : {});
+      } catch (e) {}
+    };
+    loadScanners();
+    window.addEventListener('stockpro_scanners_updated', loadScanners);
+    window.addEventListener('storage', loadScanners);
+    return () => {
+      window.removeEventListener('stockpro_scanners_updated', loadScanners);
+      window.removeEventListener('storage', loadScanners);
+    };
+  }, []);
 
   // Monitor stock/index exchange session in IST
   useEffect(() => {
@@ -313,6 +332,65 @@ export default function Header({
               <BookOpen size={14} />
               F&O Strategic Blog
             </button>
+
+            {/* Dropdown for My Scanners */}
+            <div className="relative">
+              <button
+                onMouseEnter={() => setShowScannersDropdown(true)}
+                onClick={() => setShowScannersDropdown(prev => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer text-slate-500 dark:text-slate-450 hover:text-slate-900 dark:hover:text-white`}
+              >
+                <FolderHeart size={14} className="text-emerald-500" />
+                <span>My Scanners</span>
+                <ChevronDown size={10} className="opacity-70" />
+              </button>
+              
+              {showScannersDropdown && (
+                <div 
+                  onMouseLeave={() => setShowScannersDropdown(false)}
+                  className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-slate-905 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl py-1.5 z-[100] animate-fadeIn"
+                >
+                  <div className="px-3 py-1 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono">My Saved Scanners</span>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {Object.keys(savedScannersList).length > 0 ? (
+                      Object.entries(savedScannersList).map(([name, item]) => (
+                        <button
+                          key={name}
+                          onClick={() => {
+                            // Encode conditions and navigate to /screener?c=...
+                            const encoded = ((item as any).conditions || []).map((cond: any) => {
+                              const ind = cond.indicator === 'change%' ? 'change' : cond.indicator;
+                              if (cond.condition === 'Within 2%') return `${ind}`;
+                              const op = cond.condition === 'Greater than' ? '>' : '<';
+                              return `${ind}${op}${cond.value}`;
+                            }).join('|');
+                            
+                            // Go to screener tab and trigger URL load
+                            setActiveTab('screener');
+                            setShowScannersDropdown(false);
+                            const nextUrl = `${window.location.origin}/screener?c=${encodeURIComponent(encoded)}`;
+                            window.history.pushState({}, '', nextUrl);
+                            // Dispatch event so ScreenerBuilder picks up the loaded condition profile instantly
+                            window.dispatchEvent(new Event('stockpro_scanners_updated'));
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-350 hover:text-slate-950 dark:hover:text-white transition flex items-center justify-between group"
+                        >
+                          <span className="truncate pr-2">{name}</span>
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 italic font-mono uppercase group-hover:text-emerald-500">Run</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-4 text-center">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-snug font-medium">No saved scanners found.</p>
+                        <p className="text-[9px] text-slate-500 py-0.5">Use "Save Scanner" inside custom scan workspace!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Premium Theme Switcher */}
