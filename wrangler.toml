@@ -1,5 +1,5 @@
 name = "stockpro-screener"
-main = "dist/server.cjs"
+main = "index.js"
 compatibility_date = "2026-06-09"
 
 [build]

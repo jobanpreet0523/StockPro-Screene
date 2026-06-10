@@ -608,6 +608,7 @@ body::before{
       <div class="chain-title">
         📋 Live Option Chain
         <span id="chainExpLabel" style="font-size:12px;color:var(--text3);font-weight:400">—</span>
+        <span id="lastUpdated" style="font-size:11px;color:var(--emerald);font-weight:600;margin-left:8px;padding:2px 6px;background:rgba(46,160,67,0.1);border-radius:4px;display:none;"></span>
       </div>
     </div>
     <div class="chain-actions">
@@ -842,9 +843,22 @@ async function renderChain(){
       totalCallOi: chain.totalCallOi,
       totalPutOi: chain.totalPutOi
     };
+
+    const lu = document.getElementById("lastUpdated");
+    if (json.timestamp || chain.timestamp) {
+      lu.textContent = "Last Updated: " + (json.timestamp || chain.timestamp);
+      lu.style.display = "inline-block";
+    } else {
+      lu.style.display = "none";
+    }
   } catch (err) {
     console.warn("Using simulation fallback for fo.html:", err);
     data  = generateChain(curIndex);
+    const lu = document.getElementById("lastUpdated");
+    lu.textContent = "Demo Data outside Market Hours";
+    lu.style.color = "var(--amber)";
+    lu.style.background = "rgba(210,153,34,0.1)";
+    lu.style.display = "inline-block";
   }
 
   chainData   = data.rows;
@@ -1069,8 +1083,15 @@ function toggleAutoRefresh(){
   if(autoOn){
     btn.textContent = "⏱ Auto: ON";
     btn.style.background="var(--green)";btn.style.borderColor="var(--green)";btn.style.color="#000";
-    autoRefreshTimer = setInterval(refreshAll, 5000);
-    showToast("Auto-refresh every 5s enabled");
+    autoRefreshTimer = setInterval(() => {
+      const ist = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kolkata"}));
+      const h=ist.getHours(), m=ist.getMinutes(), wd=ist.getDay();
+      const open = wd>=1 && wd<=5 && (h>9||(h===9&&m>=15)) && (h<15||(h===15&&m<=30));
+      if (open) {
+        refreshAll();
+      }
+    }, 180000); // 3 minutes during market hours
+    showToast("Auto-refresh every 3m enabled (Market Hours Only)");
   } else {
     btn.textContent = "⏱ Auto: OFF";
     btn.style.background="";btn.style.borderColor="";btn.style.color="";

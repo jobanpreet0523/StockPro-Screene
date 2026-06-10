@@ -474,22 +474,119 @@ app.get('/api/chart/:symbol', (req: Request, res: Response) => {
   });
 });
 
-// API: Option Chain Information (Fetched Live from the Worker at https://stockpro-screener.jobanpreet0523.workers.dev)
+// Helper: Check if Indian Market is currently open
+function isMarketOpenIST() {
+  const now = new Date();
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const istTime = new Date(utcMs + 5.5 * 60 * 60000); // UTC+5:30
+  
+  const day = istTime.getDay();
+  if (day === 0 || day === 6) return false;
+  
+  const hours = istTime.getHours();
+  const minutes = istTime.getMinutes();
+  const timeInMinutes = hours * 60 + minutes;
+  
+  if (timeInMinutes >= 555 && timeInMinutes <= 930) { // 9:15 AM to 3:30 PM
+    return true; 
+  }
+  return false;
+}
+
+// Helper: Fetch Option Chain from NSE India API
+async function fetchNseOptionChain(symbol: string) {
+  const url = `https://www.nseindia.com/api/option-chain-indices?symbol=${encodeURIComponent(symbol)}`;
+  const headers = {
+    'User-Agent': 'Mozilla/5.0',
+    'Accept': '*/*',
+    'Referer': 'https://www.nseindia.com'
+  };
+
+  try {
+    const homeRes = await fetch("https://www.nseindia.com", { headers });
+    let cookies = homeRes.headers.get("set-cookie") || "";
+
+    const response = await fetch(url, {
+      headers: { ...headers, 'Cookie': cookies }
+    });
+
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (err) {
+    console.warn(`[NSE API Fetch Error] ${err}`);
+    return null;
+  }
+}
+
+function parseNseOptionChain(nseData: any, symbol: string) {
+    if (!nseData || !nseData.records || !nseData.records.data) {
+        return null;
+    }
+    const spotPrice = nseData.records.underlyingValue;
+    const timestamp = nseData.records.timestamp;
+    const rawOptions = nseData.records.data;
+    
+    // Default to nearest expiry if not specified
+    const activeExpiry = nseData.records.expiryDates[0];
+    const filteredOptions = rawOptions.filter((o: any) => o.expiryDate === activeExpiry);
+
+    let totalCallOi = 0;
+    let totalPutOi = 0;
+
+    const options = filteredOptions.map((item: any) => {
+        const ce = item.CE || {};
+        const pe = item.PE || {};
+
+        const callOi = ce.openInterest || 0;
+        const putOi = pe.openInterest || 0;
+        
+        totalCallOi += callOi;
+        totalPutOi += putOi;
+
+        // Delta calculation (approx)
+        const strikePrice = item.strikePrice;
+        const zCall = (spotPrice - strikePrice) / (spotPrice * Math.max(0.01, ce.impliedVolatility ? ce.impliedVolatility / 100 : 0.08));
+        const callDelta = Number((1 / (1 + Math.exp(-zCall))).toFixed(2));
+        const putDelta = Number((callDelta - 1).toFixed(2));
+
+        return {
+            strikePrice: strikePrice,
+            callLtp: ce.lastPrice || 0,
+            callChange: ce.change || 0,
+            callVol: ce.totalTradedVolume || 0,
+            callOi: callOi,
+            callOiChg: ce.changeinOpenInterest || 0,
+            callIv: ce.impliedVolatility || 0,
+            callDelta: callDelta,
+            
+            putLtp: pe.lastPrice || 0,
+            putChange: pe.change || 0,
+            putVol: pe.totalTradedVolume || 0,
+            putOi: putOi,
+            putOiChg: pe.changeinOpenInterest || 0,
+            putIv: pe.impliedVolatility || 0,
+            putDelta: putDelta,
+        };
+    });
+
+    return {
+        symbol: symbol,
+        spotPrice: spotPrice,
+        pcr: totalCallOi > 0 ? Number((totalPutOi / totalCallOi).toFixed(2)) : 1.0,
+        totalCallOi: totalCallOi,
+        totalPutOi: totalPutOi,
+        maxPain: spotPrice, // Approximation
+        expiryDate: activeExpiry || 'Unknown',
+        timestamp: timestamp,
+        options: options
+    };
+}
+
+// API: Option Chain Information
 app.get('/api/option-chain/:symbol', async (req: Request, res: Response) => {
   const symbol = req.params.symbol;
   const cleanSymbol = symbol.toUpperCase().endsWith('.NS') ? symbol.toUpperCase().replace('.NS', '') : symbol.toUpperCase();
-  const isNifty = cleanSymbol === '^NSEI' || cleanSymbol === 'NIFTY' || cleanSymbol === 'NIFTY50' || cleanSymbol === 'NIFTY 50';
 
-  if (isNifty) {
-    const chain = generateOptionChain(symbol, 24892.50);
-    return res.json({
-      status: 'ok',
-      symbol,
-      data: chain
-    });
-  }
-  
-  // Decide worker-compatible index name NIFTY, BANKNIFTY, FINNIFTY
   const underlyingMap: Record<string, string> = {
     'NIFTY': 'NIFTY',
     '^NSEI': 'NIFTY',
@@ -500,16 +597,35 @@ app.get('/api/option-chain/:symbol', async (req: Request, res: Response) => {
   };
   const targetUnderlying = underlyingMap[cleanSymbol] || cleanSymbol;
 
+  // First check if it's market hours and a supported index, fetch from real NSE
+  const isMarketOpen = isMarketOpenIST();
+  
+  if (isMarketOpen) {
+    const nseData = await fetchNseOptionChain(targetUnderlying);
+    const parsedData = parseNseOptionChain(nseData, cleanSymbol);
+    if (parsedData) {
+      return res.json({
+        status: 'ok',
+        symbol,
+        data: parsedData,
+        source: 'real_nse',
+        timestamp: parsedData.timestamp
+      });
+    }
+  }
+
+  // Fallback to Worker or local generated Demo Data outside market hours or on failure
   try {
     const workerJson = await safeFetchFromWorker(`/api/data?underlying=${targetUnderlying}`);
     const mappedChain = mapWorkerToOptionChain(workerJson, cleanSymbol);
     return res.json({
       status: 'ok',
       symbol,
-      data: mappedChain
+      data: mappedChain,
+      source: 'live_worker'
     });
   } catch (err: any) {
-    console.warn(`[Option Chain API] Live data request failed for ${cleanSymbol}, using generator fallback. Error:`, err.message);
+    console.warn(`[Option Chain API] worker fallback failed for ${cleanSymbol}, using demo generator. Error:`, err.message);
     
     // Get active spot price
     let spotPrice = 1000;
@@ -535,7 +651,8 @@ app.get('/api/option-chain/:symbol', async (req: Request, res: Response) => {
     res.json({
       status: 'ok',
       symbol,
-      data: chain
+      data: chain,
+      source: 'demo_data'
     });
   }
 });
