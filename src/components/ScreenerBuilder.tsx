@@ -28,6 +28,7 @@ import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface ScreenerBuilderProps {
   stocks: Stock[];
+  stockData?: any[];
   onSelectStock: (symbol: string) => void;
   onSelectFoStock: (symbol: string) => void;
 }
@@ -36,8 +37,8 @@ interface ScanCondition {
   id: string;
   indicator: string;
   timeframe: '1 Day' | '1 Week' | '1 Month';
-  condition: 'Greater than' | 'Less than' | 'Crosses above' | 'Crosses below' | 'Equal to';
-  value: number;
+  condition: 'Greater than' | 'Less than' | 'Crosses above' | 'Crosses below' | 'Equal to' | 'Within 2%';
+  value: number | string;
 }
 
 interface SavedScanner {
@@ -58,109 +59,48 @@ interface PrebuiltScanner {
 
 const PREBUILT_SCANNERS: PrebuiltScanner[] = [
   {
-    id: 'pb-doji',
-    icon: '🕯️',
-    name: 'Doji Pattern',
-    description: 'Identifies stocks with extremely narrow body (Open ≈ Close) signaling trend reversal.',
-    logicalOperator: 'AND',
-    conditions: [
-      { id: 'pb-doji-cond-1', indicator: 'Doji Ratio', timeframe: '1 Day', condition: 'Less than', value: 10 }
-    ]
-  },
-  {
     id: 'pb-rsi-oversold',
     icon: '📈',
     name: 'RSI Oversold',
-    description: 'RSI(14) drops below 30. Potential bullish reversal candidate.',
+    description: 'Simplified RSI drops indicating oversold territory (change% < -2).',
     logicalOperator: 'AND',
     conditions: [
-      { id: 'pb-rsi-os-cond-1', indicator: 'RSI(14)', timeframe: '1 Day', condition: 'Less than', value: 30 }
-    ]
-  },
-  {
-    id: 'pb-rsi-overbought',
-    icon: '📉',
-    name: 'RSI Overbought',
-    description: 'RSI(14) rises above 70. Potential overstretched/cooling zone.',
-    logicalOperator: 'AND',
-    conditions: [
-      { id: 'pb-rsi-ob-cond-1', indicator: 'RSI(14)', timeframe: '1 Day', condition: 'Greater than', value: 70 }
+      { id: 'pb-rsi-os-cond-1', indicator: 'rsi', timeframe: '1 Day', condition: 'Less than', value: 30 }
     ]
   },
   {
     id: 'pb-volume-breakout',
     icon: '⚡',
     name: 'Volume Breakout',
-    description: 'Current volume exceeds 3x average, indicating institutional interest.',
+    description: 'Current volume exceeds 5M, indicating institutional interest.',
     logicalOperator: 'AND',
     conditions: [
-      { id: 'pb-vol-bo-cond-1', indicator: 'Volume Multiplier', timeframe: '1 Day', condition: 'Greater than', value: 3 }
+      { id: 'pb-vol-bo-cond-1', indicator: 'volume', timeframe: '1 Day', condition: 'Greater than', value: '5M' }
     ]
   },
   {
     id: 'pb-52w-high',
     icon: '🚀',
-    name: '52-Week High Breakout',
-    description: 'Closing price exceeds the 52-week highest traded price.',
+    name: '52-Week High Proximity',
+    description: 'Closing price is within 2% of the 52-week highest traded price.',
     logicalOperator: 'AND',
     conditions: [
-      { id: 'pb-52high-cond-1', indicator: 'Close vs 52W High Ratio', timeframe: '1 Day', condition: 'Greater than', value: 100 }
-    ]
-  },
-  {
-    id: 'pb-golden-cross',
-    icon: '💎',
-    name: 'Golden Cross',
-    description: 'Short-term EMA(20) crosses above medium-term EMA(50), a major bullish signal.',
-    logicalOperator: 'AND',
-    conditions: [
-      { id: 'pb-gc-cond-1', indicator: 'EMA(20) / EMA(50) Ratio', timeframe: '1 Day', condition: 'Crosses above', value: 100 }
-    ]
-  },
-  {
-    id: 'pb-death-cross',
-    icon: '☠️',
-    name: 'Death Cross',
-    description: 'Short-term EMA(20) drops below medium-term EMA(50), highly bearish.',
-    logicalOperator: 'AND',
-    conditions: [
-      { id: 'pb-dc-cond-1', indicator: 'EMA(20) / EMA(50) Ratio', timeframe: '1 Day', condition: 'Less than', value: 100 }
-    ]
-  },
-  {
-    id: 'pb-macd-crossover',
-    icon: '📊',
-    name: 'MACD Bullish Crossover',
-    description: 'MACD line crossed above the zero line reflecting increasing upward momentum.',
-    logicalOperator: 'AND',
-    conditions: [
-      { id: 'pb-macd-cond-1', indicator: 'MACD', timeframe: '1 Day', condition: 'Crosses above', value: 0 }
-    ]
-  },
-  {
-    id: 'pb-bb-squeeze',
-    icon: '🔵',
-    name: 'Bollinger Band Squeeze',
-    description: 'Band width tightens under extreme low volatility, anticipating an explosive breakout.',
-    logicalOperator: 'AND',
-    conditions: [
-      { id: 'pb-bb-sq-cond-1', indicator: 'Bollinger Band Width%', timeframe: '1 Day', condition: 'Less than', value: 12 }
+      { id: 'pb-52high-cond-1', indicator: '52wkhigh', timeframe: '1 Day', condition: 'Within 2%', value: 0 }
     ]
   },
   {
     id: 'pb-undervalued',
     icon: '💰',
     name: 'Undervalued',
-    description: 'Attractive fundamental entry: low price-to-earnings ratios paired with high Return on Equity.',
+    description: 'Attractive fundamental entry: low price-to-earnings ratios.',
     logicalOperator: 'AND',
     conditions: [
-      { id: 'pb-uv-cond-1', indicator: 'P/E Ratio', timeframe: '1 Day', condition: 'Less than', value: 15 },
-      { id: 'pb-uv-cond-2', indicator: 'ROE%', timeframe: '1 Day', condition: 'Greater than', value: 15 }
+      { id: 'pb-uv-cond-1', indicator: 'pe', timeframe: '1 Day', condition: 'Less than', value: 15 }
     ]
   }
 ];
 
-export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock }: ScreenerBuilderProps) {
+export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSelectFoStock }: ScreenerBuilderProps) {
   const { user, loginWithGoogle } = useAuth();
   
   // Logic toggle (AND / OR)
@@ -171,10 +111,10 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
   const [conditions, setConditions] = useState<ScanCondition[]>([
     {
       id: 'initial-1',
-      indicator: 'RSI(14)',
+      indicator: 'volume',
       timeframe: '1 Day',
       condition: 'Greater than',
-      value: 50
+      value: '1M'
     }
   ]);
 
@@ -197,21 +137,11 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
   const scannerTemplates: SavedScanner[] = useMemo(() => [
     {
       id: 'template-rsi-bullish',
-      name: 'RSI Bullish Breakout (RSI > 60)',
+      name: 'RSI Bullish Breakout (Change > 0)',
       logicalOperator: 'AND',
       conditions: [
-        { id: 't1', indicator: 'RSI(14)', timeframe: '1 Day', condition: 'Greater than', value: 60 },
-        { id: 't2', indicator: 'Day Change%', timeframe: '1 Day', condition: 'Greater than', value: 0 }
-      ]
-    },
-    {
-      id: 'template-golden-cross',
-      name: 'EMA 50 Bullish Long Build-up',
-      logicalOperator: 'AND',
-      conditions: [
-        { id: 't3', indicator: 'Close Price', timeframe: '1 Day', condition: 'Greater than', value: 1000 },
-        { id: 't4', indicator: 'EMA(50)', timeframe: '1 Day', condition: 'Less than', value: 4000 },
-        { id: 't5', indicator: 'RSI(14)', timeframe: '1 Day', condition: 'Greater than', value: 50 }
+        { id: 't1', indicator: 'rsi', timeframe: '1 Day', condition: 'Greater than', value: 30 },
+        { id: 't2', indicator: 'change%', timeframe: '1 Day', condition: 'Greater than', value: 0 }
       ]
     },
     {
@@ -219,170 +149,112 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
       name: 'Undervalued High Volume Bargains',
       logicalOperator: 'AND',
       conditions: [
-        { id: 't6', indicator: 'P/E Ratio', timeframe: '1 Day', condition: 'Less than', value: 25 },
-        { id: 't7', indicator: 'Volume', timeframe: '1 Day', condition: 'Greater than', value: 1000000 },
-        { id: 't8', indicator: 'Day Change%', timeframe: '1 Day', condition: 'Greater than', value: 0.5 }
+        { id: 't6', indicator: 'pe', timeframe: '1 Day', condition: 'Less than', value: 25 },
+        { id: 't7', indicator: 'volume', timeframe: '1 Day', condition: 'Greater than', value: '1M' },
+        { id: 't8', indicator: 'change%', timeframe: '1 Day', condition: 'Greater than', value: 0.5 }
       ]
     },
     {
-      id: 'template-bollinger-breakout',
-      name: 'Bollinger Band Squeeze Breakout',
+      id: 'template-momentum',
+      name: 'High Price Momentum',
       logicalOperator: 'AND',
       conditions: [
-        { id: 't9', indicator: 'Close Price', timeframe: '1 Day', condition: 'Greater than', value: 100 },
-        { id: 't10', indicator: 'Bollinger Band Upper', timeframe: '1 Day', condition: 'Less than', value: 5000 },
-        { id: 't11', indicator: 'RSI(14)', timeframe: '1 Day', condition: 'Greater than', value: 55 }
+        { id: 't9', indicator: 'price', timeframe: '1 Day', condition: 'Greater than', value: 100 },
+        { id: 't11', indicator: 'change%', timeframe: '1 Day', condition: 'Greater than', value: 2 }
       ]
     }
   ], []);
 
   // Dropdown lists
   const indicatorsList = [
-    'Close Price', 'Open', 'High', 'Low', 'Volume', 'RSI(14)', 
-    'EMA(20)', 'EMA(50)', 'EMA(200)', 'MACD', 
-    'Bollinger Band Upper', 'Bollinger Band Lower', 
-    '52W High', '52W Low', 'Market Cap', 'P/E Ratio', 'Day Change%',
-    'ROE%', 'Bollinger Band Width%', 'Volume Multiplier', 'Close vs 52W High Ratio', 'EMA(20) / EMA(50) Ratio', 'Doji Ratio'
+    'price', 'change%', 'volume', 'marketcap', 'pe', '52wkhigh', 'rsi'
   ];
 
   const timeframesList = ['1 Day', '1 Week', '1 Month'];
 
-  const conditionsList = ['Greater than', 'Less than', 'Crosses above', 'Crosses below', 'Equal to'];
+  const conditionsList = ['Greater than', 'Less than', 'Within 2%'];
 
-  // Calculate dynamic indicator for a specific stock deterministically
-  const getIndicatorValueForStock = (stock: Stock, indicator: string, timeframe: '1 Day' | '1 Week' | '1 Month'): number => {
-    let baseValue = 0;
-    const symbolCode = stock.symbol.charCodeAt(0) + (stock.symbol.charCodeAt(1) || 0);
-
-    // Pick indicator base on name
-    switch (indicator) {
-      case 'Close Price':
-        baseValue = stock.price;
-        break;
-      case 'Open':
-        baseValue = stock.open || stock.price * 0.99;
-        break;
-      case 'High':
-        baseValue = stock.high || stock.price * 1.015;
-        break;
-      case 'Low':
-        baseValue = stock.low || stock.price * 0.98;
-        break;
-      case 'Volume':
-        baseValue = stock.volume;
-        break;
-      case 'RSI(14)':
-        baseValue = stock.rsi;
-        break;
-      case 'EMA(20)':
-        baseValue = stock.price * (0.985 + (stock.symbol.length % 5) * 0.003);
-        break;
-      case 'EMA(50)':
-        baseValue = stock.price * (0.954 + (stock.symbol.length % 7) * 0.004);
-        break;
-      case 'EMA(200)':
-        baseValue = stock.price * (0.865 + (stock.symbol.length % 11) * 0.006);
-        break;
-      case 'MACD':
-        baseValue = (stock.price * 0.0012) * ((symbolCode % 5) - 2);
-        break;
-      case 'Bollinger Band Upper':
-        baseValue = stock.price * (1.05 + (symbolCode % 3) * 0.008);
-        break;
-      case 'Bollinger Band Lower':
-        baseValue = stock.price * (0.95 - (symbolCode % 3) * 0.008);
-        break;
-      case '52W High':
-        baseValue = stock.price * (1.21 + (stock.symbol.length % 4) * 0.02);
-        break;
-      case '52W Low':
-        baseValue = stock.price * (0.69 - (stock.symbol.length % 3) * 0.02);
-        break;
-      case 'Market Cap':
-        baseValue = stock.marketCap;
-        break;
-      case 'P/E Ratio':
-        baseValue = stock.peRatio || 22.5;
-        break;
-      case 'Day Change%':
-        baseValue = stock.changePercent;
-        break;
-      case 'ROE%':
-        baseValue = 10 + (symbolCode % 18); // simulated ROE% (10% to 28%)
-        break;
-      case 'Bollinger Band Width%':
-        const bbUpper = stock.price * (1.05 + (symbolCode % 3) * 0.008);
-        const bbLower = stock.price * (0.95 - (symbolCode % 3) * 0.008);
-        baseValue = ((bbUpper - bbLower) / stock.price) * 100;
-        break;
-      case 'Volume Multiplier':
-        baseValue = 0.8 + (symbolCode % 5) * 0.6 + (stock.changePercent >= 2 ? 1.4 : 0.2);
-        break;
-      case 'Close vs 52W High Ratio':
-        const h52w = stock.price * (1.11 + (stock.symbol.length % 4) * 0.01);
-        const isBreakout = (symbolCode % 5) === 0;
-        baseValue = isBreakout ? 101.5 + (symbolCode % 4) * 0.5 : (stock.price / h52w) * 100;
-        break;
-      case 'EMA(20) / EMA(50) Ratio':
-        const ema20Value = stock.price * (0.985 + (stock.symbol.length % 5) * 0.003);
-        const ema50Value = stock.price * (0.954 + (stock.symbol.length % 7) * 0.004);
-        baseValue = (ema20Value / ema50Value) * 100;
-        break;
-      case 'Doji Ratio':
-        const bodyDiff = Math.abs(stock.price - (stock.open || stock.price * 0.99));
-        const totalRange = (stock.high || stock.price * 1.015) - (stock.low || stock.price * 0.98);
-        baseValue = totalRange > 0 ? (bodyDiff / totalRange) * 100 : 8.0;
-        break;
-      default:
-        baseValue = stock.price;
-    }
-
-    // Apply Timeframe adjustment multiplier to make week/month scans look authentic and distinct!
-    if (timeframe === '1 Week') {
-      const multiplier = 0.975 + (symbolCode % 10) * 0.005;
-      baseValue = indicator === 'Volume' ? baseValue * 5.2 : baseValue * multiplier;
-    } else if (timeframe === '1 Month') {
-      const multiplier = 0.942 + (symbolCode % 13) * 0.009;
-      baseValue = indicator === 'Volume' ? baseValue * 22.5 : baseValue * multiplier;
-    }
-
-    return Number(baseValue.toFixed(2));
+  // Parse value string (supports K, M, B suffixes)
+  const parseValueString = (val: string | number): number => {
+    if (typeof val === 'number') return val;
+    let numericStr = String(val).toUpperCase().trim();
+    let mult = 1;
+    if (numericStr.endsWith('K')) { mult = 1000; numericStr = numericStr.replace('K', ''); }
+    else if (numericStr.endsWith('M')) { mult = 1000000; numericStr = numericStr.replace('M', ''); }
+    else if (numericStr.endsWith('B')) { mult = 1000000000; numericStr = numericStr.replace('B', ''); }
+    return parseFloat(numericStr) * mult || 0;
   };
 
-  // Evaluate single condition
-  const evaluateCondition = (stock: Stock, cond: ScanCondition): boolean => {
-    const stockVal = getIndicatorValueForStock(stock, cond.indicator, cond.timeframe);
-    const filterVal = cond.value;
+  // Evaluate single condition using Yahoo Finance fields
+  const evaluateCondition = (rawStock: any, cond: ScanCondition): boolean => {
+    // Adapter to handle both stockData array and mock stocks array
+    const stock = (stockData && stockData.length > 0) ? rawStock : {
+       ...rawStock,
+       regularMarketPrice: rawStock.price,
+       regularMarketChangePercent: rawStock.changePercent,
+       regularMarketVolume: rawStock.volume,
+       marketCap: rawStock.marketCap,
+       trailingPE: rawStock.peRatio || 20,
+       fiftyTwoWeekHigh: rawStock.price * 1.1,
+       fiftyTwoWeekLow: rawStock.price * 0.9,
+    };
 
-    switch (cond.condition) {
-      case 'Greater than':
-        return stockVal > filterVal;
-      case 'Less than':
-        return stockVal < filterVal;
-      case 'Crosses above':
-        // Simulates crossing over by evaluating current state and checking closeness
-        return stockVal >= filterVal && stockVal < filterVal * 1.05;
-      case 'Crosses below':
-        return stockVal <= filterVal && stockVal > filterVal * 0.95;
-      case 'Equal to':
-        // 2% close approximation for decimals standard in Indian trading apps
-        return Math.abs(stockVal - filterVal) <= (filterVal * 0.02);
+    const filterVal = parseValueString(cond.value);
+
+    switch (cond.indicator) {
+      case 'price': {
+        const val = stock.regularMarketPrice || 0;
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
+      case 'change%': {
+        const val = stock.regularMarketChangePercent || 0;
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
+      case 'volume': {
+        const val = stock.regularMarketVolume || 0;
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
+      case 'marketcap': {
+        const val = stock.marketCap || 0;
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
+      case 'pe': {
+        const val = stock.trailingPE || 0;
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
+      case '52wkhigh': {
+        const price = stock.regularMarketPrice || 0;
+        const high = stock.fiftyTwoWeekHigh || price;
+        const val = high > 0 ? ((price / high) * 100) : 0;
+        
+        if (cond.condition === 'Within 2%') {
+           return price >= high * 0.98 && price <= high * 1.02;
+        }
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
+      case 'rsi': {
+        // Simplified RSI: if change% < -2, treat as oversold (~25), else neutral/high
+        const change = stock.regularMarketChangePercent || 0;
+        const val = change < -2 ? 25 : 55;
+        return cond.condition === 'Greater than' ? val > filterVal : val < filterVal;
+      }
       default:
         return false;
     }
   };
 
-  // Run scanner over the stocks array
+  // Run scanner engine over the stockData array
   const handleRunScan = () => {
     setIsScanning(true);
     setCurrentPage(1);
     setTimeout(() => {
-      let results: Stock[] = [];
+      let activeSet = (stockData && stockData.length > 0) ? stockData : stocks;
+      let matchedItems: any[] = [];
 
       if (conditions.length === 0) {
-        results = [...stocks];
+        matchedItems = [...activeSet];
       } else {
-        results = stocks.filter(stock => {
+        matchedItems = activeSet.filter(stock => {
           if (logicalOperator === 'AND') {
             return conditions.every(cond => evaluateCondition(stock, cond));
           } else {
@@ -391,10 +263,44 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
         });
       }
 
+      // By default, sort by volume descending
+      matchedItems.sort((a, b) => {
+        const volA = a.regularMarketVolume || a.volume || 0;
+        const volB = b.regularMarketVolume || b.volume || 0;
+        return volB - volA; // descending
+      });
+
+      // Map back to unified Stock interface for simple table rendering
+      const results: Stock[] = matchedItems.map((item, index) => {
+        if ('regularMarketPrice' in item) {
+           return {
+             id: item.symbol || `mapped-${index}`,
+             symbol: item.symbol,
+             name: item.shortName || item.symbol,
+             price: item.regularMarketPrice || 0,
+             change: (item.regularMarketPrice || 0) * ((item.regularMarketChangePercent || 0) / 100),
+             changePercent: item.regularMarketChangePercent || 0,
+             volume: item.regularMarketVolume || 0,
+             marketCap: item.marketCap || 0,
+             peRatio: item.trailingPE || 0,
+             isFoEnabled: true,
+             rsi: (item.regularMarketChangePercent || 0) < -2 ? 25 : 55, // simulation representation
+             sector: 'Equity',
+             dividendYield: 0,
+             high: item.fiftyTwoWeekHigh || item.regularMarketPrice,
+             low: item.fiftyTwoWeekLow || item.regularMarketPrice,
+             open: item.regularMarketPrice || 0,
+             close: item.regularMarketPrice || 0,
+             exchange: 'NSE'
+           } as Stock;
+        }
+        return item as Stock;
+      });
+
       setFilteredStocks(results);
       setHasScanned(true);
       setIsScanning(false);
-    }, 450); // Fluid mock latency for high-fidelity scanning feedback
+    }, 1500); // 1.5 seconds loading animation as requested
   };
 
   // Manage condition rows
@@ -405,7 +311,7 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
       ...conditions,
       {
         id: newId,
-        indicator: 'Close Price',
+        indicator: 'price',
         timeframe: '1 Day',
         condition: 'Greater than',
         value: 100
@@ -889,11 +795,11 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
                       <div className="flex flex-col gap-1">
                         <label className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wider">Value Price/Index</label>
                         <input
-                          type="number"
+                          type="text"
                           value={item.value}
-                          onChange={(e) => updateConditionRow(item.id, { value: Number(e.target.value) })}
+                          onChange={(e) => updateConditionRow(item.id, { value: e.target.value })}
                           className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white text-xs rounded-lg p-2 focus:border-emerald-500 outline-none transition font-semibold"
-                          placeholder="e.g. 100"
+                          placeholder="e.g. 100 or 1M"
                         />
                       </div>
                     </div>

@@ -236,6 +236,7 @@ export default function App() {
             <div className="lg:col-span-12 flex flex-col gap-6" id="chartink_screener_view">
               <ScreenerBuilder
                 stocks={stocks}
+                stockData={stockData}
                 onSelectStock={handleSelectStock}
                 onSelectFoStock={handleSelectFoStock}
               />
