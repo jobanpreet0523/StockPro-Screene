@@ -1699,12 +1699,13 @@
         <!-- ARTICLE CARD 3: Bonds / Custom Pastel Vector visual -->
         <article class="bg-white border border-gray-100 rounded-lg overflow-hidden flex flex-col justify-between hover:border-gray-300 hover:shadow-sm transition-all duration-200 group">
           <div class="space-y-3.5">
-            <!-- Pastel styled vector grid image fallback built with high design aesthetics -->
-            <div class="aspect-video w-full bg-[#f3f4f6] border-b border-gray-100 flex items-center justify-center p-4 relative overflow-hidden">
-              <div class="absolute inset-0 stockpro-grid opacity-30"></div>
-              <div class="bg-white p-3.5 rounded-full shadow-sm border border-gray-100 flex items-center justify-center z-10">
-                <i data-lucide="globe-2" class="w-6 h-6 text-indigo-600"></i>
-              </div>
+            <!-- Dynamic Image Container -->
+            <div class="aspect-video w-full bg-slate-50 border-b border-gray-100 relative overflow-hidden">
+              <img 
+                src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=250&fit=crop" 
+                alt="Global bond yields chart" 
+                class="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
+              />
               <span class="absolute bottom-1.5 left-2 bg-indigo-600 text-white font-mono text-[8px] uppercase px-1.5 py-0.5 rounded font-black">
                 MACRO FLOW
               </span>
