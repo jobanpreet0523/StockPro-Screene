@@ -1502,30 +1502,53 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
       </div>
 
       {/* Save Scanner Modal Container */}
-      {chartModalSymbol && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fadeIn">
-          <div className="bg-white dark:bg-slate-950 rounded-2xl w-[90vw] h-[80vh] flex flex-col shadow-2xl relative overflow-hidden">
-            <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 border-opacity-50">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-800 dark:text-white uppercase font-sans text-sm tracking-wider">TradingView Chart: <span className="text-emerald-500">{chartModalSymbol}</span></span>
+      {chartModalSymbol && (() => {
+        let cleanSymbol = chartModalSymbol;
+        if (cleanSymbol.includes(':')) {
+          cleanSymbol = cleanSymbol.split(':')[1];
+        }
+        if (cleanSymbol.endsWith('.NS')) {
+          cleanSymbol = cleanSymbol.replace('.NS', '');
+        }
+        const symbolMap: Record<string, string> = {
+          'RELIANCE': 'BSE:500325',
+          'TCS': 'BSE:532540',
+          'INFY': 'BSE:500209',
+          'HDFCBANK': 'BSE:500180',
+          'ICICIBANK': 'BSE:532174',
+          'BHARTIARTL': 'BSE:532454',
+          'ITC': 'BSE:500875',
+          'LT': 'BSE:500510',
+          'WIPRO': 'BSE:507685',
+          'AXISBANK': 'BSE:532215'
+        };
+        const mappedModalSymbol = symbolMap[cleanSymbol] || `NSE:${cleanSymbol}`;
+
+        return (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fadeIn">
+            <div className="bg-white dark:bg-slate-950 rounded-2xl w-[90vw] h-[80vh] flex flex-col shadow-2xl relative overflow-hidden">
+              <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 border-opacity-50">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-800 dark:text-white uppercase font-sans text-sm tracking-wider">TradingView Chart: <span className="text-emerald-500">{mappedModalSymbol}</span></span>
+                </div>
+                <button onClick={() => setChartModalSymbol(null)} className="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-rose-500 transition-colors">
+                   <X size={16} />
+                </button>
               </div>
-              <button onClick={() => setChartModalSymbol(null)} className="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-rose-500 transition-colors">
-                 <X size={16} />
-              </button>
-            </div>
-            <div className="flex-1 w-full bg-slate-100 flex items-center justify-center relative">
-               <iframe 
-                  src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_1&symbol=${chartModalSymbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FKolkata&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${chartModalSymbol}`}
-                  width="100%"
-                  height="100%"
-                  allowFullScreen
-                  className="bg-black"
-                  style={{border: 'none'}}
-               />
+              <div className="flex-1 w-full bg-slate-100 flex items-center justify-center relative">
+                 <iframe 
+                    src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_1&symbol=${mappedModalSymbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FKolkata&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${mappedModalSymbol}`}
+                    width="100%"
+                    height="100%"
+                    allowFullScreen
+                    className="bg-black"
+                    style={{border: 'none'}}
+                 />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Save Scanner Modal Container */}
       {showSaveModal && (

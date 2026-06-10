@@ -7,8 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 interface HeaderProps {
   indices: IndexData[];
   stocks: Stock[];
-  activeTab: 'screener' | 'chartink' | 'fo' | 'news' | 'pricing' | 'blog';
-  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'news' | 'pricing' | 'blog') => void;
+  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog';
+  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
@@ -299,6 +299,17 @@ export default function Header({
             >
               <Cpu size={14} />
               F&O Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('deals')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
+                activeTab === 'deals'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Landmark size={14} className="text-emerald-500" />
+              Bulk & Block Deals
             </button>
             <button
               onClick={() => setActiveTab('news')}

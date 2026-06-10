@@ -13,12 +13,13 @@ import NewsView from './components/NewsView';
 import EmailCapturePopup from './components/EmailCapturePopup';
 import PricingView from './components/PricingView';
 import BlogView from './components/BlogView';
+import DealsTracker from './components/DealsTracker';
 
 export default function App() {
   const { theme } = useTheme();
   const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
   const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
-  const [activeTab, setActiveTab] = useState<'screener' | 'chartink' | 'fo' | 'news' | 'pricing' | 'blog'>(() => {
+  const [activeTab, setActiveTab] = useState<'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
       if (path === '/screener' || path.includes('screener.html')) {
@@ -294,6 +295,11 @@ export default function App() {
             /* ================= SEO BLOG VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
               <BlogView />
+            </div>
+          ) : activeTab === 'deals' ? (
+            /* ================= INSTITUTIONAL DEALS TRACKER ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6">
+              <DealsTracker />
             </div>
           ) : (
             /* ================= STOCK MARKET DAILY NEWS ================= */

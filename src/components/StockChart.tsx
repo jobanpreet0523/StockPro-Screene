@@ -20,27 +20,41 @@ export default function StockChart({ symbol, name }: StockChartProps) {
   const [interval, setIntervalVal] = useState<string>('D');
 
   const mappedSymbol = React.useMemo(() => {
-    let target = symbol || 'NSE:TCS';
-    if (target === 'TCS') return 'NSE:TCS';
-    if (target === '^NSEI') return 'NSE:NIFTY';
-    if (target === '^NSEBANK') return 'NSE:BANKNIFTY';
-    if (target === '^BSESN') return 'BSE:SENSEX';
+    let target = symbol || 'RELIANCE';
+    
+    // Clean up symbol to get the core symbol name
+    let cleanSymbol = target;
+    if (cleanSymbol.includes(':')) {
+      cleanSymbol = cleanSymbol.split(':')[1];
+    }
+    if (cleanSymbol.endsWith('.NS')) {
+      cleanSymbol = cleanSymbol.replace('.NS', '');
+    }
+    if (cleanSymbol.endsWith('.BO')) {
+      cleanSymbol = cleanSymbol.replace('.BO', '');
+    }
+    
+    // Check if it matches index symbols or US indexes
+    if (target === '^NSEI' || cleanSymbol === 'NIFTY') return 'NSE:NIFTY';
+    if (target === '^NSEBANK' || cleanSymbol === 'BANKNIFTY') return 'NSE:BANKNIFTY';
+    if (target === '^BSESN' || cleanSymbol === 'SENSEX') return 'BSE:SENSEX';
     if (target === '^IXIC') return 'NASDAQ:IXIC';
     
-    let clean = target;
-    if (clean.endsWith('.NS')) {
-      clean = clean.replace('.NS', '');
-    }
-    if (clean.endsWith('.BO')) {
-      return 'BSE:' + clean.replace('.BO', '');
-    }
+    // TradingView free widget supports BSE symbols as a fallback
+    const symbolMap: Record<string, string> = {
+      'RELIANCE': 'BSE:500325',
+      'TCS': 'BSE:532540',
+      'INFY': 'BSE:500209',
+      'HDFCBANK': 'BSE:500180',
+      'ICICIBANK': 'BSE:532174',
+      'BHARTIARTL': 'BSE:532454',
+      'ITC': 'BSE:500875',
+      'LT': 'BSE:500510',
+      'WIPRO': 'BSE:507685',
+      'AXISBANK': 'BSE:532215'
+    };
     
-    // Prepend NSE: exchange prefix if it's an Indian stock symbol without exchange prefix
-    if (!clean.includes(':')) {
-      return 'NSE:' + clean;
-    }
-    
-    return clean;
+    return symbolMap[cleanSymbol] || `NSE:${cleanSymbol}`;
   }, [symbol]);
 
   const iframeSrc = React.useMemo(() => {
