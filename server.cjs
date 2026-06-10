@@ -1200,6 +1200,53 @@ app.get("/api/download-zip", (req, res) => {
     res.status(500).json({ status: "error", message: "Failed to generate ZIP archive", error: err.message });
   }
 });
+app.post("/api/subscribe", async (req, res) => {
+  const { email, firstName } = req.body;
+  if (!email) {
+    return res.status(400).json({ status: "error", message: "Email is required." });
+  }
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    console.error("BREVO_API_KEY environment variable is not defined.");
+    return res.status(500).json({
+      status: "error",
+      message: "Brevo subscription integration is currently not configured setup on the server. Please check environment variables."
+    });
+  }
+  try {
+    const response = await fetch("https://api.brevo.com/v3/contacts", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "api-key": apiKey
+      },
+      body: JSON.stringify({
+        email,
+        attributes: {
+          FIRSTNAME: firstName || ""
+        },
+        updateEnabled: true
+      })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      return res.json({ status: "ok", message: "Successfully subscribed!" });
+    } else {
+      console.warn("Brevo subscription issue:", data);
+      return res.status(response.status).json({
+        status: "error",
+        message: data.message || "Error occurred during subscription."
+      });
+    }
+  } catch (error) {
+    console.error("Brevo subscription network/fetch error:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message || "Failed to submit subscription request to third party server."
+    });
+  }
+});
 seedRealWorldData();
 async function startServer() {
   app.get("/", (req, res) => {
