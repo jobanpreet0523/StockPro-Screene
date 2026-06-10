@@ -12,10 +12,22 @@ service cloud.firestore {
           && (data.theme == 'light' || data.theme == 'dark');
     }
 
+    function isValidWatchlist(data, userId) {
+      return data.userId == userId
+          && data.symbols is list
+          && data.symbols.size() <= 10;
+    }
+
     match /userProfile/{userId} {
       allow get: if isSignedIn() && isOwner(userId);
       allow create: if isSignedIn() && isOwner(userId) && isValidProfile(incoming());
       allow update: if isSignedIn() && isOwner(userId) && isValidProfile(incoming());
+    }
+
+    match /watchlists/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidWatchlist(incoming(), userId);
+      allow update: if isSignedIn() && isOwner(userId) && isValidWatchlist(incoming(), userId);
     }
 
     // Default deny

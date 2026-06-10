@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUpDown, Play, Sparkles, Filter, CheckCircle2, ChevronRight, Calculator, Download, Lock } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, Play, Sparkles, Filter, CheckCircle2, ChevronRight, Calculator, Download, Lock, Star } from 'lucide-react';
 import { Stock } from '../types';
 import OptionsCalculator from './OptionsCalculator';
 import IVRankTool from './IVRankTool';
 import RiskCalculator from './RiskCalculator';
 import { useAuth } from '../contexts/AuthContext';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface ScreenerRowProps {
   key?: string;
@@ -15,9 +17,11 @@ interface ScreenerRowProps {
   formatMarketCap: (cap: number) => string;
   realData?: { price: number; changePercent: number; volume: number; change: number };
   isLoading?: boolean;
+  isWatchlisted: boolean;
+  onToggleWatchlist: (symbol: string) => void;
 }
 
-function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, formatMarketCap, realData, isLoading }: ScreenerRowProps) {
+function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, formatMarketCap, realData, isLoading, isWatchlisted, onToggleWatchlist }: ScreenerRowProps) {
   const displayPrice = realData ? realData.price : stock.price;
   const displayChangePercent = realData ? realData.changePercent.toFixed(2) : stock.changePercent;
   const displayVolume = realData ? realData.volume : stock.volume;
@@ -48,14 +52,24 @@ function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, form
   const flashBgClass = flash === 'up'
     ? 'bg-emerald-500/20 text-emerald-650 dark:text-emerald-300 font-bold scale-[1.02] shadow-sm shadow-emerald-500/20 rounded duration-150'
     : flash === 'down'
-    ? 'bg-rose-500/20 text-rose-650 dark:text-rose-300 font-bold scale-[1.02] shadow-sm shadow-rose-500/20 rounded duration-150'
+    ? 'bg-rose-500/20 text-rose-650 dark:text-rose-305 font-bold scale-[1.02] shadow-sm shadow-rose-500/20 rounded duration-150'
     : 'duration-1000 text-slate-800 dark:text-slate-250';
 
   return (
     <tr className="hover:bg-slate-150/40 dark:hover:bg-slate-900/30 border-b border-slate-100 dark:border-slate-850/40 transition duration-150 class_stock_row text-sm">
       {/* Ticker Symbol */}
       <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleWatchlist(stock.symbol);
+            }}
+            className="p-1 rounded hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition text-slate-400 dark:text-slate-500 hover:text-amber-500 dark:hover:text-amber-400 cursor-pointer"
+            title={isWatchlisted ? "Remove from Watchlist" : "Add to Watchlist"}
+          >
+            <Star size={14} className={isWatchlisted ? "fill-amber-400 text-amber-500 dark:text-amber-400" : "text-slate-350 dark:text-slate-600"} />
+          </button>
           <span onClick={() => onSelectStock('NSE:' + stock.symbol.replace('.NS', ''))} className="hover:text-emerald-500 dark:hover:text-emerald-400 cursor-pointer transition underline decoration-dotted underline-offset-4">
             {stock.symbol.replace('.NS', '')}
           </span>
@@ -164,6 +178,67 @@ type SortOrder = 'asc' | 'desc';
 export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }: StockScreenerProps) {
   const [activePreset, setActivePreset] = useState<string>('all');
   const { user, loginWithGoogle } = useAuth();
+
+  const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [watchlistError, setWatchlistError] = useState<string | null>(null);
+  const [watchlistLoading, setWatchlistLoading] = useState<boolean>(false);
+  const [limitWarning, setLimitWarning] = useState<string | null>(null);
+
+  // Sync watchlist from Firestore
+  useEffect(() => {
+    if (!user) {
+      setWatchlist([]);
+      return;
+    }
+    setWatchlistLoading(true);
+    const docRef = doc(db, 'watchlists', user.uid);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists() && docSnap.data().symbols) {
+        setWatchlist(docSnap.data().symbols);
+      } else {
+        setWatchlist([]);
+      }
+      setWatchlistLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `watchlists/${user.uid}`);
+      setWatchlistError("Failed to load watchlist");
+      setWatchlistLoading(false);
+    });
+
+    return unsubscribe;
+  }, [user]);
+
+  const handleToggleWatchlist = async (symbol: string) => {
+    if (!user) {
+      loginWithGoogle();
+      return;
+    }
+    
+    setLimitWarning(null);
+    const isAlreadyAdded = watchlist.includes(symbol);
+    let updatedSymbols = [...watchlist];
+    
+    if (isAlreadyAdded) {
+      updatedSymbols = updatedSymbols.filter(s => s !== symbol);
+    } else {
+      if (watchlist.length >= 10) {
+        setLimitWarning("Watchlist limit reached! Free accounts can save up to 10 stocks.");
+        setTimeout(() => setLimitWarning(null), 5000);
+        return;
+      }
+      updatedSymbols.push(symbol);
+    }
+    
+    try {
+      const docRef = doc(db, 'watchlists', user.uid);
+      await setDoc(docRef, {
+        userId: user.uid,
+        symbols: updatedSymbols
+      }, { merge: true });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `watchlists/${user.uid}`);
+    }
+  };
   
   // Real Yahoo data state
   const [realStockData, setRealStockData] = useState<Record<string, { price: number; changePercent: number; volume: number; change: number }>>({});
@@ -265,6 +340,8 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
   // Set preset query filters
   const presetFilteredStocks = useMemo(() => {
     switch (activePreset) {
+      case 'watchlist':
+        return stocks.filter(s => watchlist.includes(s.symbol));
       case 'gainers':
         return stocks.filter(s => s.changePercent > 0);
       case 'losers':
@@ -280,7 +357,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
       default:
         return stocks;
     }
-  }, [stocks, activePreset]);
+  }, [stocks, activePreset, watchlist]);
 
   // Refined sliders and select filter values
   const finalFilteredStocks = useMemo(() => {
@@ -426,6 +503,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
         <div className="flex flex-wrap gap-2 w-full xl:w-auto" id="screener_presets">
           {[
             { id: 'all', name: 'All Instruments' },
+            { id: 'watchlist', name: 'My Watchlist', count: watchlist.length },
             { id: 'gainers', name: 'Top Gainers' },
             { id: 'losers', name: 'Top Losers' },
             { id: 'volume', name: 'Volume Shockers' },
@@ -436,13 +514,22 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
             <button
               key={p.id}
               onClick={() => setActivePreset(p.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide border transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide border transition-all cursor-pointer flex items-center gap-1.5 ${
                 activePreset === p.id
                   ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/40 shadow-inner'
                   : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              {p.name}
+              <span>{p.name}</span>
+              {p.count !== undefined && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
+                  activePreset === p.id
+                    ? 'bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-350'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                }`}>
+                  {p.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -547,6 +634,18 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
         )}
       </div>
 
+      {limitWarning && (
+        <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 text-xs font-bold animate-fadeIn flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock size={14} className="text-amber-500" />
+            <span>{limitWarning}</span>
+          </div>
+          <button onClick={() => setLimitWarning(null)} className="text-[10px] uppercase font-mono tracking-wider text-amber-600 hover:text-amber-700 cursor-pointer">
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Main Stock Grid Table */}
       <div className="overflow-x-auto" id="screener_table_container">
         <table className="w-full text-left border-collapse">
@@ -610,8 +709,26 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
                   formatMarketCap={formatMarketCap}
                   realData={realStockData[stock.symbol]}
                   isLoading={loadingStocks[stock.symbol]}
+                  isWatchlisted={watchlist.includes(stock.symbol)}
+                  onToggleWatchlist={handleToggleWatchlist}
                 />
               ))
+            ) : activePreset === 'watchlist' && !user ? (
+              <tr>
+                <td colSpan={9} className="py-12 px-4 text-center">
+                  <Lock size={32} className="mx-auto text-slate-400 dark:text-slate-505 mb-3" />
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Watchlist is Locked</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-4">
+                    Get real-time market sync and track your preferred Indian equities by signing in first.
+                  </p>
+                  <button 
+                    onClick={loginWithGoogle}
+                    className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 px-4 py-1.5 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
+                  >
+                    Login with Google
+                  </button>
+                </td>
+              </tr>
             ) : (
               <tr>
                 <td colSpan={9} className="py-10 px-4 text-center text-xs font-mono text-slate-500">
