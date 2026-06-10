@@ -9,6 +9,7 @@ import { INITIAL_INDICES, INITIAL_STOCKS } from './data';
 import { TrendingUp, HelpCircle, ShieldCheck, Activity } from 'lucide-react';
 import { useTheme } from './components/ThemeContext';
 import NewsView from './components/NewsView';
+import EmailCapturePopup from './components/EmailCapturePopup';
 
 export default function App() {
   const { theme } = useTheme();
@@ -236,6 +237,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <EmailCapturePopup />
     </div>
   );
 }
