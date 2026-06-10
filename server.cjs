@@ -1086,6 +1086,36 @@ app.get("/api/option-chain/:symbol", async (req, res) => {
     });
   }
 });
+app.get("/api/yahoo-finance/:symbol", async (req, res) => {
+  const symbol = req.params.symbol;
+  try {
+    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      }
+    });
+    if (!response.ok) throw new Error("Yahoo API failed");
+    const json = await response.json();
+    const meta = json?.chart?.result?.[0]?.meta;
+    if (meta) {
+      const price = meta.regularMarketPrice;
+      const prevClose = meta.previousClose || price;
+      const change = price - prevClose;
+      const changePercent = prevClose ? change / prevClose * 100 : 0;
+      const volume = meta.regularMarketVolume || meta.volume || 0;
+      return res.json({
+        symbol,
+        price,
+        change,
+        changePercent,
+        volume
+      });
+    }
+    return res.status(404).json({ error: "Not found" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 app.get("/api/pro-data", async (req, res) => {
   const symbol = req.query.symbol || "AAPL";
   try {
