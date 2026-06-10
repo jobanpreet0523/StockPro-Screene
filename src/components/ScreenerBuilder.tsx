@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, 
@@ -19,7 +19,8 @@ import {
   ShieldCheck, 
   ArrowRight,
   Eye,
-  Star
+  Star,
+  X
 } from 'lucide-react';
 import { Stock } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -182,10 +183,22 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
   const [filteredStocks, setFilteredStocks] = useState<Stock[]>([]);
   const [hasScanned, setHasScanned] = useState<boolean>(false);
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortField, setSortField] = useState<keyof Stock>('changePercent');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 25;
+
+  const [chartModalSymbol, setChartModalSymbol] = useState<string | null>(null);
+
+  const [watchlist, setWatchlist] = useState<string[]>(() => {
+    try {
+      const items = localStorage.getItem('stockpro_watchlist');
+      return items ? JSON.parse(items) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Scanner naming & persistence state
   const [scannerName, setScannerName] = useState<string>('');
@@ -224,6 +237,31 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
       ]
     }
   ], []);
+
+  const hasInitializedFromUrl = useRef(false);
+
+  useEffect(() => {
+    if (hasInitializedFromUrl.current) return;
+    if (!stockData || stockData.length === 0) {
+       if (!stocks || stocks.length === 0) return; // Wait for data
+    }
+    
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const scanParam = searchParams.get('scan');
+      if (scanParam && scanParam !== 'custom') {
+        const pb = PREBUILT_SCANNERS.find(s => s.id === scanParam);
+        if (pb) {
+           handleRunPrebuiltScanner(pb);
+        } else {
+           const tpl = scannerTemplates.find(s => s.id === scanParam);
+           if (tpl) loadScanner(tpl);
+        }
+      }
+      hasInitializedFromUrl.current = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stockData, stocks]);
 
   // Dropdown lists
   const indicatorsList = [
@@ -374,6 +412,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
       setFilteredStocks(results);
       setHasScanned(true);
       setIsScanning(false);
+      setLastUpdated(new Date());
     }, 1500); // 1.5 seconds loading animation as requested
   };
 
@@ -503,7 +542,28 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
     }, 150);
   };
 
-  // Synchronization with Firebase Firestore & localStorage
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const toggleWatchlist = (symbol: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setWatchlist(prev => {
+      let next;
+      if (prev.includes(symbol)) {
+        next = prev.filter(s => s !== symbol);
+      } else {
+        next = [...prev, symbol];
+      }
+      localStorage.setItem('stockpro_watchlist', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleShare = () => {
+    const scanId = activePrebuiltId || 'custom';
+    const url = `${window.location.origin}/screener?scan=${scanId}`;
+    navigator.clipboard.writeText(url);
+    alert('Scan URL copied to clipboard: ' + url);
+  };
   useEffect(() => {
     if (!user) {
       // Load saved scanners from LocalStorage for free accounts
@@ -642,7 +702,13 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
 
   // Sorting results
   const sortedStocks = useMemo(() => {
-    const items = [...filteredStocks];
+    let items = [...filteredStocks];
+    
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      items = items.filter(s => s.name.toLowerCase().includes(q) || s.symbol.toLowerCase().includes(q));
+    }
+
     items.sort((a, b) => {
       const valA = a[sortField];
       const valB = b[sortField];
@@ -1024,13 +1090,31 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
             </div>
 
             {hasScanned && filteredStocks.length > 0 && (
-              <button
-                onClick={handleExportCSV}
-                className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600 dark:hover:bg-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-250 dark:border-emerald-900/30 hover:border-emerald-500/70 py-1.5 px-3 rounded-lg cursor-pointer hover:text-white transition shadow-xs"
-              >
-                <Download size={12} />
-                <span>Export to CSV</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <input
+                   type="text"
+                   placeholder="Search..."
+                   value={searchQuery}
+                   onChange={(e) => {
+                     setSearchQuery(e.target.value);
+                     setCurrentPage(1);
+                   }}
+                   className="text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 focus:border-emerald-500 outline-none w-36"
+                />
+                <button
+                  onClick={handleShare}
+                  className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 py-1.5 px-3 rounded-lg cursor-pointer transition shadow-xs"
+                >
+                  <span>Share</span>
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600 dark:hover:bg-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-250 dark:border-emerald-900/30 hover:border-emerald-500/70 py-1.5 px-3 rounded-lg cursor-pointer hover:text-white transition shadow-xs"
+                >
+                  <Download size={12} />
+                  <span>Export to CSV</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -1071,29 +1155,29 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
                 <table className="w-full text-left trade_results_table font-sans">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-850 text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-mono">
-                      <th className="py-2.5 px-3 font-semibold">Sr#</th>
+                      <th className="py-2.5 px-3 font-semibold">★ Sr#</th>
                       <th className="py-2.5 px-3 font-semibold cursor-pointer hover:text-slate-800 dark:hover:text-white" onClick={() => toggleSort('name')}>
-                        Stock Name {sortField === 'name' && (sortOrder === 'asc' ? '▲' : '▼')}
+                        Stock Name {sortField === 'name' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th className="py-2.5 px-3 font-semibold cursor-pointer hover:text-slate-800 dark:hover:text-white" onClick={() => toggleSort('symbol')}>
-                        NSE Symbol {sortField === 'symbol' && (sortOrder === 'asc' ? '▲' : '▼')}
+                        NSE Symbol {sortField === 'symbol' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th className="py-2.5 px-3 font-semibold text-right cursor-pointer hover:text-slate-800 dark:hover:text-white" onClick={() => toggleSort('price')}>
-                        LTP (₹) {sortField === 'price' && (sortOrder === 'asc' ? '▲' : '▼')}
+                        LTP (₹) {sortField === 'price' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th className="py-2.5 px-3 font-semibold text-right cursor-pointer hover:text-slate-800 dark:hover:text-white" onClick={() => toggleSort('changePercent')}>
-                        Change% {sortField === 'changePercent' && (sortOrder === 'asc' ? '▲' : '▼')}
+                        Change% {sortField === 'changePercent' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th className="py-2.5 px-3 font-semibold text-right cursor-pointer hover:text-slate-800 dark:hover:text-white" onClick={() => toggleSort('volume')}>
-                        Volume {sortField === 'volume' && (sortOrder === 'asc' ? '▲' : '▼')}
+                        Volume {sortField === 'volume' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th className="py-2.5 px-3 font-semibold text-right cursor-pointer hover:text-slate-800 dark:hover:text-white" onClick={() => toggleSort('marketCap')}>
-                        Market Cap {sortField === 'marketCap' && (sortOrder === 'asc' ? '▲' : '▼')}
+                        Market Cap {sortField === 'marketCap' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
                       <th className="py-2.5 px-3 font-semibold text-right cursor-pointer hover:text-slate-800 dark:hover:text-white" onClick={() => toggleSort('rsi')}>
-                        RSI(14) {sortField === 'rsi' && (sortOrder === 'asc' ? '▲' : '▼')}
+                        RSI(14) {sortField === 'rsi' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
                       </th>
-                      <th className="py-2.5 px-3 text-right text-slate-500 font-semibold">Action buttons (Chart, F&O)</th>
+                      <th className="py-2.5 px-3 text-right text-slate-500 font-semibold">Action buttons</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-850/60 text-xs font-medium">
@@ -1105,7 +1189,14 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
                           className="hover:bg-slate-50/60 dark:hover:bg-slate-900/30 border-b border-slate-100 dark:border-slate-850/40 transition"
                         >
                           {/* absolute Sr# index */}
-                          <td className="py-3 px-3 font-mono text-slate-400 dark:text-slate-500">
+                          <td className="py-3 px-3 font-mono text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                            <span 
+                               className={`mr-2 cursor-pointer transition-colors ${watchlist.includes(stock.symbol) ? 'text-amber-500 drop-shadow-[0_0_2px_rgba(245,158,11,0.5)]' : 'text-slate-300 dark:text-slate-600 hover:text-amber-300'}`}
+                               onClick={(e) => toggleWatchlist(stock.symbol, e)}
+                               title="Toggle watchlist"
+                            >
+                               ★
+                            </span>
                             {absoluteIndex}
                           </td>
 
@@ -1166,7 +1257,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
                           <td className="py-3 px-3 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
-                                onClick={() => onSelectStock('NSE:'+stock.symbol.replace('.NS',''))}
+                                onClick={() => setChartModalSymbol('NSE:'+stock.symbol.replace('.NS',''))}
                                 className="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600 dark:hover:bg-emerald-900 hover:text-white dark:hover:text-white text-[10px] py-1 px-2.5 rounded font-bold border border-emerald-100 dark:border-emerald-950 transition cursor-pointer"
                               >
                                 Chart
@@ -1229,11 +1320,43 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
                     </div>
                   </div>
                 )}
+                
+                {lastUpdated && (
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono text-center pt-2">
+                    Last updated: {lastUpdated.toLocaleString()}
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Save Scanner Modal Container */}
+      {chartModalSymbol && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fadeIn">
+          <div className="bg-white dark:bg-slate-950 rounded-2xl w-[90vw] h-[80vh] flex flex-col shadow-2xl relative overflow-hidden">
+            <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 border-opacity-50">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-800 dark:text-white uppercase font-sans text-sm tracking-wider">TradingView Chart: <span className="text-emerald-500">{chartModalSymbol}</span></span>
+              </div>
+              <button onClick={() => setChartModalSymbol(null)} className="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-rose-500 transition-colors">
+                 <X size={16} />
+              </button>
+            </div>
+            <div className="flex-1 w-full bg-slate-100 flex items-center justify-center relative">
+               <iframe 
+                  src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_1&symbol=${chartModalSymbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FKolkata&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${chartModalSymbol}`}
+                  width="100%"
+                  height="100%"
+                  allowFullScreen
+                  className="bg-black"
+                  style={{border: 'none'}}
+               />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Save Scanner Modal Container */}
       {showSaveModal && (

@@ -119,6 +119,8 @@ export default function App() {
   const handleSelectFoStock = (symbol: string) => {
     setSelectedStockSymbol(symbol);
     setActiveTab('fo');
+    const cleanSymbol = symbol.replace('NSE:', '').replace('.NS', '');
+    window.history.pushState(null, '', `/screener?symbol=${cleanSymbol}`);
   };
 
   return (
