@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen } from 'lucide-react';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,8 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 interface HeaderProps {
   indices: IndexData[];
   stocks: Stock[];
-  activeTab: 'screener' | 'fo' | 'news' | 'pricing';
-  setActiveTab: (tab: 'screener' | 'fo' | 'news' | 'pricing') => void;
+  activeTab: 'screener' | 'fo' | 'news' | 'pricing' | 'blog';
+  setActiveTab: (tab: 'screener' | 'fo' | 'news' | 'pricing' | 'blog') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
@@ -290,6 +290,17 @@ export default function Header({
               }`}
             >
               Pricing
+            </button>
+            <button
+              onClick={() => setActiveTab('blog')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
+                activeTab === 'blog'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <BookOpen size={14} />
+              F&O Strategic Blog
             </button>
           </nav>
 

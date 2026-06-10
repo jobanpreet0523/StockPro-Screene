@@ -11,12 +11,13 @@ import { useTheme } from './components/ThemeContext';
 import NewsView from './components/NewsView';
 import EmailCapturePopup from './components/EmailCapturePopup';
 import PricingView from './components/PricingView';
+import BlogView from './components/BlogView';
 
 export default function App() {
   const { theme } = useTheme();
   const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
   const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
-  const [activeTab, setActiveTab] = useState<'screener' | 'fo' | 'news' | 'pricing'>('screener');
+  const [activeTab, setActiveTab] = useState<'screener' | 'fo' | 'news' | 'pricing' | 'blog'>('screener');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('RELIANCE.NS');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isLive, setIsLive] = useState<boolean>(true);
@@ -205,8 +206,13 @@ export default function App() {
             </div>
           ) : activeTab === 'pricing' ? (
             /* ================= PRICING VIEW ================= */
-            <div className="lg:col-span-12 flex flex-col gap-6">
+            <div className="lg:col-span-12 flex flex-col gap-6" id="pricing-section">
               <PricingView />
+            </div>
+          ) : activeTab === 'blog' ? (
+            /* ================= SEO BLOG VIEW ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6">
+              <BlogView />
             </div>
           ) : (
             /* ================= STOCK MARKET DAILY NEWS ================= */
