@@ -4,6 +4,7 @@ import { Stock } from '../types';
 import OptionsCalculator from './OptionsCalculator';
 import IVRankTool from './IVRankTool';
 import RiskCalculator from './RiskCalculator';
+import GreeksCalculator from './GreeksCalculator';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
@@ -748,6 +749,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
         </div>
         {user ? (
           <>
+            <GreeksCalculator />
             <OptionsCalculator />
             <IVRankTool />
             <RiskCalculator />
@@ -758,7 +760,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
             <Lock size={40} className="mx-auto text-slate-400 dark:text-slate-500 mb-4" />
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Pro Features Locked</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
-              Sign in with your Google account to unlock advanced F&O modeling tools including the Options P&L Calculator, IV Rank Indicator, and Risk Sizing Engine. Always 100% free.
+              Sign in with your Google account to unlock advanced F&O modeling tools including the Black-Scholes Options Greeks Engine, Options P&L Calculator, IV Rank Indicator, and Risk Sizing Engine. Always 100% free.
             </p>
             <button 
               onClick={loginWithGoogle}
