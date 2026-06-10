@@ -1,9 +1,9 @@
 {
   "name": "stockpro-screener",
   "compatibility_date": "2026-06-10",
-  "main": "src/index.js",
+  "main": "dist/worker.js",
   "build": {
-    "command": "npm run build"
+    "command": "npm run build && cp src/index.js dist/worker.js"
   },
   "assets": {
     "directory": "./dist"
