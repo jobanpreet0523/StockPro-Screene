@@ -10,12 +10,13 @@ import { TrendingUp, HelpCircle, ShieldCheck, Activity } from 'lucide-react';
 import { useTheme } from './components/ThemeContext';
 import NewsView from './components/NewsView';
 import EmailCapturePopup from './components/EmailCapturePopup';
+import PricingView from './components/PricingView';
 
 export default function App() {
   const { theme } = useTheme();
   const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
   const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
-  const [activeTab, setActiveTab] = useState<'screener' | 'fo' | 'news'>('screener');
+  const [activeTab, setActiveTab] = useState<'screener' | 'fo' | 'news' | 'pricing'>('screener');
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('RELIANCE.NS');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isLive, setIsLive] = useState<boolean>(true);
@@ -201,6 +202,11 @@ export default function App() {
                   symbol={activeStock.symbol}
                 />
               )}
+            </div>
+          ) : activeTab === 'pricing' ? (
+            /* ================= PRICING VIEW ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6">
+              <PricingView />
             </div>
           ) : (
             /* ================= STOCK MARKET DAILY NEWS ================= */

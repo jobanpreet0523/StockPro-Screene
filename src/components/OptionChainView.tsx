@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download, Presentation } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download, Presentation, Lock } from 'lucide-react';
 import { OptionChain, OptionData, Position } from '../types';
 import { generateOptionChain, INITIAL_STOCKS } from '../data';
 import { useTheme } from './ThemeContext';
 import StockChart from './StockChart';
+import { useAuth } from '../contexts/AuthContext';
 
 interface OptionChainViewProps {
   symbol: string;
@@ -12,6 +13,7 @@ interface OptionChainViewProps {
 
 export default function OptionChainView({ symbol, onOrderAdded }: OptionChainViewProps) {
   const { theme } = useTheme();
+  const { isPro } = useAuth();
   const [chain, setChain] = useState<OptionChain | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedStrike, setSelectedStrike] = useState<OptionData | null>(null);
@@ -206,10 +208,13 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
     }
     fetchChain();
 
-    // Auto-ticking polling every 3 minutes (180000ms) for real-world updates
-    const timer = setInterval(fetchChain, 180000);
+    // Auto-ticking polling
+    // PRO users: 15 seconds real-time tick 
+    // Free users: 15 minutes logic, we emulate by setting delayed fetch
+    const pollInterval = isPro ? 15000 : 15 * 60 * 1000; 
+    const timer = setInterval(fetchChain, pollInterval);
     return () => clearInterval(timer);
-  }, [symbol]);
+  }, [symbol, isPro]);
 
   // Calculations for Option payoff diagrams
   const minStrategyPrice = chain ? chain.spotPrice * 0.88 : 0;
@@ -344,9 +349,15 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
           <span className="text-base font-extrabold text-slate-900 dark:text-white mt-1 block font-mono">
             ₹{spot.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 mt-0.5 font-bold animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" /> Ticking Live
-          </span>
+          {isPro ? (
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 mt-0.5 font-bold animate-pulse" title="Real-time PRO Feed">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" /> Ticking Live (PRO)
+            </span>
+          ) : (
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 mt-0.5 font-bold" title="Upgrade to PRO for real-time rates">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50 dark:bg-amber-400/50" /> Delayed by 15 mins
+            </span>
+          )}
         </div>
 
         <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg shadow-sm">
@@ -443,10 +454,35 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
               <Download size={13} />
               <span>Download CSV</span>
             </button>
-            
-            <span className="shrink-0 w-full sm:w-auto text-center text-[10px] text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800/40">
-              ITM Golden Highlight Enabled
-            </span>
+
+            {/* Pro Feature Buttons */}
+            <button
+              disabled={!isPro}
+              title={isPro ? "Open IV Calculator" : "Upgrade to Pro to use IV Calculator"}
+              className={`w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-1 border rounded text-xs font-semibold transition shrink-0 ${
+                isPro 
+                  ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer' 
+                  : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-80'
+              }`}
+            >
+              {!isPro && <Lock size={12} className="text-slate-400 dark:text-slate-500" />}
+              <span>IV Calculator</span>
+              {!isPro && <span className="ml-1 text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1 py-0.5 rounded font-black tracking-wider uppercase border border-emerald-200 dark:border-emerald-800">PRO</span>}
+            </button>
+
+            <button
+              disabled={!isPro}
+              title={isPro ? "View Real-time Block Trades" : "Upgrade to Pro to view Block Trades"}
+              className={`w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-1 border rounded text-xs font-semibold transition shrink-0 ${
+                isPro 
+                  ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer' 
+                  : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-80'
+              }`}
+            >
+              {!isPro && <Lock size={12} className="text-slate-400 dark:text-slate-500" />}
+              <span>Block Trades</span>
+              {!isPro && <span className="ml-1 text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 px-1 py-0.5 rounded font-black tracking-wider uppercase border border-emerald-200 dark:border-emerald-800">PRO</span>}
+            </button>
           </div>
         </div>
 

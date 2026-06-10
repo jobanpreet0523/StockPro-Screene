@@ -177,7 +177,7 @@ type SortOrder = 'asc' | 'desc';
 
 export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }: StockScreenerProps) {
   const [activePreset, setActivePreset] = useState<string>('all');
-  const { user, loginWithGoogle } = useAuth();
+  const { user, loginWithGoogle, isPro } = useAuth();
 
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
@@ -221,8 +221,8 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
     if (isAlreadyAdded) {
       updatedSymbols = updatedSymbols.filter(s => s !== symbol);
     } else {
-      if (watchlist.length >= 10) {
-        setLimitWarning("Watchlist limit reached! Free accounts can save up to 10 stocks.");
+      if (!isPro && watchlist.length >= 10) {
+        setLimitWarning("Watchlist limit reached! Free accounts can save up to 10 stocks. Upgrade to PRO for unlimited.");
         setTimeout(() => setLimitWarning(null), 5000);
         return;
       }

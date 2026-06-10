@@ -7,8 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 interface HeaderProps {
   indices: IndexData[];
   stocks: Stock[];
-  activeTab: 'screener' | 'fo' | 'news';
-  setActiveTab: (tab: 'screener' | 'fo' | 'news') => void;
+  activeTab: 'screener' | 'fo' | 'news' | 'pricing';
+  setActiveTab: (tab: 'screener' | 'fo' | 'news' | 'pricing') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
@@ -24,7 +24,7 @@ export default function Header({
   onSelectStock
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const { user, loginWithGoogle, logout } = useAuth();
+  const { user, loginWithGoogle, logout, isPro } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showApiModal, setShowApiModal] = useState(false);
   const [prevPrices, setPrevPrices] = useState<Record<string, number>>({});
@@ -281,6 +281,16 @@ export default function Header({
               <Newspaper size={14} />
               STOCK MARKET DAILY NEWS
             </button>
+            <button
+              onClick={() => setActiveTab('pricing')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
+                activeTab === 'pricing'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Pricing
+            </button>
           </nav>
 
           {/* Premium Theme Switcher */}
@@ -316,6 +326,19 @@ export default function Header({
 
           {user ? (
             <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 pr-3 shadow-sm ml-2">
+              {isPro ? (
+                <span className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded shadow-sm shadow-emerald-500/20">
+                  PRO
+                </span>
+              ) : (
+                <button 
+                  onClick={() => setActiveTab('pricing')} 
+                  className="bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded transition cursor-pointer"
+                  title="Upgrade to Pro"
+                >
+                  UPGRADE
+                </button>
+              )}
               <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} alt="avatar" className="w-6 h-6 rounded-md" />
               <button
                 onClick={logout}
