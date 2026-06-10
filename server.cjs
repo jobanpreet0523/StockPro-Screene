@@ -1142,6 +1142,151 @@ app.get("/api/pro-data", async (req, res) => {
     return res.json(getProDataFallback(symbol));
   }
 });
+function generateMockBlockDeals() {
+  const clients = [
+    "Morgan Stanley Asia",
+    "Societe Generale",
+    "Nippon India Mutual Fund",
+    "SBI Mutual Fund",
+    "Vanguard Emerging Markets",
+    "LIC of India",
+    "HDFC Mutual Fund",
+    "ICICI Prudential Mutual Fund",
+    "Goldman Sachs Singapore",
+    "Merrill Lynch",
+    "Fidelity Investment",
+    "Government Pension Fund Global",
+    "Nomura India Investment",
+    "BNP Paribas Arbitrage",
+    "Axis Mutual Fund",
+    "Kotak Mutual Fund",
+    "Aditya Birla Sun Life MF",
+    "Ontario Teachers Pension",
+    "Abu Dhabi Investment Authority",
+    "Calpers Pension Fund"
+  ];
+  const stocksList = [
+    { symbol: "RELIANCE", price: 2482.5 },
+    { symbol: "TCS", price: 3825.2 },
+    { symbol: "HDFCBANK", price: 1610.15 },
+    { symbol: "ICICIBANK", price: 1120.8 },
+    { symbol: "INFY", price: 1492.4 },
+    { symbol: "BHARTIARTL", price: 1375 },
+    { symbol: "ITC", price: 442.25 },
+    { symbol: "SBIN", price: 818.5 },
+    { symbol: "AXISBANK", price: 1180.3 },
+    { symbol: "KOTAKBANK", price: 1720 },
+    { symbol: "LT", price: 3450.9 },
+    { symbol: "BAJFINANCE", price: 6850 },
+    { symbol: "MARUTI", price: 12100 },
+    { symbol: "TATAMOTORS", price: 935.45 },
+    { symbol: "TATASTEEL", price: 165.2 },
+    { symbol: "WIPRO", price: 460.1 },
+    { symbol: "ASIANPAINT", price: 2980.5 },
+    { symbol: "HINDUNILVR", price: 2340 }
+  ];
+  const deals = [];
+  const today = /* @__PURE__ */ new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = /* @__PURE__ */ new Date();
+    d.setDate(today.getDate() - i);
+    const dayOfWeek = d.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+    const dateStr = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, "-");
+    const numDeals = 12 + Math.floor(Math.random() * 10);
+    for (let j = 0; j < numDeals; j++) {
+      const stock = stocksList[Math.floor(Math.random() * stocksList.length)];
+      const client = clients[Math.floor(Math.random() * clients.length)];
+      const isWhaleTrade = Math.random() < 0.28;
+      let targetValue = isWhaleTrade ? 100.5 + Math.random() * 155 : 2.5 + Math.random() * 95;
+      const quantity = Math.round(targetValue * 1e7 / stock.price);
+      const actualValueCr = Number((quantity * stock.price / 1e7).toFixed(2));
+      const buySell = Math.random() > 0.48 ? "BUY" : "SELL";
+      deals.push({
+        date: dateStr,
+        symbol: stock.symbol,
+        clientName: client,
+        buySell,
+        quantity,
+        price: stock.price,
+        value: actualValueCr
+      });
+    }
+  }
+  return deals.sort((a, b) => b.value - a.value);
+}
+app.get("/api/block-deals", async (req, res) => {
+  const headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Referer": "https://www.nseindia.com"
+  };
+  try {
+    let nseData = null;
+    try {
+      const homeRes = await fetch("https://www.nseindia.com", { headers });
+      const rawCookies = homeRes.headers.get("set-cookie") || "";
+      const cookieStr = rawCookies.split(",").map((c) => c.split(";")[0]).join("; ");
+      const response = await fetch("https://www.nseindia.com/api/block-deal", {
+        headers: { ...headers, "Cookie": cookieStr }
+      });
+      if (response.ok) {
+        nseData = await response.json();
+      }
+    } catch (scrapErr) {
+      console.warn("[NSE Block Deals Scraper Warning]:", scrapErr.message);
+    }
+    let rawList = [];
+    if (nseData) {
+      if (Array.isArray(nseData)) {
+        rawList = nseData;
+      } else if (nseData.data && Array.isArray(nseData.data)) {
+        rawList = nseData.data;
+      } else if (nseData.records?.data && Array.isArray(nseData.records.data)) {
+        rawList = nseData.records.data;
+      }
+    }
+    let mappedDeals = [];
+    if (rawList && rawList.length > 0) {
+      mappedDeals = rawList.map((row) => {
+        const dateVal = row.mktDate || row.dealDate || row.date || (/* @__PURE__ */ new Date()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, "-");
+        const symVal = row.symbol || row.secName || row.securityName || "UNKNOWN";
+        const clientVal = row.clientName || row.acquirerName || row.sellerName || "Institutional Trader";
+        const typeVal = String(row.buySell || row.dealType || row.action || "BUY").toUpperCase();
+        const rawQty = Number(row.quantity || row.qty || row.volume || row.noOfShares || 1e5);
+        const rawPrice = Number(row.price || row.rate || row.executionPrice || 100);
+        const valCr = Number((rawQty * rawPrice / 1e7).toFixed(2));
+        return {
+          date: dateVal,
+          symbol: symVal.replace(".NS", ""),
+          clientName: clientVal,
+          buySell: typeVal.startsWith("S") ? "SELL" : "BUY",
+          quantity: rawQty,
+          price: rawPrice,
+          value: valCr
+        };
+      });
+    }
+    if (mappedDeals.length === 0) {
+      mappedDeals = generateMockBlockDeals();
+    }
+    res.json({
+      status: "ok",
+      count: mappedDeals.length,
+      source: rawList.length > 0 ? "real_nse_scr" : "fallback_generator",
+      timestamp: Date.now(),
+      data: mappedDeals
+    });
+  } catch (err) {
+    console.error("[Block Deals Master Failure]:", err.message);
+    res.json({
+      status: "ok",
+      count: 0,
+      source: "error_fallback",
+      data: generateMockBlockDeals()
+    });
+  }
+});
 app.get("/api/propicks", async (req, res) => {
   try {
     const liveJson = await safeFetchFromWorker(`/api/propicks`);
