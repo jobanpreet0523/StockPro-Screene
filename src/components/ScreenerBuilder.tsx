@@ -47,11 +47,125 @@ interface SavedScanner {
   conditions: ScanCondition[];
 }
 
+interface PrebuiltScanner {
+  id: string;
+  icon: string;
+  name: string;
+  description: string;
+  logicalOperator: 'AND' | 'OR';
+  conditions: ScanCondition[];
+}
+
+const PREBUILT_SCANNERS: PrebuiltScanner[] = [
+  {
+    id: 'pb-doji',
+    icon: '🕯️',
+    name: 'Doji Pattern',
+    description: 'Identifies stocks with extremely narrow body (Open ≈ Close) signaling trend reversal.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-doji-cond-1', indicator: 'Doji Ratio', timeframe: '1 Day', condition: 'Less than', value: 10 }
+    ]
+  },
+  {
+    id: 'pb-rsi-oversold',
+    icon: '📈',
+    name: 'RSI Oversold',
+    description: 'RSI(14) drops below 30. Potential bullish reversal candidate.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-rsi-os-cond-1', indicator: 'RSI(14)', timeframe: '1 Day', condition: 'Less than', value: 30 }
+    ]
+  },
+  {
+    id: 'pb-rsi-overbought',
+    icon: '📉',
+    name: 'RSI Overbought',
+    description: 'RSI(14) rises above 70. Potential overstretched/cooling zone.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-rsi-ob-cond-1', indicator: 'RSI(14)', timeframe: '1 Day', condition: 'Greater than', value: 70 }
+    ]
+  },
+  {
+    id: 'pb-volume-breakout',
+    icon: '⚡',
+    name: 'Volume Breakout',
+    description: 'Current volume exceeds 3x average, indicating institutional interest.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-vol-bo-cond-1', indicator: 'Volume Multiplier', timeframe: '1 Day', condition: 'Greater than', value: 3 }
+    ]
+  },
+  {
+    id: 'pb-52w-high',
+    icon: '🚀',
+    name: '52-Week High Breakout',
+    description: 'Closing price exceeds the 52-week highest traded price.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-52high-cond-1', indicator: 'Close vs 52W High Ratio', timeframe: '1 Day', condition: 'Greater than', value: 100 }
+    ]
+  },
+  {
+    id: 'pb-golden-cross',
+    icon: '💎',
+    name: 'Golden Cross',
+    description: 'Short-term EMA(20) crosses above medium-term EMA(50), a major bullish signal.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-gc-cond-1', indicator: 'EMA(20) / EMA(50) Ratio', timeframe: '1 Day', condition: 'Crosses above', value: 100 }
+    ]
+  },
+  {
+    id: 'pb-death-cross',
+    icon: '☠️',
+    name: 'Death Cross',
+    description: 'Short-term EMA(20) drops below medium-term EMA(50), highly bearish.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-dc-cond-1', indicator: 'EMA(20) / EMA(50) Ratio', timeframe: '1 Day', condition: 'Less than', value: 100 }
+    ]
+  },
+  {
+    id: 'pb-macd-crossover',
+    icon: '📊',
+    name: 'MACD Bullish Crossover',
+    description: 'MACD line crossed above the zero line reflecting increasing upward momentum.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-macd-cond-1', indicator: 'MACD', timeframe: '1 Day', condition: 'Crosses above', value: 0 }
+    ]
+  },
+  {
+    id: 'pb-bb-squeeze',
+    icon: '🔵',
+    name: 'Bollinger Band Squeeze',
+    description: 'Band width tightens under extreme low volatility, anticipating an explosive breakout.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-bb-sq-cond-1', indicator: 'Bollinger Band Width%', timeframe: '1 Day', condition: 'Less than', value: 12 }
+    ]
+  },
+  {
+    id: 'pb-undervalued',
+    icon: '💰',
+    name: 'Undervalued',
+    description: 'Attractive fundamental entry: low price-to-earnings ratios paired with high Return on Equity.',
+    logicalOperator: 'AND',
+    conditions: [
+      { id: 'pb-uv-cond-1', indicator: 'P/E Ratio', timeframe: '1 Day', condition: 'Less than', value: 15 },
+      { id: 'pb-uv-cond-2', indicator: 'ROE%', timeframe: '1 Day', condition: 'Greater than', value: 15 }
+    ]
+  }
+];
+
 export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock }: ScreenerBuilderProps) {
   const { user, loginWithGoogle } = useAuth();
   
   // Logic toggle (AND / OR)
   const [logicalOperator, setLogicalOperator] = useState<'AND' | 'OR'>('AND');
+  const [activePrebuiltId, setActivePrebuiltId] = useState<string | null>(null);
   
   // Conditions list - start with one elegant row
   const [conditions, setConditions] = useState<ScanCondition[]>([
@@ -127,7 +241,8 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
     'Close Price', 'Open', 'High', 'Low', 'Volume', 'RSI(14)', 
     'EMA(20)', 'EMA(50)', 'EMA(200)', 'MACD', 
     'Bollinger Band Upper', 'Bollinger Band Lower', 
-    '52W High', '52W Low', 'Market Cap', 'P/E Ratio', 'Day Change%'
+    '52W High', '52W Low', 'Market Cap', 'P/E Ratio', 'Day Change%',
+    'ROE%', 'Bollinger Band Width%', 'Volume Multiplier', 'Close vs 52W High Ratio', 'EMA(20) / EMA(50) Ratio', 'Doji Ratio'
   ];
 
   const timeframesList = ['1 Day', '1 Week', '1 Month'];
@@ -191,6 +306,32 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
         break;
       case 'Day Change%':
         baseValue = stock.changePercent;
+        break;
+      case 'ROE%':
+        baseValue = 10 + (symbolCode % 18); // simulated ROE% (10% to 28%)
+        break;
+      case 'Bollinger Band Width%':
+        const bbUpper = stock.price * (1.05 + (symbolCode % 3) * 0.008);
+        const bbLower = stock.price * (0.95 - (symbolCode % 3) * 0.008);
+        baseValue = ((bbUpper - bbLower) / stock.price) * 100;
+        break;
+      case 'Volume Multiplier':
+        baseValue = 0.8 + (symbolCode % 5) * 0.6 + (stock.changePercent >= 2 ? 1.4 : 0.2);
+        break;
+      case 'Close vs 52W High Ratio':
+        const h52w = stock.price * (1.11 + (stock.symbol.length % 4) * 0.01);
+        const isBreakout = (symbolCode % 5) === 0;
+        baseValue = isBreakout ? 101.5 + (symbolCode % 4) * 0.5 : (stock.price / h52w) * 100;
+        break;
+      case 'EMA(20) / EMA(50) Ratio':
+        const ema20Value = stock.price * (0.985 + (stock.symbol.length % 5) * 0.003);
+        const ema50Value = stock.price * (0.954 + (stock.symbol.length % 7) * 0.004);
+        baseValue = (ema20Value / ema50Value) * 100;
+        break;
+      case 'Doji Ratio':
+        const bodyDiff = Math.abs(stock.price - (stock.open || stock.price * 0.99));
+        const totalRange = (stock.high || stock.price * 1.015) - (stock.low || stock.price * 0.98);
+        baseValue = totalRange > 0 ? (bodyDiff / totalRange) * 100 : 8.0;
         break;
       default:
         baseValue = stock.price;
@@ -258,6 +399,7 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
 
   // Manage condition rows
   const addConditionRow = () => {
+    setActivePrebuiltId(null);
     const newId = `condition-${Date.now()}`;
     setConditions([
       ...conditions,
@@ -272,15 +414,47 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
   };
 
   const deleteConditionRow = (id: string) => {
+    setActivePrebuiltId(null);
     setConditions(conditions.filter(c => c.id !== id));
   };
 
   const updateConditionRow = (id: string, updatedFields: Partial<ScanCondition>) => {
+    setActivePrebuiltId(null);
     setConditions(conditions.map(c => c.id === id ? { ...c, ...updatedFields } : c));
+  };
+
+  // Run a Pre-built power scanner instantly
+  const handleRunPrebuiltScanner = (scanner: PrebuiltScanner) => {
+    setActivePrebuiltId(scanner.id);
+    setLogicalOperator(scanner.logicalOperator);
+    // Instantiate conditions with unique IDs to avoid conflicts and allow editing
+    const preparedConditions = scanner.conditions.map((cond, idx) => ({
+      ...cond,
+      id: `prebuilt-cond-${scanner.id}-${idx}-${Date.now()}`
+    }));
+    setConditions(preparedConditions);
+    setScannerName('');
+    setCurrentPage(1);
+    setIsScanning(true);
+
+    setTimeout(() => {
+      let results: Stock[] = [];
+      results = stocks.filter(stock => {
+        if (scanner.logicalOperator === 'AND') {
+          return preparedConditions.every(cond => evaluateCondition(stock, cond));
+        } else {
+          return preparedConditions.some(cond => evaluateCondition(stock, cond));
+        }
+      });
+      setFilteredStocks(results);
+      setHasScanned(true);
+      setIsScanning(false);
+    }, 380);
   };
 
   // Load a Saved/Template Scanner
   const loadScanner = (scanner: SavedScanner) => {
+    setActivePrebuiltId(null);
     setLogicalOperator(scanner.logicalOperator);
     setConditions(scanner.conditions);
     setScannerName(scanner.id.startsWith('template-') ? '' : scanner.name);
@@ -495,6 +669,76 @@ export default function ScreenerBuilder({ stocks, onSelectStock, onSelectFoStock
               <strong>Pro Tips:</strong> Use crossovers on 52-Week highs together with 1-Month timeframes to spot structural institutional rotation breakouts.
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* ================= PRE-BUILT SCANNERS HORIZONTAL ROW ================= */}
+      <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-850/60 rounded-2xl p-4 sm:p-5 flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-150 dark:border-slate-850 pb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-205 uppercase tracking-wider font-mono">
+              🕯️ Pre-built Algorithmic Power Scanners
+            </h2>
+          </div>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium font-mono">
+            Click Run to auto-populate and instantly scan the Indian market
+          </span>
+        </div>
+
+        <div className="flex gap-4 overflow-x-auto pb-2 pt-1 scroll-smooth" style={{ scrollbarWidth: 'thin' }}>
+          {PREBUILT_SCANNERS.map((scanner) => {
+            const isActive = activePrebuiltId === scanner.id;
+            return (
+              <div
+                key={scanner.id}
+                onClick={() => handleRunPrebuiltScanner(scanner)}
+                className={`flex-none w-[260px] bg-white dark:bg-slate-950 border rounded-xl p-4 flex flex-col justify-between gap-4 transition-all duration-300 cursor-pointer ${
+                  isActive
+                    ? 'border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10 dark:bg-blue-950/25 scale-[0.99] shadow-inner'
+                    : 'border-slate-200 dark:border-slate-850 hover:border-slate-350 dark:hover:border-slate-750 hover:shadow-xs'
+                }`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl filter drop-shadow-sm select-none">{scanner.icon}</span>
+                    {isActive ? (
+                      <span className="text-[8px] bg-blue-600 dark:bg-blue-500 text-white font-black px-2 py-0.5 rounded-full uppercase tracking-wider">ACTIVE</span>
+                    ) : (
+                      <span className="text-[8px] bg-slate-100 dark:bg-slate-900 text-slate-400 font-mono px-1.5 py-0.5 rounded">ALGO</span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-850 dark:text-white leading-tight">
+                      {scanner.name}
+                    </h3>
+                    <p className="text-[10.5px] text-slate-500 dark:text-slate-400 leading-snug font-medium line-clamp-2 mt-1 min-h-[32px]">
+                      {scanner.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRunPrebuiltScanner(scanner);
+                    }}
+                    className={`w-full py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+                      isActive
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                        : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-250/50 dark:border-emerald-900/30 hover:bg-emerald-600 dark:hover:bg-emerald-900 hover:text-white dark:hover:text-white font-extrabold'
+                    }`}
+                  >
+                    <span>▶ Run</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
