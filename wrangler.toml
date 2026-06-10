@@ -1,9 +1,0 @@
-name = "stockpro-screener"
-main = "index.js"
-compatibility_date = "2026-06-09"
-
-[build]
-command = "npm run build"
-
-[assets]
-directory = "./dist"
