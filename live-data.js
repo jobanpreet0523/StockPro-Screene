@@ -50,7 +50,7 @@
     finnifty:  { spot: 21150, chg: 0, chgPct: 0 },
     vix:       12.34,
     pcr:       1.18,
-    maxPain:   22450,
+    maxPain:   24900,
     iv:        14.2,
     callOI:    12400000,
     putOI:     16600000,
@@ -263,7 +263,7 @@
 
     // ── 9. ATM STRIKE in hero ─────────────────────────────
     const atm = state.chain.find(r => r.strike === generateChain(state.nifty.spot, 50, 0).atm);
-    const atmVal = state.chain.length > 0 ? state.chain[Math.floor(state.chain.length / 2)].strike : 22450;
+    const atmVal = state.chain.length > 0 ? state.chain[Math.floor(state.chain.length / 2)].strike : 24900;
     patchValueByText("NIFTY 24900", `NIFTY ${atmVal.toLocaleString("en-IN")}`);
     patchValueByText("LIVE OPTIONS CHAIN - NIFTY 24900", `LIVE OPTIONS CHAIN - NIFTY ${atmVal.toLocaleString("en-IN")}`);
 

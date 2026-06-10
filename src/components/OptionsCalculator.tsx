@@ -9,7 +9,7 @@ export default function OptionsCalculator() {
   const [premiumValue, setPremiumValue] = useState<string>('150');
   const [lotSizeValue, setLotSizeValue] = useState<string>('50');
   const [lotsValue, setLotsValue] = useState<string>('1');
-  const [targetSpotValue, setTargetSpotValue] = useState<string>('22300');
+  const [targetSpotValue, setTargetSpotValue] = useState<string>('24800');
 
   const strike = Number(strikeValue) || 0;
   const premium = Number(premiumValue) || 0;
