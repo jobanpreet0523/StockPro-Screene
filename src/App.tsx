@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import MarketCards from './components/MarketCards';
 import StockScreener from './components/StockScreener';
+import ScreenerBuilder from './components/ScreenerBuilder';
 import StockChart from './components/StockChart';
 import OptionChainView from './components/OptionChainView';
 import { Stock, IndexData } from './types';
@@ -17,7 +18,15 @@ export default function App() {
   const { theme } = useTheme();
   const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
   const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
-  const [activeTab, setActiveTab] = useState<'screener' | 'fo' | 'news' | 'pricing' | 'blog'>('screener');
+  const [activeTab, setActiveTab] = useState<'screener' | 'chartink' | 'fo' | 'news' | 'pricing' | 'blog'>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path === '/screener' || path.includes('screener.html')) {
+        return 'chartink';
+      }
+    }
+    return 'screener';
+  });
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('RELIANCE.NS');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isLive, setIsLive] = useState<boolean>(true);
@@ -162,6 +171,15 @@ export default function App() {
                 </div>
               </div>
             </>
+          ) : activeTab === 'chartink' ? (
+            /* ================= CHARTINK CUSTOM SCREENER VIEW ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6" id="chartink_screener_view">
+              <ScreenerBuilder
+                stocks={stocks}
+                onSelectStock={handleSelectStock}
+                onSelectFoStock={handleSelectFoStock}
+              />
+            </div>
           ) : activeTab === 'fo' ? (
             /* ================= DERIVATIVES OPTION CHAIN VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
