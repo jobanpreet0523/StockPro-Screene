@@ -3,7 +3,9 @@ const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 const path = require('path');
 
-const indexCode = fs.readFileSync('dist/assets/screener-CB2HW7Jm.js', 'utf8');
+const assetsDir = 'dist/assets';
+const screenerFile = fs.readdirSync(assetsDir).find(f => f.startsWith('screener-') && f.endsWith('.js'));
+const indexCode = fs.readFileSync(path.join(assetsDir, screenerFile), 'utf8');
 
 const virtualConsole = new jsdom.VirtualConsole();
 virtualConsole.on("error", (e) => {
