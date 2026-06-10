@@ -690,6 +690,24 @@ app.get('/api/yahoo-finance/:symbol', async (req: Request, res: Response) => {
   }
 });
 
+// API: Proxy Yahoo Finance Batch Quotes
+app.get('/api/yahoo-batch', async (req: Request, res: Response) => {
+  const symbols = req.query.symbols as string;
+  if (!symbols) return res.status(400).json({ error: 'Missing symbols' });
+  try {
+    const response = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+    if (!response.ok) throw new Error('Yahoo batch API failed');
+    const json = (await response.json()) as any;
+    return res.json(json.quoteResponse?.result || []);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // API: Proxy InvestingPro Equity Analytics to Worker
 app.get('/api/pro-data', async (req: Request, res: Response) => {
   const symbol = (req.query.symbol as string) || 'AAPL';

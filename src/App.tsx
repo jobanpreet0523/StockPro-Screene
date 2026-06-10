@@ -31,7 +31,12 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isLive, setIsLive] = useState<boolean>(true);
 
+  // Yahoo API bulk loading state
+  const [stockData, setStockData] = useState<any[]>([]);
+  const [isLoadingStocks, setIsLoadingStocks] = useState<boolean>(true);
+
   // Sync index boards and stock values from full-stack backend
+
   useEffect(() => {
     async function syncRealTimeMetrics() {
       try {
@@ -66,6 +71,41 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch real NSE bulk stock data via proxy using Yahoo batch API
+  const fetchAllStocks = async () => {
+    setIsLoadingStocks(true);
+    const symbols = "TCS.NS,INFY.NS,RELIANCE.NS,HDFCBANK.NS,ICICIBANK.NS,WIPRO.NS,AXISBANK.NS,KOTAKBANK.NS,LT.NS,BAJFINANCE.NS,MARUTI.NS,ASIANPAINT.NS,HINDUNILVR.NS,TITAN.NS,ULTRACEMCO.NS,NESTLEIND.NS,TECHM.NS,SUNPHARMA.NS,DRREDDY.NS,ONGC.NS,NTPC.NS,POWERGRID.NS,COALINDIA.NS,JSWSTEEL.NS,TATASTEEL.NS,TATAMOTORS.NS,BAJAJFINSV.NS,SBILIFE.NS,HDFCLIFE.NS,ADANIENT.NS,ADANIPORTS.NS,DIVISLAB.NS,CIPLA.NS,EICHERMOT.NS,HEROMOTOCO.NS,BRITANNIA.NS,GRASIM.NS,HINDALCO.NS,INDUSINDBK.NS,M%26M.NS,BPCL.NS,IOC.NS,SHREECEM.NS,TATACONSUM.NS,UPL.NS,VEDL.NS,APOLLOHOSP.NS,BAJAJ-AUTO.NS,SBIN.NS,ITC.NS";
+    
+    try {
+      const res = await fetch(`/api/yahoo-batch?symbols=${symbols}`);
+      if (!res.ok) throw new Error('Yahoo proxy batch network response error');
+      const data = await res.json();
+      
+      const mappedData = data.map((item: any) => ({
+        symbol: item.symbol,
+        shortName: item.shortName,
+        regularMarketPrice: item.regularMarketPrice,
+        regularMarketChangePercent: item.regularMarketChangePercent,
+        regularMarketVolume: item.regularMarketVolume,
+        marketCap: item.marketCap,
+        trailingPE: item.trailingPE,
+        fiftyTwoWeekHigh: item.fiftyTwoWeekHigh,
+        fiftyTwoWeekLow: item.fiftyTwoWeekLow
+      }));
+      setStockData(mappedData);
+    } catch(err) {
+      console.error('Error fetching Yahoo Finance bulk data:', err);
+    } finally {
+      setIsLoadingStocks(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllStocks();
+    const interval = setInterval(fetchAllStocks, 5 * 60 * 1000); // 5 minutes
+    return () => clearInterval(interval);
+  }, []);
+
   const activeStock = stocks.find(s => {
     const cleanLeft = selectedStockSymbol.replace('NSE:', '').replace('.NS', '');
     const cleanRight = s.symbol.replace('.NS', '');
@@ -96,6 +136,26 @@ export default function App() {
 
       {/* Main App Workspace container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
+        {/* Bulk Stock Data Status */}
+        <div className="flex items-center gap-3 mb-6 bg-white dark:bg-slate-950 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-850 shadow-sm">
+          {isLoadingStocks ? (
+             <>
+               <span className="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin shrink-0" />
+               <span className="text-xs font-mono text-slate-500 font-bold uppercase tracking-wider">Fetching live NSE stock data from Yahoo Finance...</span>
+             </>
+          ) : (
+             <>
+               <Activity size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                 Loaded {stockData.length} stocks
+               </span>
+               <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">
+                 Yahoo Finance API Bulk Live Synced
+               </span>
+             </>
+          )}
+        </div>
+
         {/* Indices benchmark line */}
         {indices.length > 0 && (
           <MarketCards
