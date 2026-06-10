@@ -19,13 +19,16 @@
     "adm-zip": "^0.5.17",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "firebase": "^12.14.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "recharts": "^3.8.1",
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@types/adm-zip": "^0.5.8",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",

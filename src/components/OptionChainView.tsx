@@ -159,7 +159,7 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
     document.body.removeChild(link);
   };
 
-  // Fetch option chain data from Express API
+  // Option chain fetching
   useEffect(() => {
     async function fetchChain() {
       setLoading(true);
@@ -176,6 +176,8 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
             if (json.data.options && json.data.options.length > 10) {
               setSelectedStrike(json.data.options[10]);
             }
+            // Fetching logic completed
+            setLoading(false);
             return;
           }
         }
@@ -204,8 +206,8 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
     }
     fetchChain();
 
-    // Auto-ticking polling every 4 seconds to simulate live option updates
-    const timer = setInterval(fetchChain, 4000);
+    // Auto-ticking polling every 3 minutes (180000ms) for real-world updates
+    const timer = setInterval(fetchChain, 180000);
     return () => clearInterval(timer);
   }, [symbol]);
 
@@ -305,13 +307,32 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
 
   // Intermediary details
   const spot = chain.spotPrice;
-  const pcrVal = chain.pcr;
+  
+  // Real PCR Calculation
+  const { realPcr, realCallOi, realPutOi } = useMemo(() => {
+    let callOi = 0;
+    let putOi = 0;
+    if (chain?.options) {
+      chain.options.forEach(opt => {
+        callOi += opt.callOi;
+        putOi += opt.putOi;
+      });
+    }
+    const realPcr = callOi > 0 ? Number((putOi / callOi).toFixed(2)) : 1.0;
+    return { realPcr, realCallOi: callOi, realPutOi: putOi };
+  }, [chain]);
+
+  const pcrVal = realPcr;
   const getPcrSentiment = (p: number) => {
-    if (p > 1.4) return 'Strong Bullish / Overbought support';
-    if (p > 1.05) return 'Mild Bullish build-up';
-    if (p > 0.85) return 'Standard Neutral Range';
-    if (p > 0.6) return 'Bearish / Hard resistance';
-    return 'Extreme Bearish / Oversold pressure';
+    if (p > 1.5) return 'Bullish / Overbought support';
+    if (p >= 0.8) return 'Neutral Range';
+    return 'Bearish / Hard resistance';
+  };
+
+  const getPcrColorClass = (p: number) => {
+    if (p > 1.5) return 'text-emerald-600 dark:text-emerald-400';
+    if (p >= 0.8) return 'text-amber-500 dark:text-amber-400';
+    return 'text-rose-600 dark:text-rose-400';
   };
 
   return (
@@ -330,10 +351,10 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
 
         <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg shadow-sm">
           <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block tracking-wider font-semibold">Put-Call Ratio (PCR)</span>
-          <span className="text-base font-extrabold text-purple-600 dark:text-purple-400 mt-1 block font-mono">
+          <span className={`text-base font-extrabold mt-1 block font-mono ${getPcrColorClass(pcrVal)}`}>
             {pcrVal}
           </span>
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block mt-0.5 font-semibold">
+          <span className={`text-[10px] truncate block mt-0.5 font-semibold ${getPcrColorClass(pcrVal)}`}>
             {getPcrSentiment(pcrVal)}
           </span>
         </div>
@@ -353,12 +374,12 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
           <div className="flex items-center justify-between mt-1 text-xs font-mono text-slate-650 dark:text-slate-300">
             <div>
               <span className="text-[9px] text-slate-500 dark:text-slate-450 block font-bold">CALLS</span>
-              <span className="text-xs text-rose-600 dark:text-rose-400 font-extrabold">{formatVolume(chain.totalCallOi)}</span>
+              <span className="text-xs text-rose-600 dark:text-rose-400 font-extrabold">{formatVolume(realCallOi)}</span>
             </div>
             <span className="text-slate-300 dark:text-slate-600">/</span>
             <div className="text-right">
               <span className="text-[9px] text-slate-500 dark:text-slate-450 block font-bold font-sans">PUTS</span>
-              <span className="text-xs text-emerald-650 dark:text-emerald-400 font-extrabold">{formatVolume(chain.totalPutOi)}</span>
+              <span className="text-xs text-emerald-650 dark:text-emerald-400 font-extrabold">{formatVolume(realPutOi)}</span>
             </div>
           </div>
         </div>

@@ -1,0 +1,21 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "User Profile",
+      "description": "User preferences like theme",
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark"]
+        }
+      }
+    }
+  },
+  "firestore": {
+    "userProfile/{userId}": {
+      "schema": { "$ref": "#/entities/userProfile" },
+      "description": "Stores user profiles with their preferences."
+    }
+  }
+}

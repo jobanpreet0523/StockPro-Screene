@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUpDown, Play, Sparkles, Filter, CheckCircle2, ChevronRight, Calculator, Download } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, Play, Sparkles, Filter, CheckCircle2, ChevronRight, Calculator, Download, Lock } from 'lucide-react';
 import { Stock } from '../types';
+import OptionsCalculator from './OptionsCalculator';
+import IVRankTool from './IVRankTool';
+import RiskCalculator from './RiskCalculator';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ScreenerRowProps {
   key?: string;
@@ -9,24 +13,31 @@ interface ScreenerRowProps {
   onSelectFoStock: (symbol: string) => void;
   formatVolume: (vol: number) => string;
   formatMarketCap: (cap: number) => string;
+  realData?: { price: number; changePercent: number; volume: number; change: number };
+  isLoading?: boolean;
 }
 
-function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, formatMarketCap }: ScreenerRowProps) {
-  const [prevPrice, setPrevPrice] = useState<number>(stock.price);
+function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, formatMarketCap, realData, isLoading }: ScreenerRowProps) {
+  const displayPrice = realData ? realData.price : stock.price;
+  const displayChangePercent = realData ? realData.changePercent.toFixed(2) : stock.changePercent;
+  const displayVolume = realData ? realData.volume : stock.volume;
+  const displayChange = realData ? realData.change : stock.change;
+
+  const [prevPrice, setPrevPrice] = useState<number>(displayPrice);
   const [flash, setFlash] = useState<'up' | 'down' | null>(null);
 
   useEffect(() => {
-    if (stock.price !== prevPrice) {
-      setFlash(stock.price > prevPrice ? 'up' : 'down');
-      setPrevPrice(stock.price);
+    if (displayPrice !== prevPrice) {
+      setFlash(displayPrice > prevPrice ? 'up' : 'down');
+      setPrevPrice(displayPrice);
       const timer = setTimeout(() => {
         setFlash(null);
       }, 700);
       return () => clearTimeout(timer);
     }
-  }, [stock.price, prevPrice]);
+  }, [displayPrice, prevPrice]);
 
-  const isPositive = stock.change >= 0;
+  const isPositive = displayChange >= 0;
   const rsiColorClass = stock.rsi >= 70 
     ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/30 font-bold' 
     : stock.rsi <= 40 
@@ -68,21 +79,33 @@ function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, form
 
       {/* Spot Pricing */}
       <td className="py-3.5 px-3 text-right font-mono text-xs font-semibold">
-        <span className={`inline-block px-1.5 py-0.5 transition-all text-right select-none ${flashBgClass}`}>
-          {stock.price >= 100 ? stock.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : stock.price.toFixed(2)}
-        </span>
+        {isLoading ? (
+          <div className="flex justify-end"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div></div>
+        ) : (
+          <span className={`inline-block px-1.5 py-0.5 transition-all text-right select-none ${flashBgClass}`}>
+            {displayPrice >= 100 ? displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : displayPrice.toFixed(2)}
+          </span>
+        )}
       </td>
 
       {/* Today change % */}
       <td className="py-3.5 px-3 text-right font-mono font-bold text-xs">
-        <span className={`inline-flex items-center ${isPositive ? 'text-emerald-600 dark:text-emerald-450' : 'text-rose-600 dark:text-rose-450'}`}>
-          {isPositive ? '+' : ''}{stock.changePercent}%
-        </span>
+        {isLoading ? (
+           <div className="flex justify-end"><div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div></div>
+        ) : (
+          <span className={`inline-flex items-center ${isPositive ? 'text-emerald-600 dark:text-emerald-450' : 'text-rose-600 dark:text-rose-450'}`}>
+            {isPositive ? '+' : ''}{displayChangePercent}%
+          </span>
+        )}
       </td>
 
       {/* volume */}
       <td className="py-3.5 px-3 text-right font-mono text-slate-500 dark:text-slate-400 text-xs font-medium">
-        {formatVolume(stock.volume)}
+        {isLoading ? (
+           <div className="flex justify-end"><div className="h-4 w-14 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div></div>
+        ) : (
+          formatVolume(displayVolume)
+        )}
       </td>
 
       {/* market cap */}
@@ -140,7 +163,72 @@ type SortOrder = 'asc' | 'desc';
 
 export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }: StockScreenerProps) {
   const [activePreset, setActivePreset] = useState<string>('all');
+  const { user, loginWithGoogle } = useAuth();
   
+  // Real Yahoo data state
+  const [realStockData, setRealStockData] = useState<Record<string, { price: number; changePercent: number; volume: number; change: number }>>({});
+  const [loadingStocks, setLoadingStocks] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const symbolsToFetch = ['TCS.NS', 'INFY.NS', 'RELIANCE.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'BHARTIARTL.NS', 'WIPRO.NS', 'AXISBANK.NS', 'KOTAKBANK.NS', 'LT.NS', 'BAJFINANCE.NS', 'MARUTI.NS', 'ASIANPAINT.NS', 'HINDUNILVR.NS', 'TITAN.NS', 'ULTRACEMCO.NS', 'NESTLEIND.NS', 'TECHM.NS', 'SUNPHARMA.NS', 'DRREDDY.NS'];
+
+    const fetchStockData = async (symbol: string) => {
+      try {
+        setLoadingStocks(prev => ({ ...prev, [symbol]: true }));
+        const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`);
+        if (response.ok) {
+          const json = await response.json();
+          const meta = json?.chart?.result?.[0]?.meta;
+          if (meta) {
+            const price = meta.regularMarketPrice;
+            const prevClose = meta.previousClose || price;
+            const change = price - prevClose;
+            const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+            const volume = meta.regularMarketVolume || meta.volume || 0;
+            
+            setRealStockData(prev => ({
+              ...prev,
+              [symbol]: { price, change, changePercent, volume }
+            }));
+          }
+        } else {
+          // Fallback to proxy
+          const res = await fetch(`/api/yahoo-finance/${symbol}`);
+          if(res.ok) {
+              const data = await res.json();
+              setRealStockData(prev => ({
+                ...prev,
+                [symbol]: data
+              }));
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch", symbol, err);
+        try {
+          const res = await fetch(`/api/yahoo-finance/${symbol}`);
+          if(res.ok) {
+              const data = await res.json();
+              setRealStockData(prev => ({
+                ...prev,
+                [symbol]: data
+              }));
+          }
+        } catch(e) {}
+      } finally {
+        setLoadingStocks(prev => ({ ...prev, [symbol]: false }));
+      }
+    };
+
+    // Load in batches to avoid overwhelming network
+    const loadAll = async () => {
+      for (const symbol of symbolsToFetch) {
+        fetchStockData(symbol);
+        await new Promise(r => setTimeout(r, 150)); // Small delay
+      }
+    };
+    loadAll();
+  }, []);
+
   // Draft filter state (for UI)
   const [draftSector, setDraftSector] = useState<string>('All');
   const [draftMarketCap, setDraftMarketCap] = useState<string>('All');
@@ -312,7 +400,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
     
     // Generate clean filename matching preset / selector
     const presetLabel = activePreset.charAt(0).toUpperCase() + activePreset.slice(1);
-    const sectorName = selectedSector.replace(/\s+/g, '_');
+    const sectorName = appliedFilters.sector.replace(/\s+/g, '_');
     const filename = `StockPro_Screener_${presetLabel}_${sectorName}_${new Date().toISOString().split('T')[0]}.csv`;
     
     link.setAttribute('download', filename);
@@ -520,6 +608,8 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
                   onSelectFoStock={onSelectFoStock}
                   formatVolume={formatVolume}
                   formatMarketCap={formatMarketCap}
+                  realData={realStockData[stock.symbol]}
+                  isLoading={loadingStocks[stock.symbol]}
                 />
               ))
             ) : (
@@ -531,6 +621,36 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Options P&L Calculator & IV Rank Section */}
+      <div className="flex flex-col gap-6 mt-8">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles size={20} className="text-purple-500" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Pro Tools <span className="text-xs font-mono font-medium text-slate-500 ml-2">ADVANCED ANALYSIS</span></h2>
+        </div>
+        {user ? (
+          <>
+            <OptionsCalculator />
+            <IVRankTool />
+            <RiskCalculator />
+          </>
+        ) : (
+          <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500"></div>
+            <Lock size={40} className="mx-auto text-slate-400 dark:text-slate-500 mb-4" />
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Pro Features Locked</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+              Sign in with your Google account to unlock advanced F&O modeling tools including the Options P&L Calculator, IV Rank Indicator, and Risk Sizing Engine. Always 100% free.
+            </p>
+            <button 
+              onClick={loginWithGoogle}
+              className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 shadow-sm px-6 py-2.5 rounded-lg text-sm font-bold transition"
+            >
+              Sign In to Access Pro Tools
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

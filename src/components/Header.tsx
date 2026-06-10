@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut } from 'lucide-react';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   indices: IndexData[];
@@ -23,6 +24,7 @@ export default function Header({
   onSelectStock
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
+  const { user, loginWithGoogle, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showApiModal, setShowApiModal] = useState(false);
   const [prevPrices, setPrevPrices] = useState<Record<string, number>>({});
@@ -180,7 +182,11 @@ export default function Header({
                 Screener
               </span>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">Advanced F&O & Market Dynamics Engine</p>
+            {user ? (
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">Welcome back, {user.displayName?.split(' ')[0]}</p>
+            ) : (
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Advanced F&O & Market Dynamics Engine</p>
+            )}
           </div>
         </div>
 
@@ -295,7 +301,7 @@ export default function Header({
           <a
             href="/landing"
             title="Open Crisp Light Mode Landing Page"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-extrabold tracking-wide bg-blue-600 hover:bg-blue-700 text-white shadow shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-extrabold tracking-wide bg-blue-600 hover:bg-blue-700 text-white shadow shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer"
           >
             <Compass size={14} />
             <span>F&O Landing (Light)</span>
@@ -307,6 +313,27 @@ export default function Header({
             <ShieldCheck size={13} />
             Secure API
           </div>
+
+          {user ? (
+            <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 pr-3 shadow-sm ml-2">
+              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} alt="avatar" className="w-6 h-6 rounded-md" />
+              <button
+                onClick={logout}
+                className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-1.5 transition"
+                title="Log Out"
+              >
+                <LogOut size={13} />
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={loginWithGoogle}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm ml-2 px-4 py-2 rounded-lg text-xs font-bold transition"
+            >
+              <LogIn size={15} />
+              Login with Google
+            </button>
+          )}
 
           {/* API Documentation Modal */}
           {showApiModal && (
