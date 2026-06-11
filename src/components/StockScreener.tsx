@@ -771,6 +771,102 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
           </div>
         )}
       </div>
+
+      {/* Recommended Brokers Section */}
+      <div className="mt-12 mb-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Star size={20} className="text-yellow-500 fill-yellow-500" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recommended Brokers</h2>
+          </div>
+          <span className="text-xs italic text-slate-500 dark:text-slate-400">
+            *We may earn a commission at no extra cost to you.
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Zerodha */}
+          <div className="flex flex-col bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/5">
+            <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mb-4">Zerodha</div>
+            <ul className="flex-1 space-y-3 mb-6">
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                <span>₹0 Equity delivery brokerages</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                <span>Flat ₹20 for Intraday & F&O</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                <span>Advanced Kite trading platform</span>
+              </li>
+            </ul>
+            <a 
+              href="https://zerodha.com/?ref=YOUR_REF" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full text-center bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-bold py-2.5 rounded-lg text-sm transition-colors"
+            >
+              Open Free Account &rarr;
+            </a>
+          </div>
+
+          {/* Upstox */}
+          <div className="flex flex-col bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/5">
+            <div className="text-xl font-bold text-purple-600 dark:text-purple-400 mb-4">Upstox</div>
+            <ul className="flex-1 space-y-3 mb-6">
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-purple-500 shrink-0 mt-0.5" />
+                <span>Free Demat & Trading Account Setup</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-purple-500 shrink-0 mt-0.5" />
+                <span>₹20 per order across all segments</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-purple-500 shrink-0 mt-0.5" />
+                <span>Powerful charts via TradingView integration</span>
+              </li>
+            </ul>
+            <a 
+              href="https://upstox.com/?ref=YOUR_REF" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full text-center bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-bold py-2.5 rounded-lg text-sm transition-colors"
+            >
+              Open Free Account &rarr;
+            </a>
+          </div>
+
+          {/* Angel One */}
+          <div className="flex flex-col bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/5">
+            <div className="text-xl font-bold text-orange-600 dark:text-orange-400 mb-4">Angel One</div>
+            <ul className="flex-1 space-y-3 mb-6">
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                <span>0 AMC for the first year</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                <span>Low flat fee brokerage model</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <CheckCircle2 size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                <span>AI-powered SmartAPI & recommendations</span>
+              </li>
+            </ul>
+            <a 
+              href="https://angelone.in/?ref=YOUR_REF" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full text-center bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-bold py-2.5 rounded-lg text-sm transition-colors"
+            >
+              Open Free Account &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

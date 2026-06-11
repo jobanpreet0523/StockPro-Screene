@@ -69,23 +69,25 @@ export default function EmailCapturePopup() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('/api/subscribe', {
+      const response = await fetch('https://api.brevo.com/v3/contacts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'api-key': 'YOUR_BREVO_KEY'
         },
         body: JSON.stringify({
           email: email.trim(),
           firstName: firstName.trim(),
-        }),
+          listIds: [1],
+          updateEnabled: true
+        })
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.status === 'ok') {
+      if (response.ok || response.status === 201 || response.status === 204) {
         setStatus('success');
         markAsShown();
       } else {
+        const data = await response.json().catch(() => ({}));
         setStatus('error');
         setErrorMessage(data.message || 'Something went wrong, please try again.');
       }
