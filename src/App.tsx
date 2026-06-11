@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component, ReactNode, ErrorInfo } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from './components/LandingPage';
 import Header from './components/Header';
 import MarketCards from './components/MarketCards';
 import StockScreener from './components/StockScreener';
@@ -15,7 +17,83 @@ import PricingView from './components/PricingView';
 import BlogView from './components/BlogView';
 import DealsTracker from './components/DealsTracker';
 
-export default function App() {
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Screener crashed:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', color: 'white', background: '#0f172a', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>⚠️ Something went wrong</h2>
+          <p style={{ color: '#94a3b8', marginBottom: '24px' }}>{this.state.error?.message}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ background: '#10b981', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', outline: 'none' }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Section component crashed:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 bg-rose-50/50 dark:bg-rose-950/20 border border-dashed border-rose-200 dark:border-rose-900/50 rounded-xl flex flex-col items-center justify-center text-center">
+          <Activity size={24} className="text-rose-500 mb-2" />
+          <h3 className="text-sm font-bold text-slate-800 dark:text-rose-400 mb-1">Component Offline</h3>
+          <p className="text-xs text-slate-500 font-mono mb-4">Pipeline anomaly isolated. Rest of dashboard remains operational.</p>
+          <button 
+            onClick={() => this.setState({ hasError: false })}
+            className="px-4 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold rounded shadow-sm hover:opacity-90 active:scale-95 transition cursor-pointer"
+          >
+            Attempt Recovery
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function ScreenerPage() {
   const { theme } = useTheme();
   const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
   const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
@@ -281,9 +359,11 @@ export default function App() {
               </div>
 
               {activeStock && (
-                <OptionChainView
-                  symbol={activeStock.symbol}
-                />
+                <SectionErrorBoundary>
+                  <OptionChainView
+                    symbol={activeStock.symbol}
+                  />
+                </SectionErrorBoundary>
               )}
             </div>
           ) : activeTab === 'pricing' ? (
@@ -338,5 +418,19 @@ export default function App() {
       </footer>
       <EmailCapturePopup />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/screener" element={<ScreenerPage />} />
+          <Route path="*" element={<Navigate to="/screener" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

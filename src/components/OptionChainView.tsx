@@ -294,6 +294,20 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
     }`;
   };
 
+  // Real PCR Calculation
+  const { realPcr, realCallOi, realPutOi } = useMemo(() => {
+    let callOi = 0;
+    let putOi = 0;
+    if (chain?.options) {
+      chain.options.forEach(opt => {
+        callOi += opt.callOi;
+        putOi += opt.putOi;
+      });
+    }
+    const derivedPcr = callOi > 0 ? Number((putOi / callOi).toFixed(2)) : 1.0;
+    return { realPcr: derivedPcr, realCallOi: callOi, realPutOi: putOi };
+  }, [chain]);
+
   if (loading && !chain) {
     return (
       <div className="h-[400px] flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm" id="option_chain_loader">
@@ -311,22 +325,8 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
   }
 
   // Intermediary details
-  const spot = chain.spotPrice;
+  const spot = chain?.spotPrice || 0;
   
-  // Real PCR Calculation
-  const { realPcr, realCallOi, realPutOi } = useMemo(() => {
-    let callOi = 0;
-    let putOi = 0;
-    if (chain?.options) {
-      chain.options.forEach(opt => {
-        callOi += opt.callOi;
-        putOi += opt.putOi;
-      });
-    }
-    const realPcr = callOi > 0 ? Number((putOi / callOi).toFixed(2)) : 1.0;
-    return { realPcr, realCallOi: callOi, realPutOi: putOi };
-  }, [chain]);
-
   const pcrVal = realPcr;
   const getPcrSentiment = (p: number) => {
     if (p > 1.5) return 'Bullish / Overbought support';

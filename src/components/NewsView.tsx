@@ -12,17 +12,60 @@ export default function NewsView() {
     setLoading(true);
     setError(null);
     try {
+      // First try: Backend express route (which now runs our nested rss2json fallbacks)
       const res = await fetch('/api/news');
       if (res.ok) {
         const json = await res.json();
-        if (json.status === 'ok') {
+        if (json.status === 'ok' && Array.isArray(json.data) && json.data.length > 0) {
           setArticles(json.data);
           return;
         }
       }
-      throw new Error('Failed to load live Indian Stock Market news feed');
+      throw new Error('Backend news stream returned empty or erroneous payload');
     } catch (err: any) {
-      setError(err?.message || 'Server offline or rate-limited. Please retry.');
+      console.warn('[NewsView backend fetch failed, using client-side rss2json proxy]:', err);
+      
+      // Second try: Fetch Economic Times markets feed via rss2json API directly from client
+      try {
+        const directRes = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms');
+        if (directRes.ok) {
+          const directData = await directRes.json();
+          if (directData.status === 'ok' && Array.isArray(directData.items)) {
+            const mapped = directData.items.slice(0, 16).map((item: any) => ({
+              title: item.title,
+              link: item.link || '#',
+              pubDate: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+              source: 'Economic Times'
+            }));
+            setArticles(mapped);
+            return;
+          }
+        }
+      } catch (clientErr) {
+        console.warn('[NewsView direct client-feed 1 failed]:', clientErr);
+      }
+
+      // Third try: Fetch Moneycontrol RSS feed via rss2json from client
+      try {
+        const altRes = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.moneycontrol.com/rss/latestnews.xml');
+        if (altRes.ok) {
+          const altData = await altRes.json();
+          if (altData.status === 'ok' && Array.isArray(altData.items)) {
+            const mapped = altData.items.slice(0, 16).map((item: any) => ({
+              title: item.title,
+              link: item.link || '#',
+              pubDate: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+              source: 'Moneycontrol'
+            }));
+            setArticles(mapped);
+            return;
+          }
+        }
+      } catch (altClientErr) {
+        console.warn('[NewsView direct client-feed 2 failed]:', altClientErr);
+      }
+
+      setError('Unable to load real-time feeds feed. You can check market updates at Economic Times.');
     } finally {
       setLoading(false);
     }
