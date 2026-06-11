@@ -22,6 +22,8 @@ import UsMarketsView from './components/UsMarketsView';
 import StrategyBuilder from './components/StrategyBuilder';
 import GreeksCalculator from './components/GreeksCalculator';
 import RiskCalculator from './components/RiskCalculator';
+import Heatmap from './components/Heatmap';
+import FiiDiiTracker from './components/FiiDiiTracker';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -100,14 +102,14 @@ class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 }
 
 interface ScreenerPageProps {
-  activeTabProp?: 'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator';
+  activeTabProp?: 'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii';
 }
 
 function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
   const { theme } = useTheme();
   const { indices, loading: isLoadingIndices, error: indicesError, retry: fetchAllIndices } = useMarketIndices();
   const { stocks, loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
-  const [activeTab, setActiveTab] = useState<'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator'>(() => {
+  const [activeTab, setActiveTab] = useState<'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii'>(() => {
     if (activeTabProp) return activeTabProp;
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
@@ -360,6 +362,16 @@ function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
             <div className="lg:col-span-12 flex flex-col gap-6" id="risk-calculator-section">
               <RiskCalculator />
             </div>
+          ) : activeTab === 'heatmap' ? (
+            /* ================= HEATMAP VIEW ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6" id="heatmap-section">
+              <Heatmap />
+            </div>
+          ) : activeTab === 'fii-dii' ? (
+            /* ================= FII DII TRACKER VIEW ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6" id="fii-dii-section">
+              <FiiDiiTracker />
+            </div>
           ) : activeTab === 'blog' ? (
             /* ================= SEO BLOG VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
@@ -421,6 +433,8 @@ export default function App() {
           <Route path="/strategy-builder" element={<ScreenerPage activeTabProp="strategy-builder" />} />
           <Route path="/greeks-calculator" element={<ScreenerPage activeTabProp="greeks-calculator" />} />
           <Route path="/risk-calculator" element={<ScreenerPage activeTabProp="risk-calculator" />} />
+          <Route path="/heatmap" element={<ScreenerPage activeTabProp="heatmap" />} />
+          <Route path="/fii-dii" element={<ScreenerPage activeTabProp="fii-dii" />} />
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>
       </BrowserRouter>
