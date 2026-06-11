@@ -207,6 +207,7 @@ export default {
           totalPutOi: workerJson.putsOI || workerJson.totalPutOi || 100000,
           maxPain: workerJson.maxPain || workerJson.atm || spotPrice,
           expiryDate: workerJson.expiryDate || '25-JUN-2026',
+          expiryDates: workerJson.expiryDates || ['25-JUN-2026', '30-JUL-2026', '27-AUG-2026'],
           options: mappedOptions
         }
       };
@@ -483,33 +484,39 @@ function parseNSEData(nseData, symbol) {
   // Calculate totals
   let totalCallOi = 0;
   let totalPutOi = 0;
-  
   const options = filtered.map(item => {
     const strikePrice = item.strikePrice || 22000;
-    
+
     const ce = item.CE || {};
     const pe = item.PE || {};
-    
-    const callOi = ce.totalTradedVolume || ce.openInterest || 0;
-    const putOi = pe.totalTradedVolume || pe.openInterest || 0;
-    
+
+    const callOi = ce.openInterest || 0;
+    const putOi = pe.openInterest || 0;
+
     totalCallOi += callOi;
     totalPutOi += putOi;
-    
+
     return {
+      strike: strikePrice,
       strikePrice,
-      callLtp: ce.lastPrice || ce.ltp || 100,
-      callChange: ce.change || 0,
-      callVol: ce.totalTradedVolume || 0,
-      callOi: ce.openInterest || 0,
-      callOiChg: ce.changeinOpenInterest || 0,
-      callIv: ce.impliedVolatility || 14.5,
-      putLtp: pe.lastPrice || pe.ltp || 100,
-      putChange: pe.change || 0,
-      putVol: pe.totalTradedVolume || 0,
-      putOi: pe.openInterest || 0,
-      putOiChg: pe.changeinOpenInterest || 0,
-      putIv: pe.impliedVolatility || 14.8
+      ce: {
+        ltp: ce.lastPrice || ce.ltp || 100,
+        change: ce.change || 0,
+        chgPercent: ce.pChange || ce.change || 0,
+        volume: ce.totalTradedVolume || ce.volume || 0,
+        oi: ce.openInterest || 0,
+        oiChg: ce.changeinOpenInterest || 0,
+        iv: ce.impliedVolatility || 14.5
+      },
+      pe: {
+        ltp: pe.lastPrice || pe.ltp || 100,
+        change: pe.change || 0,
+        chgPercent: pe.pChange || pe.change || 0,
+        volume: pe.totalTradedVolume || pe.volume || 0,
+        oi: pe.openInterest || 0,
+        oiChg: pe.changeinOpenInterest || 0,
+        iv: pe.impliedVolatility || 14.8
+      }
     };
   });
   
