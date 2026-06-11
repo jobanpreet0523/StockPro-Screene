@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getTVSymbol } from '../utils/tradingView';
 import { 
   Play, 
   Trash2, 
@@ -1510,19 +1511,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
         if (cleanSymbol.endsWith('.NS')) {
           cleanSymbol = cleanSymbol.replace('.NS', '');
         }
-        const symbolMap: Record<string, string> = {
-          'RELIANCE': 'BSE:500325',
-          'TCS': 'BSE:532540',
-          'INFY': 'BSE:500209',
-          'HDFCBANK': 'BSE:500180',
-          'ICICIBANK': 'BSE:532174',
-          'BHARTIARTL': 'BSE:532454',
-          'ITC': 'BSE:500875',
-          'LT': 'BSE:500510',
-          'WIPRO': 'BSE:507685',
-          'AXISBANK': 'BSE:532215'
-        };
-        const mappedModalSymbol = symbolMap[cleanSymbol] || `NSE:${cleanSymbol}`;
+        const mappedModalSymbol = getTVSymbol(cleanSymbol);
 
         return (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fadeIn">

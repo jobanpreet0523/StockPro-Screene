@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from './ThemeContext';
 import { TrendingUp, Clock } from 'lucide-react';
+import { getTVSymbol } from '../utils/tradingView';
 
 interface StockChartProps {
   symbol: string;
@@ -40,21 +41,7 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     if (target === '^BSESN' || cleanSymbol === 'SENSEX') return 'BSE:SENSEX';
     if (target === '^IXIC') return 'NASDAQ:IXIC';
     
-    // TradingView free widget supports BSE symbols as a fallback
-    const symbolMap: Record<string, string> = {
-      'RELIANCE': 'BSE:500325',
-      'TCS': 'BSE:532540',
-      'INFY': 'BSE:500209',
-      'HDFCBANK': 'BSE:500180',
-      'ICICIBANK': 'BSE:532174',
-      'BHARTIARTL': 'BSE:532454',
-      'ITC': 'BSE:500875',
-      'LT': 'BSE:500510',
-      'WIPRO': 'BSE:507685',
-      'AXISBANK': 'BSE:532215'
-    };
-    
-    return symbolMap[cleanSymbol] || `NSE:${cleanSymbol}`;
+    return getTVSymbol(cleanSymbol);
   }, [symbol]);
 
   const iframeSrc = React.useMemo(() => {
