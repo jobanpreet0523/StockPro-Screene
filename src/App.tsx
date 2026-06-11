@@ -95,13 +95,21 @@ class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-function ScreenerPage() {
+interface ScreenerPageProps {
+  activeTabProp?: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog';
+}
+
+function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
   const { theme } = useTheme();
   const { indices, loading: isLoadingIndices, error: indicesError, retry: fetchAllIndices } = useMarketIndices();
   const { stocks, loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
   const [activeTab, setActiveTab] = useState<'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'>(() => {
+    if (activeTabProp) return activeTabProp;
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
+      if (path === '/blog') {
+        return 'blog';
+      }
       if (path === '/screener' || path.includes('screener.html')) {
         return 'chartink';
       }
@@ -385,6 +393,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/screener" element={<ScreenerPage />} />
+          <Route path="/blog" element={<ScreenerPage activeTabProp="blog" />} />
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>
       </BrowserRouter>
