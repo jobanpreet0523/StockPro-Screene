@@ -21,6 +21,7 @@ import DealsTracker from './components/DealsTracker';
 import UsMarketsView from './components/UsMarketsView';
 import StrategyBuilder from './components/StrategyBuilder';
 import GreeksCalculator from './components/GreeksCalculator';
+import RiskCalculator from './components/RiskCalculator';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -99,14 +100,14 @@ class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 }
 
 interface ScreenerPageProps {
-  activeTabProp?: 'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator';
+  activeTabProp?: 'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator';
 }
 
 function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
   const { theme } = useTheme();
   const { indices, loading: isLoadingIndices, error: indicesError, retry: fetchAllIndices } = useMarketIndices();
   const { stocks, loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
-  const [activeTab, setActiveTab] = useState<'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator'>(() => {
+  const [activeTab, setActiveTab] = useState<'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator'>(() => {
     if (activeTabProp) return activeTabProp;
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
@@ -354,6 +355,11 @@ function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
             <div className="lg:col-span-12 flex flex-col gap-6" id="greeks-calculator-section">
               <GreeksCalculator />
             </div>
+          ) : activeTab === 'risk-calculator' ? (
+            /* ================= RISK CALCULATOR VIEW ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6" id="risk-calculator-section">
+              <RiskCalculator />
+            </div>
           ) : activeTab === 'blog' ? (
             /* ================= SEO BLOG VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
@@ -414,6 +420,7 @@ export default function App() {
           <Route path="/blog" element={<ScreenerPage activeTabProp="blog" />} />
           <Route path="/strategy-builder" element={<ScreenerPage activeTabProp="strategy-builder" />} />
           <Route path="/greeks-calculator" element={<ScreenerPage activeTabProp="greeks-calculator" />} />
+          <Route path="/risk-calculator" element={<ScreenerPage activeTabProp="risk-calculator" />} />
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>
       </BrowserRouter>
