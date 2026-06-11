@@ -19,6 +19,7 @@ import PricingView from './components/PricingView';
 import BlogView from './components/BlogView';
 import DealsTracker from './components/DealsTracker';
 import UsMarketsView from './components/UsMarketsView';
+import StrategyBuilder from './components/StrategyBuilder';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -97,14 +98,14 @@ class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 }
 
 interface ScreenerPageProps {
-  activeTabProp?: 'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog';
+  activeTabProp?: 'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder';
 }
 
 function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
   const { theme } = useTheme();
   const { indices, loading: isLoadingIndices, error: indicesError, retry: fetchAllIndices } = useMarketIndices();
   const { stocks, loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
-  const [activeTab, setActiveTab] = useState<'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'>(() => {
+  const [activeTab, setActiveTab] = useState<'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder'>(() => {
     if (activeTabProp) return activeTabProp;
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
@@ -342,6 +343,11 @@ function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
             <div className="lg:col-span-12 flex flex-col gap-6" id="pricing-section">
               <PricingView />
             </div>
+          ) : activeTab === 'strategy-builder' ? (
+            /* ================= STRATEGY BUILDER VIEW ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6" id="strategy-builder-section">
+              <StrategyBuilder />
+            </div>
           ) : activeTab === 'blog' ? (
             /* ================= SEO BLOG VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
@@ -400,6 +406,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/screener" element={<ScreenerPage />} />
           <Route path="/blog" element={<ScreenerPage activeTabProp="blog" />} />
+          <Route path="/strategy-builder" element={<ScreenerPage activeTabProp="strategy-builder" />} />
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>
       </BrowserRouter>
