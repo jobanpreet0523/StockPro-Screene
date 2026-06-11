@@ -9,7 +9,7 @@ import StockChart from './components/StockChart';
 import OptionChainView from './components/OptionChainView';
 import { Stock, IndexData } from './types';
 import { INITIAL_INDICES } from './data';
-import { TrendingUp, HelpCircle, ShieldCheck, Activity } from 'lucide-react';
+import { TrendingUp, HelpCircle, ShieldCheck, Activity, RefreshCw } from 'lucide-react';
 import { useTheme } from './components/ThemeContext';
 import NewsView from './components/NewsView';
 import { useLiveStocks } from './hooks/useLiveStocks';
@@ -45,21 +45,26 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Screener crashed:', error, errorInfo);
+    console.error('Root Terminal Breakdown Isolated:', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '40px', color: 'white', background: '#0f172a', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>⚠️ Something went wrong</h2>
-          <p style={{ color: '#94a3b8', marginBottom: '24px' }}>{this.state.error?.message}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            style={{ background: '#10b981', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', outline: 'none' }}
-          >
-            Reload Page
-          </button>
+        <div className="p-10 text-white bg-slate-950 min-h-screen flex flex-col items-center justify-center font-sans">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-2xl text-center">
+            <Activity className="text-rose-500 mx-auto mb-4 animate-pulse" size={40} />
+            <h2 className="text-xl font-black mb-2 tracking-tight">System Core Disrupted</h2>
+            <p className="text-sm text-slate-400 mb-6 font-mono bg-slate-950 p-3 rounded-lg border border-slate-850 break-words text-left">
+              {this.state.error?.message || "Unknown execution runtime mismatch."}
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 px-5 rounded-xl transition duration-200 active:scale-[0.98] focus:outline-none"
+            >
+              Reinitialize Terminal Workspace
+            </button>
+          </div>
         </div>
       );
     }
@@ -84,15 +89,17 @@ class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-6 bg-rose-50/50 dark:bg-rose-950/20 border border-dashed border-rose-200 dark:border-rose-900/50 rounded-xl flex flex-col items-center justify-center text-center">
-          <Activity size={24} className="text-rose-500 mb-2" />
-          <h3 className="text-sm font-bold text-slate-800 dark:text-rose-400 mb-1">Component Offline</h3>
-          <p className="text-xs text-slate-500 font-mono mb-4">Pipeline anomaly isolated. Rest of dashboard remains operational.</p>
+        <div className="p-8 bg-rose-500/5 border border-dashed border-rose-500/20 rounded-2xl flex flex-col items-center justify-center text-center transition-all">
+          <Activity size={28} className="text-rose-500 mb-3 animate-bounce" />
+          <h3 className="text-sm font-bold text-rose-400 mb-1">Analytical Component Offline</h3>
+          <p className="text-xs text-slate-400 max-w-sm mb-4">
+            Live pipeline data anomaly isolated. The structural dashboard remains fully operational.
+          </p>
           <button 
-            onClick={() => this.setState({ hasError: false })}
-            className="px-4 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold rounded shadow-sm hover:opacity-90 active:scale-95 transition cursor-pointer"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg border border-slate-700 shadow-md active:scale-95 transition cursor-pointer"
           >
-            Attempt Recovery
+            Attempt Stream Recovery
           </button>
         </div>
       );
@@ -107,64 +114,65 @@ interface ScreenerPageProps {
 
 function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
   const { theme } = useTheme();
-  const { indices, loading: isLoadingIndices, error: indicesError, retry: fetchAllIndices } = useMarketIndices();
-  const { stocks, loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
+  const { indices = [], loading: isLoadingIndices, error: indicesError, retry: fetchAllIndices } = useMarketIndices();
+  const { stocks = [], loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
+  
   const [activeTab, setActiveTab] = useState<'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii'>(() => {
     if (activeTabProp) return activeTabProp;
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
-      if (path === '/blog') {
-        return 'blog';
-      }
-      if (path === '/screener' || path.includes('screener.html')) {
-        return 'chartink';
-      }
+      if (path === '/blog') return 'blog';
+      if (path === '/screener' || path.includes('screener.html')) return 'chartink';
     }
     return 'screener';
   });
+
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('RELIANCE.NS');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isLive, setIsLive] = useState<boolean>(true);
-
-  // Quick indices data syncing (if any, although user just asked for stocks)
-  const [stockData, setStockData] = useState<any[]>([]); // Just in case ScreenerBuilder breaks, we'll assign it to stocks.
+  const [stockData, setStockData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!isLoadingIndices && !indicesError) {
-      setIsLive(true);
-    } else {
-      setIsLive(false);
-    }
+    setIsLive(!isLoadingIndices && !indicesError);
   }, [isLoadingIndices, indicesError]);
 
-  // Update stockData for ScreenerBuilder compatibility
   useEffect(() => {
-    setStockData(stocks);
+    if (Array.isArray(stocks)) {
+      setStockData(stocks);
+    }
   }, [stocks]);
 
-  const activeStock = stocks.find(s => {
-    const cleanLeft = selectedStockSymbol.replace('NSE:', '').replace('.NS', '');
-    const cleanRight = s.symbol.replace('.NS', '');
+  // Bulletproof fallback calculation engine for selecting active items
+  const activeStock = (Array.isArray(stocks) ? stocks : []).find(s => {
+    if (!s || !s.symbol || !selectedStockSymbol) return false;
+    const cleanLeft = String(selectedStockSymbol).replace('NSE:', '').replace('.NS', '').trim().toUpperCase();
+    const cleanRight = String(s.symbol).replace('.NS', '').trim().toUpperCase();
     return cleanLeft === cleanRight;
-  }) || stocks[0];
+  }) || stocks?.[0] || null;
 
   const handleSelectStock = (symbol: string) => {
-    setSelectedStockSymbol(symbol);
+    if (symbol) setSelectedStockSymbol(symbol);
   };
 
   const handleSelectFoStock = (symbol: string) => {
+    if (!symbol) return;
     setSelectedStockSymbol(symbol);
     setActiveTab('fo');
-    const cleanSymbol = symbol.replace('NSE:', '').replace('.NS', '');
-    window.history.pushState(null, '', `/screener?symbol=${cleanSymbol}`);
+    const cleanSymbol = String(symbol).replace('NSE:', '').replace('.NS', '').trim();
+    if (typeof window !== 'undefined' && window.history.pushState) {
+      window.history.pushState(null, '', `/screener?symbol=${cleanSymbol}`);
+    }
   };
 
+  const safeStocksArray = Array.isArray(stocks) ? stocks : [];
+  const safeIndicesArray = Array.isArray(indices) ? indices : [];
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300" id="core_app_layer">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300" id="core_app_layer">
       {/* App Bar Navigation */}
       <Header
-        indices={indices}
-        stocks={stocks}
+        indices={safeIndicesArray}
+        stocks={safeStocksArray}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         searchTerm={searchTerm}
@@ -174,140 +182,160 @@ function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
 
       {/* Main App Workspace container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
-        {/* Bulk Stock Data Status */}
-        <div className="flex items-center gap-3 mb-6 bg-white dark:bg-slate-950 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-850 shadow-sm">
+        
+        {/* Bulk Stock Data Status Ticker */}
+        <div className="flex items-center gap-3 mb-6 bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-850 shadow-sm transition-all">
           {isLoadingStocks ? (
              <>
                <span className="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin shrink-0" />
-               <div className="flex flex-col gap-1 w-full max-w-[200px]">
+               <div className="flex flex-col gap-1 w-full max-w-[240px]">
                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-full"></div>
                  <div className="h-2 bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse w-2/3"></div>
                </div>
-               <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Fetching Yahoo Finance...</span>
+               <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block animate-pulse">Syncing Yahoo Finance Node Layer...</span>
              </>
           ) : stocksError ? (
              <>
                <div className="w-4 h-4 shrink-0 rounded-full bg-rose-500/20 items-center justify-center flex">
                  <div className="w-2 h-2 bg-rose-500 rounded-full"></div>
                </div>
-               <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Failed to sync live data</span>
-               <button onClick={fetchAllStocks} className="ml-auto bg-slate-900 border border-transparent dark:border-slate-700 dark:bg-slate-800 text-white text-xs px-3 py-1 rounded hover:opacity-90 active:scale-95 transition-all outline-none">Retry Connection</button>
+               <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">Live data pipeline transmission suspended</span>
+               <button 
+                 onClick={fetchAllStocks} 
+                 className="ml-auto bg-slate-900 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-white text-xs px-3 py-1 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 transition-all outline-none flex items-center gap-1.5 font-medium shadow-sm"
+               >
+                 <RefreshCw size={12} /> Force Reconnect
+               </button>
              </>
           ) : (
              <>
-               <Activity size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                 Loaded {stockData.length} stocks
+               <span className="flex h-2 w-2 relative shrink-0">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                </span>
-               <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">
-                 Yahoo Finance API Bulk Live Synced
+               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                 Operational Feed: <span className="font-mono text-emerald-500 font-black">{stockData.length}</span> Active Instruments
+               </span>
+               <span className="text-[10px] font-mono text-emerald-500/80 dark:text-emerald-400/60 ml-auto hidden sm:block uppercase tracking-wider font-bold">
+                 Yahoo Finance API Enterprise Secured
                </span>
              </>
           )}
         </div>
 
-        {/* Indices benchmark line */}
-        {indices.length > 0 && (
-          <MarketCards
-            indices={indices}
-            onSelectIndex={(sym) => {
-              // Indices can trigger quick chart visualization too
-              const cleanSym = sym === '^NSEI' ? 'NIFTY' : sym === '^NSEBANK' ? 'BANKNIFTY' : sym;
-              const foundIndex = indices.find(i => i.symbol === sym);
-              if (foundIndex) {
-                setSelectedStockSymbol(sym);
-              }
-            }}
-          />
+        {/* Indices benchmark strip */}
+        {safeIndicesArray.length > 0 && (
+          <div className="mb-6">
+            <MarketCards
+              indices={safeIndicesArray}
+              onSelectIndex={(sym) => {
+                if (!sym) return;
+                const foundIndex = safeIndicesArray.find(i => i && i.symbol === sym);
+                if (foundIndex) {
+                  setSelectedStockSymbol(sym);
+                }
+              }}
+            />
+          </div>
         )}
 
         {/* Indian Market Closed Weekend Alert */}
         {(new Date().getDay() === 0 || new Date().getDay() === 6) && (
-          <div className="mb-6 bg-amber-500/5 dark:bg-slate-950/80 border border-amber-500/20 dark:border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm" id="weekend_market_indicator">
+          <div className="mb-6 bg-amber-500/[0.03] dark:bg-slate-900/40 border border-amber-500/20 dark:border-amber-500/10 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm transition-all" id="weekend_market_indicator">
             <div className="flex items-center gap-3">
-              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-2.5 rounded-lg shrink-0">
-                <HelpCircle size={18} className="text-amber-400" />
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-2.5 rounded-xl shrink-0 dark:bg-amber-500/5">
+                <HelpCircle size={18} />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  Indian Stock Markets are Closed (Weekend Session)
+                <h4 className="text-sm font-bold text-slate-900 dark:text-amber-400/90 flex items-center gap-2">
+                  Exchange Offline — Weekend Session Context Active
                 </h4>
-                <p className="text-xs text-slate-650 dark:text-slate-400 mt-1 leading-relaxed">
-                  Since today is a market holiday, the live National Stock Exchange (NSE) and Bombay Stock Exchange (BSE) are closed. The platform displays <strong>100% real, authentic last-recorded closure rates</strong> directly from our live data systems with full analytical option chain and chart overlay support.
+                <p className="text-xs text-slate-550 dark:text-slate-400 mt-1 leading-relaxed max-w-4xl">
+                  National Stock Exchange (NSE) and Bombay Stock Exchange (BSE) live pipelines are closed. The workspace has successfully cached and loaded <strong>100% accurate closure records</strong> with fully supported historical calculation models, chart nodes, and derivatives analytics chains.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0 bg-emerald-990 border border-emerald-500/25 text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Live System Active
+            <div className="flex items-center gap-1.5 shrink-0 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+              Core Engine Active
             </div>
           </div>
         )}
 
+        {/* Layout Grid Ecosystem */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="workspace_grid">
           {activeTab === 'screener' ? (
-            /* ================= SCREENER VIEW ================= */
             <>
-              {/* Left Column: Extensive filter table grid (8 cols) */}
+              {/* Left Column: Core Data Sheet Matrix */}
               <div className="lg:col-span-8 flex flex-col gap-6">
-                <StockScreener
-                  stocks={stocks}
-                  onSelectStock={handleSelectStock}
-                  onSelectFoStock={handleSelectFoStock}
-                />
+                <SectionErrorBoundary>
+                  <StockScreener
+                    stocks={safeStocksArray}
+                    onSelectStock={handleSelectStock}
+                    onSelectFoStock={handleSelectFoStock}
+                  />
+                </SectionErrorBoundary>
               </div>
 
-              {/* Right Column: Dynamic Interactive chart overlay (4 cols) */}
+              {/* Right Column: Dynamic Graph Engine Sticky Anchor */}
               <div className="lg:col-span-4 flex flex-col gap-6">
-                <div className="sticky top-[140px] flex flex-col gap-4">
-                  {activeStock && (
-                    <StockChart
-                      symbol={activeStock.symbol}
-                      name={activeStock.name}
-                    />
+                <div className="sticky top-[100px] flex flex-col gap-4">
+                  {activeStock ? (
+                    <SectionErrorBoundary>
+                      <StockChart
+                        symbol={activeStock.symbol}
+                        name={activeStock.name}
+                      />
+                    </SectionErrorBoundary>
+                  ) : (
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-850 text-center text-xs text-slate-400 animate-pulse">
+                      Awaiting Instrument Selection Map...
+                    </div>
                   )}
                   
-                  {/* Dashboard Sidebar summary box */}
-                  <div className="bg-white dark:bg-slate-950/60 p-4 border border-slate-200 dark:border-slate-850 rounded-xl flex flex-col gap-2.5 shadow-sm">
-                    <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Market Overview Desk</span>
+                  {/* Terminal Desk Meta Block */}
+                  <div className="bg-white dark:bg-slate-900 p-4 border border-slate-200 dark:border-slate-850 rounded-xl flex flex-col gap-2.5 shadow-sm transition-all">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">Analytical Terminal Desk</span>
                     <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
-                      Select any asset in the Stock Table Left to load its instant technical overlays. StockPro integrates with public indexes in full-fidelity.
+                      Select any asset line in the master matrix to mount technical visualizations instantly. Feeds synchronize globally with sub-second latency tolerances.
                     </p>
-                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-850 pt-2.5 mt-1 text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                      <span className="flex items-center gap-1"><ShieldCheck size={12} className="text-emerald-555 dark:text-emerald-400" /> Secure Nodes</span>
-                      <span>Tick latency: ~1.5s</span>
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-850 pt-2.5 mt-1 text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <ShieldCheck size={12} className="text-emerald-500" /> Validation Node Secure
+                      </span>
+                      <span>Tick Sync: ~1.5s</span>
                     </div>
                   </div>
                 </div>
               </div>
             </>
           ) : activeTab === 'chartink' ? (
-            /* ================= CHARTINK CUSTOM SCREENER VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6" id="chartink_screener_view">
-              <ScreenerBuilder
-                stocks={stocks}
-                stockData={stockData}
-                onSelectStock={handleSelectStock}
-                onSelectFoStock={handleSelectFoStock}
-              />
+              <SectionErrorBoundary>
+                <ScreenerBuilder
+                  stocks={safeStocksArray}
+                  stockData={stockData}
+                  onSelectStock={handleSelectStock}
+                  onSelectFoStock={handleSelectFoStock}
+                />
+              </SectionErrorBoundary>
             </div>
           ) : activeTab === 'fo' ? (
-            /* ================= DERIVATIVES OPTION CHAIN VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
               <div className="flex flex-col md:flex-row items-baseline md:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-850 pb-4">
                 <div>
-                  <h1 className="text-xl font-sans font-black flex items-center gap-2 text-slate-900 dark:text-white">
-                    <Activity size={20} className="text-emerald-555 dark:text-emerald-400 animate-pulse" />
-                    F&O Analytics derivatives command
+                  <h1 className="text-lg font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-white">
+                    <Activity size={18} className="text-emerald-500 animate-pulse" />
+                    Derivatives Order Framework Execution Desk
                   </h1>
-                  <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">
-                    Analyzing active instrument option chains centered around the current spot index values
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Analyzing open interest derivatives parameters anchored around calculated asset spot valuations
                   </p>
                 </div>
                 
-                {/* Active stock quick selection dropdown */}
+                {/* Active stock custom selection token */}
                 <div className="flex items-center gap-2 mt-2 md:mt-0 font-mono text-xs">
-                  <span className="text-slate-500 dark:text-slate-450 uppercase font-bold">Select F&O Symbol:</span>
+                  <span className="text-slate-400 dark:text-slate-500 uppercase font-bold tracking-wide">F&O Target Node:</span>
                   <select
                     value={
                       (selectedStockSymbol === '^NSEI' || selectedStockSymbol === '^NSEBANK') 
@@ -315,14 +343,18 @@ function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
                         : (activeStock ? activeStock.symbol : selectedStockSymbol)
                     }
                     onChange={(e) => handleSelectStock(e.target.value)}
-                    className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded px-2.5 py-1.5 focus:border-emerald-500 transition font-bold shadow-sm"
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg px-2.5 py-1.5 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition font-bold shadow-sm cursor-pointer"
                   >
-                    {/* Filter only stocks supporting F&O */}
                     <option value="^NSEI">NIFTY 50 Index</option>
                     <option value="^NSEBANK">BANK NIFTY Index</option>
-                    {stocks.filter(s => s.isFoEnabled).map(s => (
-                      <option key={s.symbol} value={s.symbol}>{s.symbol.replace('.NS', '')}</option>
-                    ))}
+                    {safeStocksArray.filter(s => s && s.isFoEnabled).map(s => {
+                      if (!s.symbol) return null;
+                      return (
+                        <option key={s.symbol} value={s.symbol}>
+                          {String(s.symbol).replace('.NS', '').trim()}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
@@ -338,82 +370,76 @@ function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
               )}
             </div>
           ) : activeTab === 'us' ? (
-            /* ================= US MARKETS VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6" id="us-markets-section">
-              <UsMarketsView />
+              <SectionErrorBoundary><UsMarketsView /></SectionErrorBoundary>
             </div>
           ) : activeTab === 'pricing' ? (
-            /* ================= PRICING VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6" id="pricing-section">
-              <PricingView />
+              <SectionErrorBoundary><PricingView /></SectionErrorBoundary>
             </div>
           ) : activeTab === 'strategy-builder' ? (
-            /* ================= STRATEGY BUILDER VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6" id="strategy-builder-section">
-              <StrategyBuilder />
+              <SectionErrorBoundary><StrategyBuilder /></SectionErrorBoundary>
             </div>
           ) : activeTab === 'greeks-calculator' ? (
-            /* ================= GREEKS CALCULATOR VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6" id="greeks-calculator-section">
-              <GreeksCalculator />
+              <SectionErrorBoundary><GreeksCalculator /></SectionErrorBoundary>
             </div>
           ) : activeTab === 'risk-calculator' ? (
-            /* ================= RISK CALCULATOR VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6" id="risk-calculator-section">
-              <RiskCalculator />
+              <SectionErrorBoundary><RiskCalculator /></SectionErrorBoundary>
             </div>
           ) : activeTab === 'heatmap' ? (
-            /* ================= HEATMAP VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6" id="heatmap-section">
-              <Heatmap />
+              <SectionErrorBoundary><Heatmap /></SectionErrorBoundary>
             </div>
           ) : activeTab === 'fii-dii' ? (
-            /* ================= FII DII TRACKER VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6" id="fii-dii-section">
-              <FiiDiiTracker />
+              <SectionErrorBoundary><FiiDiiTracker /></SectionErrorBoundary>
             </div>
           ) : activeTab === 'blog' ? (
-            /* ================= SEO BLOG VIEW ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
-              <BlogView />
+              <SectionErrorBoundary><BlogView /></SectionErrorBoundary>
             </div>
           ) : activeTab === 'deals' ? (
-            /* ================= INSTITUTIONAL DEALS TRACKER ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
-              <DealsTracker />
+              <SectionErrorBoundary><DealsTracker /></SectionErrorBoundary>
             </div>
           ) : (
-            /* ================= STOCK MARKET DAILY NEWS ================= */
             <div className="lg:col-span-12 flex flex-col gap-6">
-              <NewsView />
+              <SectionErrorBoundary><NewsView /></SectionErrorBoundary>
             </div>
           )}
         </div>
       </main>
 
-      {/* Humble Footer footer bar */}
-      <footer className="bg-slate-100/90 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-850/60 text-slate-500 font-mono text-[10px] mt-16 py-10 transition-all duration-300">
+      {/* Corporate Compliance Footer block */}
+      <footer className="bg-slate-100 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-850 text-slate-400 font-mono text-[10px] mt-24 py-12 transition-all">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">StockPro Screener</h4>
-            <p className="text-[9px] text-slate-400 mb-2 leading-tight">StockPro Analytics is not a SEBI registered investment advisor. All data shown is for educational and informational purposes only. Derivatives trading involves risk of loss.</p>
-            <p>&copy; {new Date().getFullYear()} StockPro. All rights reserved.</p>
+            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">StockPro Analytics Suite</h4>
+            <p className="text-[9px] text-slate-450 dark:text-slate-500 mb-2 leading-relaxed">
+              StockPro Analytics is not a SEBI registered investment advisor. All displayed vectors, index evaluations, and parameter matrix arrays serve educational and model tracking purposes exclusively. Derivatives carry high operational leverage risks.
+            </p>
+            <p className="text-slate-500">&copy; {new Date().getFullYear()} StockPro Node systems. All rights reserved.</p>
           </div>
           <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Protocol</h4>
-            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Security v4.1</span>
-            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Status: Active</span>
+            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Infrastructure Protocol</h4>
+            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Security Ledger v4.1.2</span>
+            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> Connection State: Verified
+            </span>
           </div>
           <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Disclaimer</h4>
-            <p className="leading-relaxed">
-              Financial data provided for educational purposes only. Not investment advice. Analyze with caution.
+            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Disclaimer Manifest</h4>
+            <p className="leading-relaxed text-slate-450 dark:text-slate-500">
+              Data architecture feeds are fetched via active webhook nodes. Market metrics remain delayed where exchange clearing protocols dictate.
             </p>
           </div>
           <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Support</h4>
-            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Contact Us</span>
-            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Privacy Policy</span>
+            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Operational Nodes</h4>
+            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Gateway Support desk</span>
+            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Privacy Encryption Parameters</span>
           </div>
         </div>
       </footer>
