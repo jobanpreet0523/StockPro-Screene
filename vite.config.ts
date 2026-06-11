@@ -1,12 +1,11 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-
-import { cloudflare } from "@cloudflare/vite-plugin";
+import path from 'path';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), cloudflare()],
+    plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -18,34 +17,13 @@ export default defineConfig(() => {
           main: path.resolve(__dirname, 'index.html'),
           dashboard: path.resolve(__dirname, 'dashboard.html'),
           fo: path.resolve(__dirname, 'fo.html'),
-          liveData: path.resolve(__dirname, 'live-data.js')
+          screener: path.resolve(__dirname, 'screener.html')
         }
       }
     },
     server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };
-});
-export default defineConfig({
-  base: '/',
-  plugins: [react(), tailwindcss()],
-  build: {
-    rollupOptions: {
-      input: {
-        main: 'index.html',
-        screener: 'screener.html',
-        dashboard: 'dashboard.html',
-        fo: 'fo.html',
-      }
-    }
-  },
-  server: {
-    hmr: process.env.DISABLE_HMR !== 'true',
-    watch: process.env.DISABLE_HMR === 'true' ? null : {},
-  },
 });
