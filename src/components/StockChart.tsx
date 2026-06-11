@@ -5,7 +5,52 @@ interface StockChartProps {
   name: string;
 }
 
+// Helper function to map internal symbols to TradingView format
+function getTradingViewSymbol(symbol: string): string {
+  // Remove .NS suffix if present
+  const cleanSymbol = symbol.replace('.NS', '').toUpperCase();
+  
+  // Map Indian indices to TradingView format
+  if (symbol === '^NSEI' || cleanSymbol === 'NIFTY') {
+    return 'NSE:NIFTY';
+  }
+  if (symbol === '^NSEBANK' || cleanSymbol === 'BANKNIFTY') {
+    return 'NSE:BANKNIFTY';
+  }
+  if (symbol === '^BSESN' || cleanSymbol === 'SENSEX') {
+    return 'BOM:SENSEX';
+  }
+  if (symbol === '^IXIC' || cleanSymbol === 'NASDAQ') {
+    return 'NASDAQ:IXIC';
+  }
+  if (symbol === '^NSEFN' || cleanSymbol === 'FINNIFTY') {
+    return 'NSE:FINNIFTY';
+  }
+  
+  // For Indian stocks on NSE, prepend NSE:
+  // Check if it's a known Indian stock (has .NS or is in our Indian stock list)
+  if (symbol.includes('.NS') || ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'LT', 'ITC', 'HINDUNILVR', 'SBIN', 'BHARTIARTL'].includes(cleanSymbol)) {
+    return `NSE:${cleanSymbol}`;
+  }
+  
+  // For BSE stocks (5-digit codes)
+  if (/^\d{5,6}$/.test(cleanSymbol)) {
+    return `BSE:${cleanSymbol}`;
+  }
+  
+  // For US stocks, they usually work as-is or with exchange prefix
+  // Common US exchanges
+  if (['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX'].includes(cleanSymbol)) {
+    return `NASDAQ:${cleanSymbol}`;
+  }
+  
+  // Default fallback - try NSE first for unknown symbols
+  return `NSE:${cleanSymbol}`;
+}
+
 export default function StockChart({ symbol, name }: StockChartProps) {
+  const tvSymbol = getTradingViewSymbol(symbol);
+  
   useEffect(() => {
     const container = document.getElementById('tradingview-widget-container');
     if (!container) return;
@@ -19,9 +64,9 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     script.async = true;
     script.innerHTML = JSON.stringify({
       "autosize": true,
-      "symbol": symbol,
+      "symbol": tvSymbol,
       "interval": "D",
-      "timezone": "Etc/UTC",
+      "timezone": "Asia/Kolkata",
       "theme": "dark",
       "style": "1",
       "locale": "en",
@@ -30,7 +75,7 @@ export default function StockChart({ symbol, name }: StockChartProps) {
       "support_host": "https://www.tradingview.com"
     });
     container.appendChild(script);
-  }, [symbol]);
+  }, [tvSymbol]);
 
   return (
     <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-xl mb-6 flex flex-col" id="chart_section">

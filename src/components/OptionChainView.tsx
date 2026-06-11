@@ -19,7 +19,12 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
 
   // Fetch option chain data from Express API
   useEffect(() => {
+    let isMounted = true;
+    let timer: NodeJS.Timeout;
+
     async function fetchChain() {
+      if (!isMounted) return;
+      
       setLoading(true);
       const cleanSymbol = symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol;
       try {
@@ -28,7 +33,8 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
         
         if (res.ok && contentType.includes('application/json')) {
           const json = await res.json();
-          if (json.status === 'ok') {
+          if (json.status === 'ok' && json.data) {
+            if (!isMounted) return;
             setChain(json.data);
             // Set anchor strike as default focus
             if (json.data.options && json.data.options.length > 10) {
@@ -39,6 +45,7 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
         }
         throw new Error('Backend offline or returned HTML fallback');
       } catch (err) {
+        if (!isMounted) return;
         // Fallback option chain generation for serverless edge / static deploys
         let spotPrice = 1500;
         const isIndex = cleanSymbol === 'NIFTY' || cleanSymbol === 'BANKNIFTY' || cleanSymbol === 'FINNIFTY' || cleanSymbol.startsWith('^');
@@ -57,14 +64,19 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
           setSelectedStrike(fallbackChain.options[Math.floor(fallbackChain.options.length / 2)]);
         }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
+    
     fetchChain();
 
     // Auto-ticking polling every 4 seconds to simulate live option updates
-    const timer = setInterval(fetchChain, 4000);
-    return () => clearInterval(timer);
+    timer = setInterval(fetchChain, 4000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
   }, [symbol]);
 
   // Calculations for Option payoff diagrams
