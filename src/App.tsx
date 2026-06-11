@@ -13,6 +13,7 @@ import { TrendingUp, HelpCircle, ShieldCheck, Activity } from 'lucide-react';
 import { useTheme } from './components/ThemeContext';
 import NewsView from './components/NewsView';
 import { useLiveStocks } from './hooks/useLiveStocks';
+import { useMarketIndices } from './hooks/useMarketIndices';
 import EmailCapturePopup from './components/EmailCapturePopup';
 import PricingView from './components/PricingView';
 import BlogView from './components/BlogView';
@@ -96,7 +97,7 @@ class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
 function ScreenerPage() {
   const { theme } = useTheme();
-  const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
+  const { indices, loading: isLoadingIndices, error: indicesError, retry: fetchAllIndices } = useMarketIndices();
   const { stocks, loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
   const [activeTab, setActiveTab] = useState<'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'>(() => {
     if (typeof window !== 'undefined') {
@@ -114,31 +115,13 @@ function ScreenerPage() {
   // Quick indices data syncing (if any, although user just asked for stocks)
   const [stockData, setStockData] = useState<any[]>([]); // Just in case ScreenerBuilder breaks, we'll assign it to stocks.
 
-  // Sync index boards and stock values from full-stack backend
   useEffect(() => {
-    async function syncRealTimeMetrics() {
-      try {
-        const [indicesRes] = await Promise.all([
-          fetch('/api/indices', { headers: {} })
-        ]);
-
-        if (indicesRes.ok) {
-          const indicesJson = await indicesRes.json();
-          if (indicesJson.data) setIndices(indicesJson.data);
-          setIsLive(true);
-        } else {
-          throw new Error('API response not ok');
-        }
-      } catch (err) {
-        console.error("API Fetch failed:", err);
-        setIsLive(false);
-      }
+    if (!isLoadingIndices && !indicesError) {
+      setIsLive(true);
+    } else {
+      setIsLive(false);
     }
-
-    syncRealTimeMetrics();
-    const interval = setInterval(syncRealTimeMetrics, 60000); // 1 minute
-    return () => clearInterval(interval);
-  }, []);
+  }, [isLoadingIndices, indicesError]);
 
   // Update stockData for ScreenerBuilder compatibility
   useEffect(() => {

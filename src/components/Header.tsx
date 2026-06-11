@@ -112,16 +112,32 @@ export default function Header({
       }
     });
 
+    indices.forEach(idx => {
+      const prev = prevPrices[idx.symbol];
+      if (prev !== undefined && prev !== idx.price) {
+        newFlashes[idx.symbol] = idx.price > prev ? 'up' : 'down';
+        changed = true;
+      }
+    });
+
     if (changed) {
       setFlashStates(prev => ({ ...prev, ...newFlashes }));
-      setPrevPrices(stocks.reduce((acc, s) => ({ ...acc, [s.symbol]: s.price }), {}));
+
+      const currentPrices: Record<string, number> = {};
+      stocks.forEach(s => { currentPrices[s.symbol] = s.price; });
+      indices.forEach(idx => { currentPrices[idx.symbol] = idx.price; });
+      
+      setPrevPrices(currentPrices);
       
       const timer = setTimeout(() => {
         setFlashStates({});
       }, 700);
       return () => clearTimeout(timer);
-    } else if (Object.keys(prevPrices).length === 0 && stocks.length > 0) {
-      setPrevPrices(stocks.reduce((acc, s) => ({ ...acc, [s.symbol]: s.price }), {}));
+    } else if (Object.keys(prevPrices).length === 0 && (stocks.length > 0 || indices.length > 0)) {
+      const currentPrices: Record<string, number> = {};
+      stocks.forEach(s => { currentPrices[s.symbol] = s.price; });
+      indices.forEach(idx => { currentPrices[idx.symbol] = idx.price; });
+      setPrevPrices(currentPrices);
     }
   }, [stocks, prevPrices]);
 
@@ -141,28 +157,24 @@ export default function Header({
       {/* Ticker Marquee Bar */}
       <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-x-auto sm:overflow-hidden text-[11px] sm:text-xs transition-all duration-300">
         <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4 sm:flex-row sm:items-center sm:gap-1.5 whitespace-nowrap">
-          <div className="flex items-center gap-2" title="Simulated data for demonstration">
-            <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-amber-600 dark:text-amber-400">
-              <span className="w-2 h-2 rounded-full animate-pulse bg-amber-500" />
-              DEMO FEED ACTIVE
+          <div className="flex items-center gap-2" title="Live data fetched from Yahoo Finance">
+            <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-emerald-600 dark:text-emerald-400">
+              <span className="w-2 h-2 rounded-full animate-pulse bg-emerald-500" />
+              LIVE FEED ACTIVE
             </div>
-            <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25">
-              DEMO
+            <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25">
+              YAHOO
             </span>
           </div>
           <div className="flex-1 overflow-hidden ml-6 relative">
             <div className="flex items-center gap-8 animate-marquee whitespace-nowrap min-w-max">
-              {[...stocks, ...stocks].map((st, i) => {
+              {[...indices, ...indices].map((st, i) => {
                 const flash = flashStates[st.symbol];
                 const isPositive = st.change >= 0;
                 return (
                   <span
                     key={`${st.symbol}-${i}`}
-                    onClick={() => {
-                      onSelectStock(st.symbol);
-                      setSearchTerm('');
-                    }}
-                    className={`inline-flex items-center gap-1.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 px-2 py-0.5 rounded transition-all duration-300 ${
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded transition-all duration-300 ${
                       flash === 'up'
                         ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 scale-105 border border-emerald-500/30'
                         : flash === 'down'
@@ -171,7 +183,7 @@ export default function Header({
                     }`}
                   >
                     <span className="font-mono font-medium text-[11px] text-slate-900 dark:text-white">
-                      {st.symbol.replace('.NS', '')}
+                      {st.name}
                     </span>
                     <span className="font-mono text-xs text-slate-705 dark:text-slate-200">{formatPrice(st.price)}</span>
                     <span className={`text-[10px] font-mono font-medium ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
