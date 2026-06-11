@@ -2,78 +2,38 @@ import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import { Calculator, Info, HelpCircle, TrendingUp, Cpu, Percent, Clock } from 'lucide-react';
 
-// Math Helper: Standard Error Function
-function erf(x: number): number {
-  const a1 =  0.254829592;
-  const a2 = -0.284496736;
-  const a3 =  1.421413741;
-  const a4 = -1.453152027;
-  const a5 =  1.061405429;
-  const p  =  0.3275911;
-
+// User provided Math Helper: Standard Normal Cumulative Distribution Function N(x)
+function normalCDF(x: number): number {
+  const a1=0.254829592, a2=-0.284496736, a3=1.421413741;
+  const a4=-1.453152027, a5=1.061405429, p=0.3275911;
   const sign = x < 0 ? -1 : 1;
-  const absX = Math.abs(x);
-
-  const t = 1.0 / (1.0 + p * absX);
-  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
-
-  return sign * y;
+  x = Math.abs(x)/Math.sqrt(2);
+  const t = 1/(1+p*x);
+  const y = 1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return 0.5*(1+sign*y);
 }
 
-// Math Helper: Standard Normal Cumulative Distribution Function N(x)
-function stdNormalCDF(x: number): number {
-  return 0.5 * (1.0 + erf(x / Math.sqrt(2)));
-}
-
-// Math Helper: Standard Normal Probability Density Function n(x)
-function stdNormalPDF(x: number): number {
-  return Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
-}
-
-// Core Black-Scholes Greeks Calculation Engine
-function calculateGreeks(S: number, K: number, days: number, r: number, iv: number, optionType: 'Call' | 'Put') {
-  const T = Math.max(days, 0.001) / 365.0; // Avoid division by 0
-  const sigma = Math.max(iv, 0.1) / 100.0;  // Implied Volatility as fraction
-  const S_adj = Math.max(S, 1.0);
-  const K_adj = Math.max(K, 1.0);
-  const r_val = r / 100.0;                 // Risk-Free interest rate
-
-  const d1 = (Math.log(S_adj / K_adj) + (r_val + (sigma * sigma) / 2.0) * T) / (sigma * Math.sqrt(T));
-  const d2 = d1 - sigma * Math.sqrt(T);
-
-  const n_d1 = stdNormalPDF(d1);
-  const N_d1 = stdNormalCDF(d1);
-  const N_d2 = stdNormalCDF(d2);
-  const N_neg_d1 = stdNormalCDF(-d1);
-  const N_neg_d2 = stdNormalCDF(-d2);
-
-  let delta = 0;
-  let gamma = n_d1 / (S_adj * sigma * Math.sqrt(T));
-  let theta = 0;
-  let vega = (S_adj * n_d1 * Math.sqrt(T)) / 100.0;
-  let rho = 0;
-
-  if (optionType === 'Call') {
-    delta = N_d1;
-    // Call Theta formula (annual Theta / 365)
-    theta = (-(S_adj * n_d1 * sigma) / (2.0 * Math.sqrt(T)) - r_val * K_adj * Math.exp(-r_val * T) * N_d2) / 365.0;
-    rho = (K_adj * T * Math.exp(-r_val * T) * N_d2) / 100.0;
-  } else {
-    delta = N_d1 - 1.0;
-    // Put Theta formula (annual Theta / 365)
-    theta = (-(S_adj * n_d1 * sigma) / (2.0 * Math.sqrt(T)) + r_val * K_adj * Math.exp(-r_val * T) * N_neg_d2) / 365.0;
-    rho = (-K_adj * T * Math.exp(-r_val * T) * N_neg_d2) / 100.0;
-  }
-
-  // Calculate Theoretical Black-Scholes Premium
-  let theoreticalPrice = 0;
-  if (optionType === 'Call') {
-    theoreticalPrice = S_adj * N_d1 - K_adj * Math.exp(-r_val * T) * N_d2;
-  } else {
-    theoreticalPrice = K_adj * Math.exp(-r_val * T) * N_neg_d2 - S_adj * N_neg_d1;
-  }
-
-  return { delta, gamma, theta, vega, rho, theoreticalPrice };
+// User provided: Core Black-Scholes Greeks Calculation Engine
+function blackScholes(S: number, K: number, days: number, r_percent: number, iv_percent: number, type: 'call' | 'put') {
+  const T = Math.max(days, 0.001); // in days but we use T/365 in formula
+  const sigma = Math.max(iv_percent, 0.1) / 100.0;
+  const r = r_percent / 100.0;
+  
+  const t = T/365;
+  const d1 = (Math.log(S/K)+(r+sigma*sigma/2)*t)/(sigma*Math.sqrt(t));
+  const d2 = d1 - sigma*Math.sqrt(t);
+  
+  const price = type==='call'
+    ? S*normalCDF(d1) - K*Math.exp(-r*t)*normalCDF(d2)
+    : K*Math.exp(-r*t)*normalCDF(-d2) - S*normalCDF(-d1);
+    
+  const delta = type==='call' ? normalCDF(d1) : normalCDF(d1)-1;
+  const gamma = Math.exp(-d1*d1/2)/(S*sigma*Math.sqrt(2*Math.PI*t));
+  const theta = (-(S*sigma*Math.exp(-d1*d1/2))/(2*Math.sqrt(2*Math.PI*t)) - (type === 'call' ? 1 : -1) * r*K*Math.exp(-r*t)*normalCDF(type==='call'?d2:-d2))/365;
+  const vega = S*Math.sqrt(t)*Math.exp(-d1*d1/2)/Math.sqrt(2*Math.PI)/100;
+  const rho = type==='call' ? K*t*Math.exp(-r*t)*normalCDF(d2)/100 : -K*t*Math.exp(-r*t)*normalCDF(-d2)/100;
+  
+  return { theoreticalPrice: price, delta, gamma, theta, vega, rho };
 }
 
 export default function GreeksCalculator() {
@@ -93,7 +53,7 @@ export default function GreeksCalculator() {
 
   // Active Greeks calculations
   const greeks = useMemo(() => {
-    return calculateGreeks(S, K, days, r, iv, activeType);
+    return blackScholes(S, K, days, r, iv, activeType.toLowerCase() as 'call'|'put');
   }, [S, K, days, r, iv, activeType]);
 
   // Spot shifts: ±1%, ±2%, ±5% rows
@@ -101,7 +61,7 @@ export default function GreeksCalculator() {
     const shifts = [-0.05, -0.02, -0.01, 0, 0.01, 0.02, 0.05];
     return shifts.map((shift) => {
       const shiftedSpot = S * (1 + shift);
-      const res = calculateGreeks(shiftedSpot, K, days, r, iv, activeType);
+      const res = blackScholes(shiftedSpot, K, days, r, iv, activeType.toLowerCase() as 'call'|'put');
       return {
         shiftLabel: shift === 0 ? 'Current' : `${shift > 0 ? '+' : ''}${(shift * 100).toFixed(0)}%`,
         shiftedSpot: Number(shiftedSpot.toFixed(1)),
@@ -128,8 +88,8 @@ export default function GreeksCalculator() {
     }
 
     return strikes.map((str) => {
-      const gCall = calculateGreeks(S, str, days, r, iv, 'Call');
-      const gPut = calculateGreeks(S, str, days, r, iv, 'Put');
+      const gCall = blackScholes(S, str, days, r, iv, 'call');
+      const gPut = blackScholes(S, str, days, r, iv, 'put');
       return {
         strike: str,
         'Call Delta': Number(gCall.delta.toFixed(3)),
@@ -253,35 +213,42 @@ export default function GreeksCalculator() {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 font-mono">
-            <Clock size={10} /> Days to Expiry (T)
-          </label>
-          <div className="relative">
+        <div className="space-y-1.5 flex flex-col justify-center">
+          <div className="flex items-center justify-between">
+            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 font-mono">
+              <Clock size={10} /> Days to Expiry (T)
+            </label>
+            <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">{daysValue} Days</span>
+          </div>
+          <div className="relative mt-2">
             <input
-              type="number"
+              type="range"
+              min="1"
+              max="90"
               value={daysValue}
               onChange={(e) => setDaysValue(e.target.value)}
-              min="0"
-              className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              className="w-full accent-emerald-500"
             />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-400 font-bold uppercase">Days</span>
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 font-mono">
-            <Percent size={10} /> Implied Vol (IV)
-          </label>
-          <div className="relative">
+        <div className="space-y-1.5 flex flex-col justify-center">
+          <div className="flex items-center justify-between">
+            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 font-mono">
+              <Percent size={10} /> Implied Vol (IV)
+            </label>
+            <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">{ivValue}%</span>
+          </div>
+          <div className="relative mt-2">
             <input
-              type="number"
+              type="range"
+              min="5"
+              max="150"
               step="0.1"
               value={ivValue}
               onChange={(e) => setIVValue(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              className="w-full accent-emerald-500"
             />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-400 font-bold">%</span>
           </div>
         </div>
 
