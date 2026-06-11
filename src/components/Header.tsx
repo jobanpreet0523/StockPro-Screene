@@ -3,6 +3,7 @@ import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compas
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { getMarketStatus } from '../utils/marketStatus';
 
 interface HeaderProps {
   indices: IndexData[];
@@ -29,12 +30,7 @@ export default function Header({
   const [showApiModal, setShowApiModal] = useState(false);
   const [prevPrices, setPrevPrices] = useState<Record<string, number>>({});
   const [flashStates, setFlashStates] = useState<Record<string, 'up' | 'down' | null>>({});
-  const [marketStatus, setMarketStatus] = useState<{
-    isOpen: boolean;
-    statusText: string;
-    isWeekend: boolean;
-  }>({ isOpen: false, statusText: 'Checking Status...', isWeekend: false });
-
+  const [marketStatus, setMarketStatus] = useState(() => getMarketStatus());
   const [savedScannersList, setSavedScannersList] = useState<Record<string, { conditions: any[]; createdAt: string }>>({});
   const [showScannersDropdown, setShowScannersDropdown] = useState(false);
 
@@ -54,49 +50,11 @@ export default function Header({
     };
   }, []);
 
-  // Monitor stock/index exchange session in IST
   useEffect(() => {
-    const checkMarketStatus = () => {
-      const now = new Date();
-      // UTC to IST (+5:30)
-      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-      const ist = new Date(utc + (3600000 * 5.5));
-      
-      const day = ist.getDay(); // 0: Sunday, 6: Saturday
-      const hours = ist.getHours();
-      const minutes = ist.getMinutes();
-      const totalMinutes = hours * 60 + minutes;
-      
-      const marketOpenMinutes = 9 * 60 + 15;  // 9:15 AM
-      const marketCloseMinutes = 15 * 60 + 30; // 3:30 PM
-      
-      const isWeekend = (day === 0 || day === 6);
-      const isWithinHours = totalMinutes >= marketOpenMinutes && totalMinutes < marketCloseMinutes;
-      
-      if (isWeekend) {
-        setMarketStatus({
-          isOpen: false,
-          statusText: 'Market Closed (Weekend)',
-          isWeekend: true
-        });
-      } else if (!isWithinHours) {
-        setMarketStatus({
-          isOpen: false,
-          statusText: totalMinutes < marketOpenMinutes ? 'Market Closed (Pre-Open)' : 'Market Closed (After Hours)',
-          isWeekend: false
-        });
-      } else {
-        setMarketStatus({
-          isOpen: true,
-          statusText: 'Market Open (Live)',
-          isWeekend: false
-        });
-      }
-    };
-    
-    checkMarketStatus();
-    const intervalId = setInterval(checkMarketStatus, 10000);
-    return () => clearInterval(intervalId);
+    const interval = setInterval(() => {
+      setMarketStatus(getMarketStatus());
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Detect price changes and trigger green/red visual flashes
@@ -158,11 +116,11 @@ export default function Header({
       <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-x-auto sm:overflow-hidden text-[11px] sm:text-xs transition-all duration-300">
         <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4 sm:flex-row sm:items-center sm:gap-1.5 whitespace-nowrap">
           <div className="flex items-center gap-2" title="Live data fetched from Yahoo Finance">
-            <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-emerald-600 dark:text-emerald-400">
-              <span className="w-2 h-2 rounded-full animate-pulse bg-emerald-500" />
-              LIVE FEED ACTIVE
+            <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]" style={{ color: marketStatus.color }}>
+              <span className={`w-2 h-2 rounded-full ${marketStatus.isOpen ? 'animate-pulse' : ''}`} style={{ backgroundColor: marketStatus.color }} />
+              {marketStatus.label}
             </div>
-            <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25">
+            <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono" style={{ color: marketStatus.color, borderColor: `${marketStatus.color}40`, backgroundColor: `${marketStatus.color}15` }}>
               YAHOO
             </span>
           </div>
