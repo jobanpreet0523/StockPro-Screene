@@ -18,6 +18,7 @@ import EmailCapturePopup from './components/EmailCapturePopup';
 import PricingView from './components/PricingView';
 import BlogView from './components/BlogView';
 import DealsTracker from './components/DealsTracker';
+import UsMarketsView from './components/UsMarketsView';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -96,14 +97,14 @@ class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 }
 
 interface ScreenerPageProps {
-  activeTabProp?: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog';
+  activeTabProp?: 'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog';
 }
 
 function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
   const { theme } = useTheme();
   const { indices, loading: isLoadingIndices, error: indicesError, retry: fetchAllIndices } = useMarketIndices();
   const { stocks, loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
-  const [activeTab, setActiveTab] = useState<'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'>(() => {
+  const [activeTab, setActiveTab] = useState<'us' | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'>(() => {
     if (activeTabProp) return activeTabProp;
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
@@ -330,6 +331,11 @@ function ScreenerPage({ activeTabProp }: ScreenerPageProps = {}) {
                   />
                 </SectionErrorBoundary>
               )}
+            </div>
+          ) : activeTab === 'us' ? (
+            /* ================= US MARKETS VIEW ================= */
+            <div className="lg:col-span-12 flex flex-col gap-6" id="us-markets-section">
+              <UsMarketsView />
             </div>
           ) : activeTab === 'pricing' ? (
             /* ================= PRICING VIEW ================= */

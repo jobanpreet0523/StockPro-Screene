@@ -100,12 +100,22 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
 
   const filteredOptions = useMemo(() => {
     let list = sortedOptions;
+    
+    // NIFTY specific: Display strikes within ±500 from ATM
+    const spot = chain?.spotPrice || 0;
+    const cleanSym = (chain?.symbol || symbol || '').toUpperCase();
+    if (spot > 0 && (cleanSym === 'NIFTY' || cleanSym.includes('NIFTY'))) {
+      const strikeInterval = cleanSym.includes('BANKNIFTY') ? 100 : 50;
+      const atmStrike = Math.round(spot / strikeInterval) * strikeInterval;
+      list = list.filter(opt => opt.strikePrice >= atmStrike - 500 && opt.strikePrice <= atmStrike + 500);
+    }
+
     if (strikeSearch.trim() !== '') {
       const q = strikeSearch.trim();
       list = list.filter(opt => opt.strikePrice.toString().includes(q));
     }
     return list;
-  }, [sortedOptions, strikeSearch]);
+  }, [sortedOptions, strikeSearch, chain?.spotPrice, chain?.symbol, symbol]);
 
   const handleDownloadCSV = () => {
     if (!chain || !filteredOptions.length) return;
@@ -168,37 +178,65 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
     async function fetchChain() {
       setLoading(true);
       const cleanSymbol = symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol;
+      
+      // We prioritize index symbols like NIFTY, BANKNIFTY
+      const upperSym = cleanSymbol.toUpperCase();
+      const lookupSymbol = upperSym === 'RELIANCE' ? 'NIFTY' : (upperSym.includes('BANKNIFTY') || upperSym.includes('BANK') ? 'BANKNIFTY' : upperSym);
+
       try {
-        const res = await fetch(`/api/option-chain/${cleanSymbol}`);
-        const contentType = res.headers.get('content-type') || '';
-        
-        if (res.ok && contentType.includes('application/json')) {
-          const json = await res.json();
-          if (json.status === 'ok') {
-            setChain(json.data);
-            // Set anchor strike as default focus
-            if (json.data.options && json.data.options.length > 10) {
-              setSelectedStrike(json.data.options[10]);
+        let nseJson: any = null;
+
+        // Attempt 1: Fetch from live worker proxy API
+        try {
+          const res = await fetch(`https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=${lookupSymbol}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && (data.records || data.filtered || data.data)) {
+              nseJson = data;
             }
-            // Fetching logic completed
+          }
+        } catch (e) {
+          console.warn("Worker proxy lookup failed, attempting AllOrigins proxy as fallback...", e);
+        }
+
+        // Attempt 2: Fetch via allorigins.win proxy if Attempt 1 wasn't successful
+        if (!nseJson) {
+          const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.nseindia.com/api/option-chain-indices?symbol=${lookupSymbol}`)}`;
+          const res = await fetch(allOriginsUrl);
+          if (res.ok) {
+            const wrapper = await res.json();
+            if (wrapper.contents) {
+              nseJson = JSON.parse(wrapper.contents);
+            }
+          }
+        }
+
+        // Parse and construct standard OptionChain interface
+        if (nseJson) {
+          const parsed = parseNseOptionChain(nseJson, lookupSymbol);
+          if (parsed && parsed.options.length > 0) {
+            setChain(parsed);
+            setSelectedStrike(parsed.options[Math.floor(parsed.options.length / 2)]);
             setLoading(false);
             return;
           }
         }
-        throw new Error('Backend offline or returned HTML fallback');
+
+        throw new Error('Could not parse live NSE option chain payload');
       } catch (err) {
+        console.error("Option live sync error:", err);
         // Fallback option chain generation for serverless edge / static deploys
         let spotPrice = 1500;
-        const isIndex = cleanSymbol === 'NIFTY' || cleanSymbol === 'BANKNIFTY' || cleanSymbol === 'FINNIFTY' || cleanSymbol.startsWith('^');
+        const isIndex = lookupSymbol === 'NIFTY' || lookupSymbol === 'BANKNIFTY' || lookupSymbol === 'FINNIFTY' || lookupSymbol.startsWith('^');
         if (isIndex) {
-          if (cleanSymbol.includes('BANKNIFTY') || cleanSymbol.includes('BANK') || cleanSymbol === '^NSEBANK') spotPrice = 49812.60;
-          else if (cleanSymbol.includes('FIN')) spotPrice = 21450.00;
+          if (lookupSymbol.includes('BANKNIFTY') || lookupSymbol.includes('BANK') || lookupSymbol === '^NSEBANK') spotPrice = 49812.60;
+          else if (lookupSymbol.includes('FIN')) spotPrice = 21450.00;
           else spotPrice = 24892.50;
         } else {
           if (currentPrice) spotPrice = currentPrice;
         }
 
-        const fallbackChain = generateOptionChain(cleanSymbol, spotPrice);
+        const fallbackChain = generateOptionChain(lookupSymbol, spotPrice);
         setChain(fallbackChain);
         if (fallbackChain.options && fallbackChain.options.length > 10) {
           setSelectedStrike(fallbackChain.options[Math.floor(fallbackChain.options.length / 2)]);
@@ -207,12 +245,92 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
         setLoading(false);
       }
     }
+
+    // Direct parser of standard NSE F&O responses
+    function parseNseOptionChain(json: any, targetSymbol: string): OptionChain | null {
+      const records = json.records || json;
+      if (!records || !records.data) return null;
+      
+      const spotPrice = records.underlyingValue || records.index?.lastPrice || (records.data?.[0]?.CE?.underlyingValue) || (records.data?.[0]?.PE?.underlyingValue) || 24892.50;
+      const expiryDate = records.expiryDates?.[0] || records.data?.[0]?.expiryDate || "Current";
+      
+      const rawList = records.data;
+      const options: OptionData[] = rawList
+        .filter((row: any) => row.expiryDate === expiryDate || !row.expiryDate)
+        .map((row: any) => {
+          const strikePrice = row.strikePrice;
+          const ce = row.CE || {};
+          const pe = row.PE || {};
+          
+          return {
+            strikePrice: strikePrice,
+            callLtp: ce.lastPrice || ce.ltp || ce.lastPrice || 0,
+            callChange: ce.change || ce.pchange || 0,
+            callVol: ce.totalTradedVolume || ce.volume || 0,
+            callOi: ce.openInterest || ce.oi || 0,
+            callOiChg: ce.changeinOpenInterest || ce.oiChange || 0,
+            callIv: ce.impliedVolatility || ce.iv || 0,
+            callDelta: ce.delta || 0.5,
+            putLtp: pe.lastPrice || pe.ltp || pe.lastPrice || 0,
+            putChange: pe.change || pe.pchange || 0,
+            putVol: pe.totalTradedVolume || pe.volume || 0,
+            putOi: pe.openInterest || pe.oi || 0,
+            putOiChg: pe.changeinOpenInterest || pe.oiChange || 0,
+            putIv: pe.impliedVolatility || pe.iv || 0,
+            putDelta: pe.delta || -0.5
+          };
+        })
+        .filter((opt: OptionData) => opt.callLtp > 0 || opt.putLtp > 0)
+        .sort((a: any, b: any) => a.strikePrice - b.strikePrice);
+        
+      let totalCallOi = 0;
+      let totalPutOi = 0;
+      options.forEach(opt => {
+        totalCallOi += opt.callOi;
+        totalPutOi += opt.putOi;
+      });
+      
+      const pcr = totalCallOi > 0 ? Number((totalPutOi / totalCallOi).toFixed(2)) : 1.0;
+      
+      // Pain matrix minimization algorithm
+      let maxPain = spotPrice;
+      if (options.length > 0) {
+        let minPain = Infinity;
+        options.forEach(targetOpt => {
+          let pain = 0;
+          options.forEach(opt => {
+            if (targetOpt.strikePrice > opt.strikePrice) {
+              pain += (targetOpt.strikePrice - opt.strikePrice) * opt.callOi;
+            }
+            if (targetOpt.strikePrice < opt.strikePrice) {
+              pain += (opt.strikePrice - targetOpt.strikePrice) * opt.putOi;
+            }
+          });
+          if (pain < minPain) {
+            minPain = pain;
+            maxPain = targetOpt.strikePrice;
+          }
+        });
+      }
+
+      return {
+        symbol: targetSymbol,
+        spotPrice: spotPrice,
+        pcr: pcr,
+        totalCallOi: totalCallOi,
+        totalPutOi: totalPutOi,
+        maxPain: maxPain,
+        expiryDate: expiryDate,
+        options: options
+      };
+    }
+
     fetchChain();
 
-    // Auto-ticking polling
-    // PRO users: 15 seconds real-time tick 
-    // Free users: 15 minutes logic, we emulate by setting delayed fetch
-    const pollInterval = isPro ? 15000 : 15 * 60 * 1000; 
+    // Index options refresh every 3 minutes (180000ms), standard stocks are normal polling intervals
+    const cleanSym = symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol;
+    const isIndexStr = cleanSym === 'NIFTY' || cleanSym === 'BANKNIFTY' || cleanSym === 'FINNIFTY' || cleanSym.startsWith('^');
+    const pollInterval = isIndexStr ? 180000 : (isPro ? 15000 : 15 * 60 * 1000); 
     const timer = setInterval(fetchChain, pollInterval);
     return () => clearInterval(timer);
   }, [symbol, isPro]);
@@ -563,19 +681,28 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
                   const isCallIvHigh = option.callIv > 30;
                   const isPutIvHigh = option.putIv > 30;
 
+                  const cleanSym = (chain?.symbol || symbol || '').toUpperCase();
+                  const strikeInterval = cleanSym.includes('BANKNIFTY') ? 100 : 50;
+                  const atmStrike = spot > 0 ? Math.round(spot / strikeInterval) * strikeInterval : 0;
+                  const isAtm = strike === atmStrike;
+
                   return (
                     <tr
                       key={strike}
-                      className="border-b border-slate-100 dark:border-slate-850/60 hover:bg-slate-50 dark:hover:bg-slate-900/20 text-center select-none"
+                      className={`border-b border-slate-100 dark:border-slate-850/60 hover:bg-slate-50 dark:hover:bg-slate-900/20 text-center select-none ${
+                        isAtm 
+                          ? 'bg-yellow-150/50 dark:bg-yellow-500/10 font-bold border-y-2 border-yellow-400/60 dark:border-yellow-700/60' 
+                          : ''
+                      }`}
                     >
                       {/* CALLS */}
-                      <td className={`py-2 px-2 text-slate-600 dark:text-slate-350 border-l ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30 font-semibold' : ''}`}>
+                      <td className={`py-2 px-2 text-slate-600 dark:text-slate-350 border-l ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30 font-semibold' : ''}`}>
                         {formatVolume(option.callOi)}
                       </td>
-                      <td className={`py-2 px-1 ${option.callOiChg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                      <td className={`py-2 px-1 ${option.callOiChg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
                         {option.callOiChg >= 0 ? '+' : ''}{formatVolume(option.callOiChg)}
                       </td>
-                      <td className={`py-2 px-1 text-right text-slate-500 dark:text-slate-455 ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                      <td className={`py-2 px-1 text-right text-slate-500 dark:text-slate-455 ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
                         {formatVolume(option.callVol)}
                       </td>
                       <td 
@@ -583,9 +710,11 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
                         className={`py-2 px-1 text-[10px] transition-colors duration-200 ${
                           isCallIvHigh
                             ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold border-l border-r border-amber-500/20 dark:bg-amber-500/10'
-                            : isCallItm
-                              ? 'bg-amber-100/20 dark:bg-[#292211]/30 text-slate-600 dark:text-slate-350'
-                              : 'text-slate-500 dark:text-slate-400'
+                            : isAtm
+                              ? 'bg-yellow-250/20 dark:bg-yellow-500/10 text-slate-700 dark:text-slate-350'
+                              : isCallItm
+                                ? 'bg-amber-100/20 dark:bg-[#292211]/30 text-slate-600 dark:text-slate-350'
+                                : 'text-slate-500 dark:text-slate-400'
                         }`}
                       >
                         {option.callIv}%
@@ -596,29 +725,41 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
                         onClick={() => handleAddPositionFromStrike(option, 'CALL', 'BUY')}
                         title="Click to Simulate BUY CALL Order"
                         className={`py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-900 cursor-pointer active:scale-95 transition ${
-                          isCallItm ? 'bg-amber-200/40 dark:bg-[#403310]/50' : 'bg-slate-50 dark:bg-slate-950/20'
+                          isAtm
+                            ? 'bg-yellow-200/20 dark:bg-yellow-500/20'
+                            : isCallItm 
+                              ? 'bg-amber-200/40 dark:bg-[#403310]/50' 
+                              : 'bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
                         {option.callLtp.toFixed(1)}
                       </td>
-                      <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-850 text-[10px] ${option.callChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                      <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-850 text-[10px] ${option.callChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
                         {option.callChange >= 0 ? '+' : ''}{option.callChange}%
                       </td>
 
                       {/* STRIKE PRICE */}
-                      <td className="py-2 px-3 text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-900/95 font-extrabold text-[12px] border-r border-slate-200 dark:border-slate-800 text-center">
+                      <td className={`py-2 px-3 text-slate-900 dark:text-white font-extrabold text-[12px] border-r border-slate-200 dark:border-slate-800 text-center ${
+                        isAtm 
+                          ? 'bg-yellow-350 text-slate-950 dark:bg-yellow-600 dark:text-black font-black outline outline-2 outline-yellow-400' 
+                          : 'bg-slate-100 dark:bg-slate-900/95 shadow-sm'
+                      }`}>
                         {strike}
                       </td>
 
                       {/* PUTS */}
-                      <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-800 text-[10px] ${option.putChange >= 0 ? 'text-emerald-600 dark:text-emerald-405' : 'text-rose-600 dark:text-rose-400'} ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                      <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-800 text-[10px] ${option.putChange >= 0 ? 'text-emerald-600 dark:text-emerald-405' : 'text-rose-600 dark:text-rose-400'} ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
                         {option.putChange >= 0 ? '+' : ''}{option.putChange}%
                       </td>
                       <td
                         onClick={() => handleAddPositionFromStrike(option, 'PUT', 'BUY')}
                         title="Click to Simulate BUY PUT Order"
                         className={`py-2 px-2 text-left font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-955 cursor-pointer active:scale-95 transition ${
-                          isPutItm ? 'bg-amber-200/40 dark:bg-[#403310]/50' : 'bg-slate-50 dark:bg-slate-950/20'
+                          isAtm
+                            ? 'bg-yellow-200/20 dark:bg-yellow-500/20'
+                            : isPutItm 
+                              ? 'bg-amber-200/40 dark:bg-[#403310]/50' 
+                              : 'bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
                         {option.putLtp.toFixed(1)}
@@ -628,20 +769,22 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
                         className={`py-2 px-1 text-[10px] transition-colors duration-200 ${
                           isPutIvHigh
                             ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold border-l border-r border-amber-500/20 dark:bg-amber-500/10'
-                            : isPutItm
-                              ? 'bg-amber-100/20 dark:bg-[#292211]/30 text-slate-600 dark:text-slate-350'
-                              : 'text-slate-500 dark:text-slate-400'
+                            : isAtm
+                              ? 'bg-yellow-250/20 dark:bg-yellow-500/10 text-slate-700 dark:text-slate-350'
+                              : isPutItm
+                                ? 'bg-amber-100/20 dark:bg-[#292211]/30 text-slate-600 dark:text-slate-350'
+                                : 'text-slate-500 dark:text-slate-400'
                         }`}
                       >
                         {option.putIv}%
                       </td>
-                      <td className={`py-2 px-1 text-left text-slate-500 dark:text-slate-455 ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                      <td className={`py-2 px-1 text-left text-slate-500 dark:text-slate-455 ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
                         {formatVolume(option.putVol)}
                       </td>
-                      <td className={`py-2 px-1 ${option.putOiChg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
+                      <td className={`py-2 px-1 ${option.putOiChg >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-450'} ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
                         {option.putOiChg >= 0 ? '+' : ''}{formatVolume(option.putOiChg)}
                       </td>
-                      <td className={`py-2 px-2 text-slate-600 dark:text-slate-350 border-r border-slate-200 dark:border-slate-850 ${isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30 font-semibold' : ''}`}>
+                      <td className={`py-2 px-2 text-slate-600 dark:text-slate-350 border-r border-slate-200 dark:border-slate-850 py-2 ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isPutItm ? 'bg-amber-100/20 dark:bg-[#292211]/30 font-semibold' : ''}`}>
                         {formatVolume(option.putOi)}
                       </td>
                     </tr>

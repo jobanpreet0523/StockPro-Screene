@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen, SlidersHorizontal, ChevronDown, FolderHeart } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen, SlidersHorizontal, ChevronDown, FolderHeart, Globe } from 'lucide-react';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,8 +8,8 @@ import { getMarketStatus } from '../utils/marketStatus';
 interface HeaderProps {
   indices: IndexData[];
   stocks: Stock[];
-  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog';
-  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog') => void;
+  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us';
+  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
@@ -269,6 +269,17 @@ export default function Header({
             >
               <Cpu size={14} />
               F&O Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('us')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
+                activeTab === 'us'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Globe size={14} className="text-blue-500" />
+              US Markets
             </button>
             <button
               onClick={() => setActiveTab('deals')}
