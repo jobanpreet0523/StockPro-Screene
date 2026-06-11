@@ -8,10 +8,11 @@ import ScreenerBuilder from './components/ScreenerBuilder';
 import StockChart from './components/StockChart';
 import OptionChainView from './components/OptionChainView';
 import { Stock, IndexData } from './types';
-import { INITIAL_INDICES, INITIAL_STOCKS } from './data';
+import { INITIAL_INDICES } from './data';
 import { TrendingUp, HelpCircle, ShieldCheck, Activity } from 'lucide-react';
 import { useTheme } from './components/ThemeContext';
 import NewsView from './components/NewsView';
+import { useLiveStocks } from './hooks/useLiveStocks';
 import EmailCapturePopup from './components/EmailCapturePopup';
 import PricingView from './components/PricingView';
 import BlogView from './components/BlogView';
@@ -96,7 +97,7 @@ class SectionErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 function ScreenerPage() {
   const { theme } = useTheme();
   const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
-  const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
+  const { stocks, loading: isLoadingStocks, error: stocksError, retry: fetchAllStocks } = useLiveStocks();
   const [activeTab, setActiveTab] = useState<'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'>(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
@@ -110,27 +111,20 @@ function ScreenerPage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isLive, setIsLive] = useState<boolean>(true);
 
-  // Yahoo API bulk loading state
-  const [stockData, setStockData] = useState<any[]>([]);
-  const [isLoadingStocks, setIsLoadingStocks] = useState<boolean>(true);
+  // Quick indices data syncing (if any, although user just asked for stocks)
+  const [stockData, setStockData] = useState<any[]>([]); // Just in case ScreenerBuilder breaks, we'll assign it to stocks.
 
   // Sync index boards and stock values from full-stack backend
-
   useEffect(() => {
     async function syncRealTimeMetrics() {
       try {
-        const [indicesRes, stocksRes] = await Promise.all([
-          fetch('/api/indices', { headers: {} }),
-          fetch('/api/stocks', { headers: {} })
+        const [indicesRes] = await Promise.all([
+          fetch('/api/indices', { headers: {} })
         ]);
 
-        if (indicesRes.ok && stocksRes.ok) {
+        if (indicesRes.ok) {
           const indicesJson = await indicesRes.json();
-          const stocksJson = await stocksRes.json();
-          
           if (indicesJson.data) setIndices(indicesJson.data);
-          if (stocksJson.data) setStocks(stocksJson.data);
-          
           setIsLive(true);
         } else {
           throw new Error('API response not ok');
@@ -138,52 +132,18 @@ function ScreenerPage() {
       } catch (err) {
         console.error("API Fetch failed:", err);
         setIsLive(false);
-        // Retain existing state to prevent disruption on minor network blips
       }
     }
 
-    // Run first sync immediately
     syncRealTimeMetrics();
-
-    // High frequency pulling interval corresponding to Express background ticks (1.5s)
-    const interval = setInterval(syncRealTimeMetrics, 1500);
+    const interval = setInterval(syncRealTimeMetrics, 60000); // 1 minute
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch real NSE bulk stock data via proxy using Yahoo batch API
-  const fetchAllStocks = async () => {
-    setIsLoadingStocks(true);
-    const symbols = "TCS.NS,INFY.NS,RELIANCE.NS,HDFCBANK.NS,ICICIBANK.NS,WIPRO.NS,AXISBANK.NS,KOTAKBANK.NS,LT.NS,BAJFINANCE.NS,MARUTI.NS,ASIANPAINT.NS,HINDUNILVR.NS,TITAN.NS,ULTRACEMCO.NS,NESTLEIND.NS,TECHM.NS,SUNPHARMA.NS,DRREDDY.NS,ONGC.NS,NTPC.NS,POWERGRID.NS,COALINDIA.NS,JSWSTEEL.NS,TATASTEEL.NS,TATAMOTORS.NS,BAJAJFINSV.NS,SBILIFE.NS,HDFCLIFE.NS,ADANIENT.NS,ADANIPORTS.NS,DIVISLAB.NS,CIPLA.NS,EICHERMOT.NS,HEROMOTOCO.NS,BRITANNIA.NS,GRASIM.NS,HINDALCO.NS,INDUSINDBK.NS,M%26M.NS,BPCL.NS,IOC.NS,SHREECEM.NS,TATACONSUM.NS,UPL.NS,VEDL.NS,APOLLOHOSP.NS,BAJAJ-AUTO.NS,SBIN.NS,ITC.NS";
-    
-    try {
-      const res = await fetch(`/api/yahoo-batch?symbols=${symbols}`);
-      if (!res.ok) throw new Error('Yahoo proxy batch network response error');
-      const data = await res.json();
-      
-      const mappedData = data.map((item: any) => ({
-        symbol: item.symbol,
-        shortName: item.shortName,
-        regularMarketPrice: item.regularMarketPrice,
-        regularMarketChangePercent: item.regularMarketChangePercent,
-        regularMarketVolume: item.regularMarketVolume,
-        marketCap: item.marketCap,
-        trailingPE: item.trailingPE,
-        fiftyTwoWeekHigh: item.fiftyTwoWeekHigh,
-        fiftyTwoWeekLow: item.fiftyTwoWeekLow
-      }));
-      setStockData(mappedData);
-    } catch(err) {
-      console.error('Error fetching Yahoo Finance bulk data:', err);
-    } finally {
-      setIsLoadingStocks(false);
-    }
-  };
-
+  // Update stockData for ScreenerBuilder compatibility
   useEffect(() => {
-    fetchAllStocks();
-    const interval = setInterval(fetchAllStocks, 5 * 60 * 1000); // 5 minutes
-    return () => clearInterval(interval);
-  }, []);
+    setStockData(stocks);
+  }, [stocks]);
 
   const activeStock = stocks.find(s => {
     const cleanLeft = selectedStockSymbol.replace('NSE:', '').replace('.NS', '');
@@ -222,7 +182,19 @@ function ScreenerPage() {
           {isLoadingStocks ? (
              <>
                <span className="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin shrink-0" />
-               <span className="text-xs font-mono text-slate-500 font-bold uppercase tracking-wider">Fetching live NSE stock data from Yahoo Finance...</span>
+               <div className="flex flex-col gap-1 w-full max-w-[200px]">
+                 <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-full"></div>
+                 <div className="h-2 bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse w-2/3"></div>
+               </div>
+               <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Fetching Yahoo Finance...</span>
+             </>
+          ) : stocksError ? (
+             <>
+               <div className="w-4 h-4 shrink-0 rounded-full bg-rose-500/20 items-center justify-center flex">
+                 <div className="w-2 h-2 bg-rose-500 rounded-full"></div>
+               </div>
+               <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Failed to sync live data</span>
+               <button onClick={fetchAllStocks} className="ml-auto bg-slate-900 border border-transparent dark:border-slate-700 dark:bg-slate-800 text-white text-xs px-3 py-1 rounded hover:opacity-90 active:scale-95 transition-all outline-none">Retry Connection</button>
              </>
           ) : (
              <>
@@ -362,6 +334,8 @@ function ScreenerPage() {
                 <SectionErrorBoundary>
                   <OptionChainView
                     symbol={activeStock.symbol}
+                    currentPrice={activeStock.price}
+                    stockName={activeStock.name}
                   />
                 </SectionErrorBoundary>
               )}

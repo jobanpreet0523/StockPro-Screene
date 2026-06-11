@@ -1,17 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download, Presentation, Lock } from 'lucide-react';
 import { OptionChain, OptionData, Position } from '../types';
-import { generateOptionChain, INITIAL_STOCKS } from '../data';
+import { generateOptionChain } from '../data';
 import { useTheme } from './ThemeContext';
 import StockChart from './StockChart';
 import { useAuth } from '../contexts/AuthContext';
 
 interface OptionChainViewProps {
   symbol: string;
+  currentPrice?: number;
+  stockName?: string;
   onOrderAdded?: (pos: Position) => void;
 }
 
-export default function OptionChainView({ symbol, onOrderAdded }: OptionChainViewProps) {
+export default function OptionChainView({ symbol, currentPrice, stockName: propStockName, onOrderAdded }: OptionChainViewProps) {
   const { theme } = useTheme();
   const { isPro } = useAuth();
   const [chain, setChain] = useState<OptionChain | null>(null);
@@ -28,13 +30,13 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
   const [showChart, setShowChart] = useState<boolean>(true);
 
   const stockName = useMemo(() => {
+    if (propStockName) return propStockName;
     if (symbol === '^NSEI') return 'NIFTY 50 Index';
     if (symbol === '^NSEBANK') return 'BANK NIFTY Index';
     if (symbol === '^BSESN') return 'SENSEX Index';
     if (symbol === '^IXIC') return 'NASDAQ Composite Index';
-    const found = INITIAL_STOCKS.find(s => s.symbol === symbol || s.symbol.replace('.NS', '') === symbol);
-    return found ? found.name : symbol;
-  }, [symbol]);
+    return symbol;
+  }, [symbol, propStockName]);
 
   const handleSort = (field: 'CALL_LTP' | 'CALL_IV' | 'CALL_OICHG' | 'PUT_LTP' | 'PUT_IV' | 'PUT_OICHG') => {
     if (sortField === field) {
@@ -193,8 +195,7 @@ export default function OptionChainView({ symbol, onOrderAdded }: OptionChainVie
           else if (cleanSymbol.includes('FIN')) spotPrice = 21450.00;
           else spotPrice = 24892.50;
         } else {
-          const matchedStock = INITIAL_STOCKS.find(s => s.symbol.replace('.NS', '') === cleanSymbol);
-          if (matchedStock) spotPrice = matchedStock.price;
+          if (currentPrice) spotPrice = currentPrice;
         }
 
         const fallbackChain = generateOptionChain(cleanSymbol, spotPrice);
