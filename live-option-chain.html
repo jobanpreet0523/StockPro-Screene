@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockPro - Live NSE Option Chain</title>
+  <style>
+    :root {
+      --bg-primary: #0a1929;
+      --bg-secondary: #112240;
+      --bg-card: #1a2f4a;
+      --border-color: #233554;
+      --text-primary: #e6f1ff;
+      --text-secondary: #8892b0;
+      --text-muted: #5a6b7c;
+      --call-color: #ff4d4d;
+      --put-color: #00cc66;
+      --accent-blue: #00d4ff;
+      --accent-purple: #a855f7;
+      --atm-bg: rgba(255, 193, 7, 0.15);
+      --atm-border: #ffc107;
+      --font-mono: 'Courier New', Courier, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #fff;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    select, button {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    select:hover, button:hover {
+      border-color: var(--accent-blue);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent-blue), #0099cc);
+      border: none;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    button.primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .refresh-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--put-color);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 15px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .stat-call { color: var(--call-color); }
+    .stat-put { color: var(--put-color); }
+    .stat-accent { color: var(--accent-blue); }
+
+    /* Option Chain Table */
+    .chain-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    .chain-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .chain-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .chain-legend {
+      display: flex;
+      gap: 15px;
+      font-size: 11px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    .legend-call { background: var(--call-color); }
+    .legend-put { background: var(--put-color); }
+    .legend-atm { background: var(--atm-border); }
+
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-secondary);
+    }
+
+    th {
+      padding: 10px 8px;
+      text-align: right;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+    }
+
+    th.strike-col {
+      text-align: center;
+      background: var(--bg-secondary);
+      min-width: 80px;
+    }
+
+    td {
+      padding: 8px;
+      text-align: right;
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover {
+      background: rgba(0, 212, 255, 0.05);
+    }
+
+    .strike-cell {
+      text-align: center;
+      font-weight: 700;
+      font-size: 13px;
+      background: var(--bg-secondary);
+      position: relative;
+    }
+
+    .atm-row {
+      background: var(--atm-bg) !important;
+      border-left: 2px solid var(--atm-border);
+      border-right: 2px solid var(--atm-border);
+    }
+
+    .atm-marker {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--atm-border);
+    }
+
+    .call-data { color: var(--call-color); }
+    .put-data { color: var(--put-color); }
+    .neutral-data { color: var(--text-primary); }
+
+    .positive { color: var(--put-color); }
+    .negative { color: var(--call-color); }
+
+    .oi-bar {
+      height: 4px;
+      background: var(--border-color);
+      border-radius: 2px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+
+    .oi-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    .oi-fill-call { background: var(--call-color); }
+    .oi-fill-put { background: var(--put-color); }
+
+    /* Loading State */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      gap: 12px;
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border-color);
+      border-top-color: var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+      }
+
+      .controls {
+        justify-content: space-between;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .chain-legend {
+        display: none;
+      }
+
+      table {
+        font-size: 11px;
+      }
+
+      th, td {
+        padding: 6px 4px;
+      }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-badge">F&O</span>
+        StockPro Screener
+      </div>
+      
+      <div class="controls">
+        <div class="control-group">
+          <label class="control-label">Underlying</label>
+          <select id="symbolSelect" onchange="loadOptionChain()">
+            <option value="NIFTY">NIFTY 50</option>
+            <option value="BANKNIFTY">BANK NIFTY</option>
+            <option value="FINNIFTY">FIN NIFTY</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Expiry</label>
+          <select id="expirySelect" onchange="loadOptionChain()">
+            <option value="">Loading...</option>
+          </select>
+        </div>
+
+        <button class="primary" onclick="loadOptionChain()">
+          ↻ Refresh
+        </button>
+
+        <div class="refresh-indicator">
+          <span class="live-dot"></span>
+          <span id="lastUpdate">--:--:--</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Spot Price</div>
+        <div class="stat-value stat-accent" id="spotPrice">--</div>
+        <div class="stat-sub" id="spotChange">--</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Put-Call Ratio (PCR)</div>
+        <div class="stat-value" id="pcrValue">--</div>
+        <div class="stat-sub" id="pcrSentiment">Neutral</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Total Call OI</div>
+        <div class="stat-value stat-call" id="totalCallOi">--</div>
+        <div class="stat-sub">Calls Written</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Total Put OI</div>
+        <div class="stat-value stat-put" id="totalPutOi">--</div>
+        <div class="stat-sub">Puts Written</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Max Pain</div>
+        <div class="stat-value" id="maxPain">--</div>
+        <div class="stat-sub">Expiry Target</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">ATM Strike</div>
+        <div class="stat-value" id="atmStrike">--</div>
+        <div class="stat-sub">At The Money</div>
+      </div>
+    </div>
+
+    <!-- Option Chain Table -->
+    <div class="chain-container">
+      <div class="chain-header">
+        <div class="chain-title">📋 Live Option Chain</div>
+        <div class="chain-legend">
+          <div class="legend-item">
+            <div class="legend-dot legend-call"></div>
+            Calls (CE)
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot legend-put"></div>
+            Puts (PE)
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot legend-atm"></div>
+            ATM Strike
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <!-- Call Side -->
+              <th>Call OI</th>
+              <th>Chg</th>
+              <th>Volume</th>
+              <th>IV %</th>
+              <th>LTP</th>
+              <th>% Chg</th>
+              <th class="strike-col">Strike</th>
+              <!-- Put Side -->
+              <th>% Chg</th>
+              <th>LTP</th>
+              <th>IV %</th>
+              <th>Volume</th>
+              <th>Chg</th>
+              <th>Put OI</th>
+            </tr>
+          </thead>
+          <tbody id="optionChainBody">
+            <tr>
+              <td colspan="13">
+                <div class="loading">
+                  <div class="spinner"></div>
+                  <span>Loading live option chain data from NSE...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const CONFIG = {
+      NIFTY: { step: 50, lotSize: 75 },
+      BANKNIFTY: { step: 100, lotSize: 15 },
+      FINNIFTY: { step: 50, lotSize: 40 }
+    };
+
+    let currentSymbol = 'NIFTY';
+    let refreshTimer = null;
+    let autoRefreshEnabled = false;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      loadOptionChain();
+      startAutoRefresh();
+    });
+
+    // Load Option Chain Data
+    async function loadOptionChain() {
+      const symbol = document.getElementById('symbolSelect').value;
+      currentSymbol = symbol;
+      
+      showLoading();
+      
+      try {
+        const response = await fetch(`/api/option-chain/${symbol}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.status !== 'ok' || !result.data) {
+          throw new Error('Invalid data format');
+        }
+        
+        renderOptionChain(result.data);
+        updateStats(result.data);
+        updateLastRefresh();
+        
+      } catch (error) {
+        console.error('Failed to load option chain:', error);
+        showError(error.message);
+      }
+    }
+
+    // Render Option Chain Table
+    function renderOptionChain(data) {
+      const { spotPrice, options, pcr, totalCallOi, totalPutOi, maxPain } = data;
+      const symbolConfig = CONFIG[currentSymbol] || CONFIG.NIFTY;
+      const atmStrike = Math.round(spotPrice / symbolConfig.step) * symbolConfig.step;
+      
+      // Update expiry dropdown if available
+      if (data.expiryDates && data.expiryDates.length > 0) {
+        const expirySelect = document.getElementById('expirySelect');
+        expirySelect.innerHTML = data.expiryDates.map(exp => 
+          `<option value="${exp}">${exp}</option>`
+        ).join('');
+        
+        if (data.expiryDate) {
+          expirySelect.value = data.expiryDate;
+        }
+      }
+
+      // Find max OI for bar scaling
+      const maxCallOi = Math.max(...options.map(o => o.callOi), 1);
+      const maxPutOi = Math.max(...options.map(o => o.putOi), 1);
+
+      // Render rows
+      const tbody = document.getElementById('optionChainBody');
+      tbody.innerHTML = options.map(option => {
+        const strike = option.strikePrice;
+        const isAtm = strike === atmStrike;
+        const isCallItm = spotPrice > strike;
+        const isPutItm = spotPrice < strike;
+
+        const callOiPercent = (option.callOi / maxCallOi) * 100;
+        const putOiPercent = (option.putOi / maxPutOi) * 100;
+
+        return `
+          <tr class="${isAtm ? 'atm-row' : ''}">
+            <!-- Call Side -->
+            <td>
+              <div>${formatNumber(option.callOi)}</div>
+              <div class="oi-bar">
+                <div class="oi-fill oi-fill-call" style="width: ${callOiPercent}%"></div>
+              </div>
+            </td>
+            <td class="${option.callOiChg >= 0 ? 'positive' : 'negative'}">
+              ${option.callOiChg >= 0 ? '+' : ''}${formatNumber(option.callOiChg)}
+            </td>
+            <td>${formatNumber(option.callVol)}</td>
+            <td>${option.callIv?.toFixed(1) || '--'}</td>
+            <td class="call-data">₹${option.callLtp?.toFixed(2) || '--'}</td>
+            <td class="${option.callChange >= 0 ? 'positive' : 'negative'}">
+              ${option.callChange >= 0 ? '+' : ''}${option.callChange?.toFixed(2) || '--'}%
+            </td>
+            
+            <!-- Strike -->
+            <td class="strike-cell">
+              ${isAtm ? '<div class="atm-marker"></div>' : ''}
+              ${strike.toLocaleString('en-IN')}
+              ${isAtm ? '<br><small style="color: var(--atm-border)">ATM</small>' : ''}
+            </td>
+            
+            <!-- Put Side -->
+            <td class="${option.putChange >= 0 ? 'positive' : 'negative'}">
+              ${option.putChange >= 0 ? '+' : ''}${option.putChange?.toFixed(2) || '--'}%
+            </td>
+            <td class="put-data">₹${option.putLtp?.toFixed(2) || '--'}</td>
+            <td>${option.putIv?.toFixed(1) || '--'}</td>
+            <td>${formatNumber(option.putVol)}</td>
+            <td class="${option.putOiChg >= 0 ? 'positive' : 'negative'}">
+              ${option.putOiChg >= 0 ? '+' : ''}${formatNumber(option.putOiChg)}
+            </td>
+            <td>
+              <div>${formatNumber(option.putOi)}</div>
+              <div class="oi-bar">
+                <div class="oi-fill oi-fill-put" style="width: ${putOiPercent}%"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Scroll to ATM strike
+      setTimeout(() => {
+        const atmRow = tbody.querySelector('.atm-row');
+        if (atmRow && tbody.parentElement) {
+          const container = tbody.parentElement;
+          const rowTop = atmRow.offsetTop;
+          const containerHeight = container.clientHeight;
+          container.scrollTop = Math.max(0, rowTop - containerHeight / 2);
+        }
+      }, 100);
+    }
+
+    // Update Stats Cards
+    function updateStats(data) {
+      const { spotPrice, pcr, totalCallOi, totalPutOi, maxPain } = data;
+      const symbolConfig = CONFIG[currentSymbol] || CONFIG.NIFTY;
+      const atmStrike = Math.round(spotPrice / symbolConfig.step) * symbolConfig.step;
+
+      // Spot Price
+      document.getElementById('spotPrice').textContent = `₹${spotPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+      
+      const change = data.change || 0;
+      const changePercent = data.changePercent || 0;
+      const changeEl = document.getElementById('spotChange');
+      changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePercent.toFixed(2)}%)`;
+      changeEl.className = `stat-sub ${change >= 0 ? 'positive' : 'negative'}`;
+
+      // PCR
+      document.getElementById('pcrValue').textContent = pcr.toFixed(2);
+      const sentiment = getPCRSentiment(pcr);
+      document.getElementById('pcrSentiment').textContent = sentiment.text;
+      document.getElementById('pcrSentiment').className = `stat-sub ${sentiment.class}`;
+
+      // Total OI
+      document.getElementById('totalCallOi').textContent = formatLargeNumber(totalCallOi);
+      document.getElementById('totalPutOi').textContent = formatLargeNumber(totalPutOi);
+
+      // Max Pain
+      document.getElementById('maxPain').textContent = maxPain.toLocaleString('en-IN');
+
+      // ATM Strike
+      document.getElementById('atmStrike').textContent = atmStrike.toLocaleString('en-IN');
+    }
+
+    // Get PCR Sentiment
+    function getPCRSentiment(pcr) {
+      if (pcr > 1.4) return { text: 'Strong Bullish', class: 'positive' };
+      if (pcr > 1.05) return { text: 'Mild Bullish', class: 'positive' };
+      if (pcr > 0.85) return { text: 'Neutral', class: '' };
+      if (pcr > 0.6) return { text: 'Bearish', class: 'negative' };
+      return { text: 'Extreme Bearish', class: 'negative' };
+    }
+
+    // Format Numbers
+    function formatNumber(num) {
+      if (num === null || num === undefined) return '--';
+      if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Cr`;
+      if (num >= 100000) return `${(num / 1000).toFixed(1)}K`;
+      return num.toLocaleString('en-IN');
+    }
+
+    function formatLargeNumber(num) {
+      if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Cr`;
+      if (num >= 100000) return `${(num / 1000).toFixed(1)}K`;
+      return num.toLocaleString('en-IN');
+    }
+
+    // UI Helpers
+    function showLoading() {
+      const tbody = document.getElementById('optionChainBody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="13">
+            <div class="loading">
+              <div class="spinner"></div>
+              <span>Fetching live data from NSE...</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function showError(message) {
+      const tbody = document.getElementById('optionChainBody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="13" style="text-align: center; padding: 40px; color: var(--call-color);">
+            ⚠️ Failed to load data: ${message}<br>
+            <small>Using fallback simulated data</small><br>
+            <button onclick="loadOptionChain()" style="margin-top: 10px;">Retry</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    function updateLastRefresh() {
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('en-IN');
+    }
+
+    // Auto Refresh
+    function startAutoRefresh() {
+      refreshTimer = setInterval(() => {
+        loadOptionChain();
+      }, 60000); // 60 seconds
+    }
+
+    function toggleAutoRefresh() {
+      autoRefreshEnabled = !autoRefreshEnabled;
+      if (autoRefreshEnabled) {
+        startAutoRefresh();
+      } else {
+        clearInterval(refreshTimer);
+      }
+    }
+  </script>
+</body>
+</html>
