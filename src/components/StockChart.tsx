@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from './ThemeContext';
-import { TrendingUp, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { getTVSymbol } from '../utils/tradingView';
 
 interface StockChartProps {
@@ -44,19 +44,37 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     return getTVSymbol(cleanSymbol);
   }, [symbol]);
 
-  const iframeSrc = React.useMemo(() => {
-    const params = new URLSearchParams({
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mount TradingView's official Advanced Chart embed widget. We recreate it
+  // whenever the symbol, interval or theme changes.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
+
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.type = 'text/javascript';
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      autosize: true,
       symbol: mappedSymbol,
       interval: interval,
-      theme: theme === 'dark' ? 'dark' : 'light',
-      style: '1', // 1 indicates candle representation
       timezone: 'Asia/Kolkata',
+      theme: theme === 'dark' ? 'dark' : 'light',
+      style: '1',
       locale: 'en',
-      enable_publishing: 'false',
-      hide_side_toolbar: 'false',
-      allow_symbol_change: 'true',
+      allow_symbol_change: true,
+      support_host: 'https://www.tradingview.com',
     });
-    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+
+    container.appendChild(script);
+
+    return () => {
+      container.innerHTML = '';
+    };
   }, [mappedSymbol, interval, theme]);
 
   return (
@@ -93,17 +111,12 @@ export default function StockChart({ symbol, name }: StockChartProps) {
         </div>
       </div>
 
-      {/* TradingView Container - Embed direct iframe */}
-      <div className="w-full h-[500px] rounded-lg overflow-hidden border border-slate-250 dark:border-slate-850 bg-slate-50 dark:bg-slate-900" id="tradingview-widget-container">
-        <iframe
-          key={iframeSrc}
-          src={iframeSrc}
-          title={`TradingView chart for ${mappedSymbol}`}
-          className="w-full h-full border-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
-          referrerPolicy="no-referrer"
-        />
-      </div>
+      {/* TradingView Advanced Chart embed widget */}
+      <div
+        ref={containerRef}
+        className="tradingview-widget-container w-full h-[500px] rounded-lg overflow-hidden border border-slate-250 dark:border-slate-850 bg-slate-50 dark:bg-slate-900"
+        id="tradingview-widget-container"
+      />
     </div>
   );
 }

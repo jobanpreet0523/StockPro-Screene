@@ -1,9 +1,11 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getMarketStatus } from '../utils/marketStatus';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const market = getMarketStatus();
 
   useEffect(() => {
     // Intercept vanilla links in the injected HTML to use React Router
@@ -84,12 +86,12 @@ export default function LandingPage() {
 
       <!-- Right Side Actions & Real-Time Status -->
       <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 bg-amber-50 border border-amber-200/60 px-3 py-1 rounded" title="Simulated data for demonstration">
+        <div class="flex items-center gap-2 px-3 py-1 rounded border" style="background:${market.color}1a;border-color:${market.color}55;" title="Live NSE market status">
           <span class="relative flex h-1.5 w-1.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background:${market.color}"></span>
+            <span class="relative inline-flex rounded-full h-1.5 w-1.5" style="background:${market.color}"></span>
           </span>
-          <span class="text-amber-700 font-extrabold tracking-wider text-[10px] font-mono">● DEMO MODE</span>
+          <span class="font-extrabold tracking-wider text-[10px] font-mono" style="color:${market.color}">${market.label}</span>
         </div>
         
         <!-- Primary Blue Button to launch the react screen -->
@@ -204,7 +206,7 @@ export default function LandingPage() {
                 href="#pricing-section" 
                 class="bg-transparent hover:bg-white/5 border border-slate-600 text-slate-300 font-extrabold text-xs px-6 py-3.5 rounded transition-all duration-300 hover:scale-105 hover:brightness-110 font-mono tracking-wider text-center backdrop-blur-sm"
               >
-                REQUEST A DEMO
+                VIEW PRICING
               </a>
               <a 
                 href="/screener" 
@@ -2685,7 +2687,7 @@ export default function LandingPage() {
               </span>
             </summary>
             <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              Our platform uses NSE's official data APIs and Yahoo Finance feeds. Demo mode shows simulated data representative of real market conditions. Pro subscribers get access to live delayed feeds.
+              Our platform uses NSE's official data APIs and Yahoo Finance feeds to deliver real, live market data. Prices, indices and option chains refresh automatically throughout the trading session.
             </p>
           </details>
 
@@ -2701,7 +2703,7 @@ export default function LandingPage() {
               </span>
             </summary>
             <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              Yes, the Basic plan is free forever with demo data. Pro Trader at ₹999/month includes live data feeds and advanced tools.
+              Yes, the Basic plan is free forever with live market data. Pro Trader at ₹999/month adds advanced analytics, alerts and priority data feeds.
             </p>
           </details>
 
@@ -2965,7 +2967,7 @@ export default function LandingPage() {
         <!-- Financial Risk Disclaimer -->
         <div class="border-t border-gray-250 mt-8 pt-8 space-y-4">
           <p class="text-[10px] text-gray-500 leading-relaxed font-sans font-normal">
-            <strong>Mandatory Financial Risk Disclosure:</strong> Derivatives and Options trading involve substantial risk of loss and are not suitable for every investor. Past performance is not indicative of future market results. High-frequency algorithmic signals represent simulated mathematical outputs and should not be treated as absolute advisory coordinates.
+            <strong>Mandatory Financial Risk Disclosure:</strong> Derivatives and Options trading involve substantial risk of loss and are not suitable for every investor. Past performance is not indicative of future market results. High-frequency algorithmic signals represent computational mathematical outputs and should not be treated as absolute advisory coordinates.
           </p>
           <div class="flex flex-col md:flex-row md:items-center justify-between text-[11px] text-gray-500 font-mono gap-4">
             <span>&copy; 2026 StockPro ProPicks Analytics — F&O Services. All Sovereign Rights Reserved.</span>

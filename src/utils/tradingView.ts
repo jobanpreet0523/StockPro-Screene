@@ -1,10 +1,11 @@
-const BSE_MAP: Record<string, string> = {
-  RELIANCE:'BSE:500325', TCS:'BSE:532540', INFY:'BSE:500209',
-  HDFCBANK:'BSE:500180', ICICIBANK:'BSE:532174', BHARTIARTL:'BSE:532454',
-  ITC:'BSE:500875', LT:'BSE:500510', WIPRO:'BSE:507685',
-  AXISBANK:'BSE:532215', KOTAKBANK:'BSE:500247', MARUTI:'BSE:532500',
-  SUNPHARMA:'BSE:524715', BAJFINANCE:'BSE:500034', TITAN:'BSE:500114',
-  TECHM:'BSE:532755', DRREDDY:'BSE:500124', ONGC:'BSE:500312', SBIN:'BSE:500112'
-};
+// TradingView uses ticker-based symbols (e.g. NSE:RELIANCE, NASDAQ:AAPL),
+// not numeric BSE scrip codes, so we map each symbol to its exchange-prefixed ticker.
+const US_NASDAQ = new Set([
+  'AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'NFLX', 'AMD', 'INTC',
+]);
 
-export const getTVSymbol = (s: string) => BSE_MAP[s] || `NSE:${s}`;
+export const getTVSymbol = (s: string) => {
+  const sym = s.toUpperCase().replace('.NS', '').replace('.BO', '');
+  if (US_NASDAQ.has(sym)) return `NASDAQ:${sym}`;
+  return `NSE:${sym}`;
+};
