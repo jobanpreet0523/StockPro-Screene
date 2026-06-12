@@ -23,7 +23,6 @@ export default function StockChart({ symbol, name }: StockChartProps) {
   const mappedSymbol = React.useMemo(() => {
     let target = symbol || 'RELIANCE';
     
-    // Clean up symbol to get the core symbol name
     let cleanSymbol = target;
     if (cleanSymbol.includes(':')) {
       cleanSymbol = cleanSymbol.split(':')[1];
@@ -35,7 +34,6 @@ export default function StockChart({ symbol, name }: StockChartProps) {
       cleanSymbol = cleanSymbol.replace('.BO', '');
     }
     
-    // Check if it matches index symbols or US indexes
     if (target === '^NSEI' || cleanSymbol === 'NIFTY') return 'NSE:NIFTY';
     if (target === '^NSEBANK' || cleanSymbol === 'BANKNIFTY') return 'NSE:BANKNIFTY';
     if (target === '^BSESN' || cleanSymbol === 'SENSEX') return 'BSE:SENSEX';
@@ -46,8 +44,6 @@ export default function StockChart({ symbol, name }: StockChartProps) {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Mount TradingView's official Advanced Chart embed widget. We recreate it
-  // whenever the symbol, interval or theme changes.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -55,19 +51,30 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
 
     const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
     script.type = 'text/javascript';
     script.async = true;
     script.innerHTML = JSON.stringify({
-      autosize: true,
-      symbol: mappedSymbol,
-      interval: interval,
-      timezone: 'Asia/Kolkata',
-      theme: theme === 'dark' ? 'dark' : 'light',
-      style: '1',
+      symbols: [[`${mappedSymbol}|${interval === '5' ? '1D' : interval === '15' ? '1D' : interval === '60' ? '1D' : interval === 'D' ? '1D' : '1W'}`]],
+      chartOnly: true,
+      width: '100%',
+      height: '100%',
       locale: 'en',
-      allow_symbol_change: true,
-      support_host: 'https://www.tradingview.com',
+      colorTheme: theme === 'dark' ? 'dark' : 'light',
+      autosize: true,
+      showVolume: true,
+      showMA: false,
+      hideDateRanges: false,
+      hideMarketStatus: true,
+      hideSymbolLogo: false,
+      scalePosition: 'right',
+      scaleMode: 'Normal',
+      fontFamily: '-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif',
+      fontSize: '10',
+      noTimeScale: false,
+      valuesTracking: '1',
+      changeMode: 'price-and-percent',
+      chartType: 'candlesticks',
     });
 
     container.appendChild(script);
@@ -111,7 +118,7 @@ export default function StockChart({ symbol, name }: StockChartProps) {
         </div>
       </div>
 
-      {/* TradingView Advanced Chart embed widget */}
+      {/* TradingView Symbol Overview embed widget */}
       <div
         ref={containerRef}
         className="tradingview-widget-container w-full h-[500px] rounded-lg overflow-hidden border border-slate-250 dark:border-slate-850 bg-slate-50 dark:bg-slate-900"

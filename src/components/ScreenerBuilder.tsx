@@ -1480,14 +1480,40 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
                    <X size={16} />
                 </button>
               </div>
-              <div className="flex-1 w-full bg-slate-100 flex items-center justify-center relative">
-                 <iframe 
-                    src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_1&symbol=${mappedModalSymbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FKolkata&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${mappedModalSymbol}`}
-                    width="100%"
-                    height="100%"
-                    allowFullScreen
-                    className="bg-black"
-                    style={{border: 'none'}}
+              <div className="flex-1 w-full bg-slate-100 dark:bg-slate-900 relative">
+                 <div
+                   ref={(el) => {
+                     if (!el) return;
+                     el.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
+                     const s = document.createElement('script');
+                     s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
+                     s.type = 'text/javascript';
+                     s.async = true;
+                     s.innerHTML = JSON.stringify({
+                       symbols: [[`${mappedModalSymbol}|1D`]],
+                       chartOnly: true,
+                       width: '100%',
+                       height: '100%',
+                       locale: 'en',
+                       colorTheme: 'dark',
+                       autosize: true,
+                       showVolume: true,
+                       showMA: false,
+                       hideDateRanges: false,
+                       hideMarketStatus: true,
+                       hideSymbolLogo: false,
+                       scalePosition: 'right',
+                       scaleMode: 'Normal',
+                       fontFamily: '-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif',
+                       fontSize: '10',
+                       noTimeScale: false,
+                       valuesTracking: '1',
+                       changeMode: 'price-and-percent',
+                       chartType: 'candlesticks',
+                     });
+                     el.appendChild(s);
+                   }}
+                   className="tradingview-widget-container w-full h-full"
                  />
               </div>
             </div>
