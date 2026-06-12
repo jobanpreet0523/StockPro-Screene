@@ -9,16 +9,16 @@ interface StockChartProps {
 }
 
 const INTERVALS = [
-  { label: '5m', value: '5' },
-  { label: '15m', value: '15' },
-  { label: '1H', value: '60' },
-  { label: 'D', value: 'D' },
-  { label: 'W', value: 'W' },
+  { label: '1D', value: '1D' },
+  { label: '5D', value: '5D' },
+  { label: '1M', value: '1M' },
+  { label: '3M', value: '3M' },
+  { label: '12M', value: '12M' },
 ];
 
 export default function StockChart({ symbol, name }: StockChartProps) {
   const { theme } = useTheme();
-  const [interval, setIntervalVal] = useState<string>('D');
+  const [interval, setIntervalVal] = useState<string>('3M');
 
   const mappedSymbol = React.useMemo(() => {
     let target = symbol || 'RELIANCE';
@@ -55,7 +55,7 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     script.type = 'text/javascript';
     script.async = true;
     script.innerHTML = JSON.stringify({
-      symbols: [[`${mappedSymbol}|${interval === '5' ? '1D' : interval === '15' ? '1D' : interval === '60' ? '1D' : interval === 'D' ? '1D' : '1W'}`]],
+      symbols: [[`${mappedSymbol}|${interval}`]],
       chartOnly: true,
       width: '100%',
       height: '100%',
