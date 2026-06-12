@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen, SlidersHorizontal, ChevronDown, FolderHeart, Globe, Settings2, Calculator } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen, SlidersHorizontal, ChevronDown, FolderHeart, Globe, Settings2, Calculator, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,8 +9,8 @@ import { getMarketStatus } from '../utils/marketStatus';
 interface HeaderProps {
   indices: IndexData[];
   stocks: Stock[];
-  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii';
-  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii') => void;
+  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals';
+  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
@@ -26,6 +27,7 @@ export default function Header({
 }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, loginWithGoogle, logout, isPro } = useAuth();
+  const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showApiModal, setShowApiModal] = useState(false);
   const [prevPrices, setPrevPrices] = useState<Record<string, number>>({});
@@ -337,6 +339,17 @@ export default function Header({
               FII/DII Data
             </button>
             <button
+              onClick={() => setActiveTab('signals')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
+                activeTab === 'signals'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Zap size={14} className="text-emerald-500" />
+              Signals
+            </button>
+            <button
               onClick={() => setActiveTab('deals')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'deals'
@@ -414,11 +427,9 @@ export default function Header({
                               return `${ind}${op}${cond.value}`;
                             }).join('|');
                             
-                            // Go to screener tab and trigger URL load
-                            setActiveTab('screener');
+                            // Navigate to the scanner builder with the encoded conditions
                             setShowScannersDropdown(false);
-                            const nextUrl = `${window.location.origin}/screener?c=${encodeURIComponent(encoded)}`;
-                            window.history.pushState({}, '', nextUrl);
+                            navigate(`/scanner?c=${encodeURIComponent(encoded)}`);
                             // Dispatch event so ScreenerBuilder picks up the loaded condition profile instantly
                             window.dispatchEvent(new Event('stockpro_scanners_updated'));
                           }}

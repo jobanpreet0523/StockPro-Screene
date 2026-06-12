@@ -44,8 +44,6 @@ export function useLiveStocks() {
         isFoEnabled: true
       }));
 
-      // Keep AAPL, TSLA, MSFT, NVDA from INITIAL_STOCKS just in case they are expected by UI
-      // Or just replace with the fetched ones. The user said "Replace ALL hardcoded demo data"
       setStocks(liveData);
       setError(null);
     } catch (err: any) {

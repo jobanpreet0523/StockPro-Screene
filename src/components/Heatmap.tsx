@@ -243,15 +243,7 @@ export default function Heatmap() {
           </div>
         ) : groupSector ? (
           /* Sector View */
-          Object.entries(SECTOR_MAP).reduce((acc: Record<string, StockData[]>, [sym, sec]) => {
-            const shortSym = sym.replace('.NS', '');
-            const stock = stocks.find(s => s.symbol === shortSym);
-            if (stock) {
-              if (!acc[sec]) acc[sec] = [];
-              acc[sec].push(stock);
-            }
-            return acc;
-          }, {} as Record<string, StockData[]>).constructor.entries ? (
+          stocks.length > 0 ? (
             <div className="w-full flex justify-between content-start flex-row flex-wrap gap-3">
               {Object.entries(
                 stocks.reduce((acc, stock) => {
