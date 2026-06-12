@@ -9,9 +9,9 @@ export function useMarketIndices() {
 
   const fetchIndices = async () => {
     try {
-      const url = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=^NSEI,^NSEBANK,^CNXIT,USDINR=X,^VIX';
+      const url = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=^NSEI,^NSEBANK,^CNXIT,USDINR=X,^VIX,GC=F,CL=F';
       const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxy);
+      const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) throw new Error('Failed to fetch from proxy');
       
       const raw = await res.json();
@@ -29,6 +29,8 @@ export function useMarketIndices() {
         if (q.symbol === '^CNXIT') name = 'NIFTY IT';
         if (q.symbol === 'USDINR=X') name = 'USD/INR';
         if (q.symbol === '^VIX') name = 'INDIA VIX';
+        if (q.symbol === 'GC=F') name = 'GOLD';
+        if (q.symbol === 'CL=F') name = 'CRUDE OIL';
 
         return {
           symbol: q.symbol,
