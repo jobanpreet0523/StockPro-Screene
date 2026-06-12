@@ -10,19 +10,32 @@ export function useLiveStocks() {
   const fetchLiveStocks = async () => {
     try {
       setLoading(true);
-      const symbolsList = 'RELIANCE.NS,TCS.NS,INFY.NS,HDFCBANK.NS,ICICIBANK.NS,BHARTIARTL.NS,ITC.NS,LT.NS,KOTAKBANK.NS,AXISBANK.NS,WIPRO.NS,MARUTI.NS,SUNPHARMA.NS,BAJFINANCE.NS,TITAN.NS,TECHM.NS,DRREDDY.NS,ONGC.NS,SBIN.NS,NESTLEIND.NS';
+      const symbolsList = 'RELIANCE.NS,TCS.NS,INFY.NS,HDFCBANK.NS,ICICIBANK.NS,BHARTIARTL.NS,ITC.NS,LT.NS,KOTAKBANK.NS,AXISBANK.NS,WIPRO.NS,MARUTI.NS,SUNPHARMA.NS,BAJFINANCE.NS,TITAN.NS,TECHM.NS,DRREDDY.NS,ONGC.NS,SBIN.NS,NESTLEIND.NS,HINDUNILVR.NS,BAJAJFINSV.NS,ASIANPAINT.NS,ULTRACEMCO.NS,TATAMOTORS.NS,JSWSTEEL.NS,NTPC.NS,POWERGRID.NS,COALINDIA.NS,TATASTEEL.NS';
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbolsList}`;
-      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxy);
-      if (!res.ok) throw new Error('Failed to fetch from proxy');
-      
-      const raw = await res.json();
-      if (!raw.contents) throw new Error('No contents in response');
-      
-      const parsed = JSON.parse(raw.contents);
-      const quotes = parsed?.quoteResponse?.result || [];
-      
-      if (quotes.length === 0) throw new Error('Empty quotes array');
+      const proxies = [
+        `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      ];
+
+      let quotes: any[] | null = null;
+      for (const proxy of proxies) {
+        try {
+          const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+          if (!res.ok) continue;
+          const raw = await res.json();
+          const content = raw.contents ?? raw;
+          const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+          const result = parsed?.quoteResponse?.result;
+          if (result?.length) {
+            quotes = result;
+            break;
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      if (!quotes?.length) throw new Error('All proxies failed or returned empty quotes');
 
       const liveData: Stock[] = quotes.map((q: any) => ({
         symbol: q.symbol,
