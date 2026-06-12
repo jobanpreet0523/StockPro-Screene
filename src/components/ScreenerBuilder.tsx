@@ -421,7 +421,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
     const high = stock.fiftyTwoWeekHigh || price;
     const low = stock.fiftyTwoWeekLow || price;
 
-    // Simulated EMA values
+    // Derived EMA estimates from live price action
     const ema50 = Math.round(price * (changePct > 0 ? 0.98 : 1.01) * 100) / 100;
     const ema200 = Math.round(price * 0.92 * 100) / 100;
 

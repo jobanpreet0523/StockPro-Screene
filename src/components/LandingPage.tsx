@@ -1,11 +1,16 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMarketStatus } from '../utils/marketStatus';
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const market = getMarketStatus();
+  const [market, setMarket] = useState(() => getMarketStatus());
+
+  useEffect(() => {
+    const id = setInterval(() => setMarket(getMarketStatus()), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     // Intercept vanilla links in the injected HTML to use React Router
