@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTVSymbol } from '../utils/tradingView';
+import { useTheme } from './ThemeContext';
 import { 
   Play, 
   Trash2, 
@@ -61,6 +62,70 @@ interface PrebuiltScanner {
   sortOrder?: 'asc' | 'desc';
 }
 
+function ChartModal({ symbol, theme, onClose }: { symbol: string; theme: string; onClose: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const mappedSymbol = useMemo(() => {
+    let clean = symbol;
+    if (clean.includes(':')) clean = clean.split(':')[1];
+    if (clean.endsWith('.NS')) clean = clean.replace('.NS', '');
+    if (clean.endsWith('.BO')) clean = clean.replace('.BO', '');
+    return getTVSymbol(clean);
+  }, [symbol]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
+    const s = document.createElement('script');
+    s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
+    s.type = 'text/javascript';
+    s.async = true;
+    s.innerHTML = JSON.stringify({
+      symbols: [[`${mappedSymbol}|3M`]],
+      chartOnly: true,
+      width: '100%',
+      height: '100%',
+      locale: 'en',
+      colorTheme: theme === 'dark' ? 'dark' : 'light',
+      autosize: true,
+      showVolume: true,
+      showMA: false,
+      hideDateRanges: false,
+      hideMarketStatus: true,
+      hideSymbolLogo: false,
+      scalePosition: 'right',
+      scaleMode: 'Normal',
+      fontFamily: '-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif',
+      fontSize: '10',
+      noTimeScale: false,
+      valuesTracking: '1',
+      changeMode: 'price-and-percent',
+      chartType: 'candlesticks',
+    });
+    el.appendChild(s);
+    return () => { el.innerHTML = ''; };
+  }, [mappedSymbol, theme]);
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fadeIn">
+      <div className="bg-white dark:bg-slate-950 rounded-2xl w-[90vw] h-[80vh] flex flex-col shadow-2xl relative overflow-hidden">
+        <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 border-opacity-50">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-800 dark:text-white uppercase font-sans text-sm tracking-wider">TradingView Chart: <span className="text-emerald-500">{mappedSymbol}</span></span>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-rose-500 transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex-1 w-full bg-slate-100 dark:bg-slate-900 relative">
+          <div ref={containerRef} className="tradingview-widget-container w-full h-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const PREBUILT_SCANNERS: PrebuiltScanner[] = [
   {
     id: 'pb-rsi-oversold',
@@ -106,6 +171,7 @@ const PREBUILT_SCANNERS: PrebuiltScanner[] = [
 
 export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSelectFoStock }: ScreenerBuilderProps) {
   const { user, loginWithGoogle, isPro } = useAuth();
+  const { theme } = useTheme();
   
   // Logic toggle (AND / OR)
   const [logicalOperator, setLogicalOperator] = useState<'AND' | 'OR'>('AND');
@@ -1458,42 +1524,8 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
         </div>
       </div>
 
-      {/* Save Scanner Modal Container */}
-      {chartModalSymbol && (() => {
-        let cleanSymbol = chartModalSymbol;
-        if (cleanSymbol.includes(':')) {
-          cleanSymbol = cleanSymbol.split(':')[1];
-        }
-        if (cleanSymbol.endsWith('.NS')) {
-          cleanSymbol = cleanSymbol.replace('.NS', '');
-        }
-        const mappedModalSymbol = getTVSymbol(cleanSymbol);
-
-        return (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fadeIn">
-            <div className="bg-white dark:bg-slate-950 rounded-2xl w-[90vw] h-[80vh] flex flex-col shadow-2xl relative overflow-hidden">
-              <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 border-opacity-50">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800 dark:text-white uppercase font-sans text-sm tracking-wider">TradingView Chart: <span className="text-emerald-500">{mappedModalSymbol}</span></span>
-                </div>
-                <button onClick={() => setChartModalSymbol(null)} className="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-rose-500 transition-colors">
-                   <X size={16} />
-                </button>
-              </div>
-              <div className="flex-1 w-full bg-slate-100 flex items-center justify-center relative">
-                 <iframe 
-                    src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_1&symbol=${mappedModalSymbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Asia%2FKolkata&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=${mappedModalSymbol}`}
-                    width="100%"
-                    height="100%"
-                    allowFullScreen
-                    className="bg-black"
-                    style={{border: 'none'}}
-                 />
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Chart Modal */}
+      {chartModalSymbol && <ChartModal symbol={chartModalSymbol} theme={theme} onClose={() => setChartModalSymbol(null)} />}
 
       {/* Save Scanner Modal Container */}
       {showSaveModal && (
