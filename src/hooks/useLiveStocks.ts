@@ -1,31 +1,40 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from './useNSEProxy';
+import { useState, useEffect } from 'react';
+import { Stock } from '../types';
+import { INITIAL_STOCKS } from '../data';
 
-export interface StockQuote {
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  volume: number;
-  marketCap: number;
-  peRatio: number;
-  sector: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  exchange: string;
-  isFoEnabled: boolean;
-  buildup?: string;
-}
+const API_BASE = ''; // Same origin — Cloudflare Worker Functions handle /api/*
 
 export function useLiveStocks() {
-  return useQuery({
-    queryKey: ['stocks'],
-    queryFn: ({ signal }) => apiFetch<{ status: string; source: string; count: number; data: StockQuote[] }>('/api/stocks', { signal }),
-    refetchInterval: 60_000,
-    staleTime: 30_000,
-    retry: 3,
-  });
+  const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchLiveStocks = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/api/stocks`, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) throw new Error('API fetch failed');
+      const json = await res.json();
+
+      if (json.data && json.data.length > 0) {
+        setStocks(json.data);
+        setError(null);
+      } else {
+        throw new Error('Empty data from API');
+      }
+    } catch (err: any) {
+      console.error('fetchLiveStocks error:', err);
+      setError(err.message || 'Failed to fetch live data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveStocks();
+    const interval = setInterval(fetchLiveStocks, 60000); // Refresh every 60s
+    return () => clearInterval(interval);
+  }, []);
+
+  return { stocks, loading, error, retry: fetchLiveStocks };
 }
