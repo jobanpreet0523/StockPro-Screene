@@ -1,10 +1,10 @@
 import { Stock, IndexData, OptionData, OptionChain, ChartDataPoint } from './types';
 
 export const INITIAL_INDICES: IndexData[] = [
-  { symbol: '^NSEI', name: 'NIFTY 50', price: 24892.50, change: 145.30, changePercent: 0.58, sparkline: [24750, 24810, 24800, 24850, 24840, 24890, 24892.50] },
-  { symbol: '^NSEBANK', name: 'BANK NIFTY', price: 49812.60, change: -230.15, changePercent: -0.46, sparkline: [50050, 50120, 49950, 49900, 49780, 49830, 49812] },
-  { symbol: '^BSESN', name: 'SENSEX', price: 76693.35, change: 485.10, changePercent: 0.64, sparkline: [76200, 76350, 76300, 76480, 76450, 76600, 76693] },
-  { symbol: '^IXIC', name: 'NASDAQ', price: 17132.80, change: 164.20, changePercent: 0.97, sparkline: [16950, 16980, 17020, 17050, 17100, 17080, 17132] }
+  { symbol: '^NSEI', name: 'NIFTY 50', price: 0, change: 0, changePercent: 0, sparkline: [] },
+  { symbol: '^NSEBANK', name: 'BANK NIFTY', price: 0, change: 0, changePercent: 0, sparkline: [] },
+  { symbol: '^BSESN', name: 'SENSEX', price: 0, change: 0, changePercent: 0, sparkline: [] },
+  { symbol: '^CNXIT', name: 'NIFTY IT', price: 0, change: 0, changePercent: 0, sparkline: [] },
 ];
 
 export const INITIAL_STOCKS: Stock[] = [
@@ -117,82 +117,6 @@ export const INITIAL_STOCKS: Stock[] = [
     futuresOi: 31200000,
     futuresOiChange: -3.4,
     buildup: 'Short Covering'
-  },
-  {
-    symbol: 'AAPL',
-    name: 'Apple Inc.',
-    price: 196.89,
-    change: 2.54,
-    changePercent: 1.31,
-    volume: 54200000,
-    marketCap: 3010000, // USD Millions
-    peRatio: 30.5,
-    rsi: 65.1,
-    dividendYield: 0.49,
-    sector: 'Technology',
-    open: 194.20,
-    high: 197.80,
-    low: 194.00,
-    close: 194.35,
-    exchange: 'NASDAQ',
-    isFoEnabled: false
-  },
-  {
-    symbol: 'TSLA',
-    name: 'Tesla Inc.',
-    price: 177.40,
-    change: -5.12,
-    changePercent: -2.81,
-    volume: 87500000,
-    marketCap: 565000,
-    peRatio: 45.2,
-    rsi: 38.4,
-    dividendYield: 0.00,
-    sector: 'Consumer Goods',
-    open: 182.50,
-    high: 183.10,
-    low: 176.20,
-    close: 182.52,
-    exchange: 'NASDAQ',
-    isFoEnabled: false
-  },
-  {
-    symbol: 'NVDA',
-    name: 'NVIDIA Corp.',
-    price: 1210.15,
-    change: 48.50,
-    changePercent: 4.17,
-    volume: 41200000,
-    marketCap: 2970000,
-    peRatio: 68.3,
-    rsi: 74.8,
-    dividendYield: 0.03,
-    sector: 'Technology',
-    open: 1170.10,
-    high: 1215.00,
-    low: 1168.00,
-    close: 1161.65,
-    exchange: 'NASDAQ',
-    isFoEnabled: false
-  },
-  {
-    symbol: 'MSFT',
-    name: 'Microsoft Corp.',
-    price: 423.85,
-    change: 3.10,
-    changePercent: 0.74,
-    volume: 18400000,
-    marketCap: 3150000,
-    peRatio: 35.8,
-    rsi: 59.8,
-    dividendYield: 0.71,
-    sector: 'Technology',
-    open: 421.10,
-    high: 425.20,
-    low: 420.50,
-    close: 420.75,
-    exchange: 'NASDAQ',
-    isFoEnabled: false
   },
   {
     symbol: 'LT.NS',
@@ -384,9 +308,6 @@ export function generateOptionChain(symbol: string, spotPrice: number, expiryDat
   const isNifty = cleanSymbol === '^NSEI' || cleanSymbol === 'NIFTY' || cleanSymbol === 'NIFTY50' || cleanSymbol === 'NIFTY 50';
 
   let resolvedSpot = spotPrice;
-  if (isNifty) {
-    resolvedSpot = 24892.50;
-  }
 
   // Option strike step depends on price scale
   let strikeStep = 50;
