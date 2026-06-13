@@ -181,7 +181,19 @@ async function handleAPI(path, url, request, env) {
         const meta = chart?.chart?.result?.[0]?.meta;
         if (meta?.regularMarketPrice) {
           const chain = buildFallbackChain(nseSymbol, meta.regularMarketPrice);
-          return new Response(JSON.stringify({ status: 'ok', source: 'yahoo_fallback', symbol: nseSymbol, data: { records: { underlyingValue: meta.regularMarketPrice, timestamp: new Date().toISOString(), data: chain.options.map(o => ({ strikePrice: o.strikePrice, CE: { lastPrice: o.callLtp, change: o.callChange, totalTradedVolume: o.callVol, openInterest: o.callOi, changeinOpenInterest: o.callOiChg, impliedVolatility: o.callIv }, PE: { lastPrice: o.putLtp, change: o.putChange, totalTradedVolume: o.putVol, openInterest: o.putOi, changeinOpenInterest: o.putOiChg, impliedVolatility: o.putIv } })), expiryDates: [chain.expiryDate], } }), { headers: jsonHeaders() });
+          const fallbackData = {
+            records: {
+              underlyingValue: meta.regularMarketPrice,
+              timestamp: new Date().toISOString(),
+              data: chain.options.map(o => ({
+                strikePrice: o.strikePrice,
+                CE: { lastPrice: o.callLtp, change: o.callChange, totalTradedVolume: o.callVol, openInterest: o.callOi, changeinOpenInterest: o.callOiChg, impliedVolatility: o.callIv },
+                PE: { lastPrice: o.putLtp, change: o.putChange, totalTradedVolume: o.putVol, openInterest: o.putOi, changeinOpenInterest: o.putOiChg, impliedVolatility: o.putIv },
+              })),
+              expiryDates: [chain.expiryDate],
+            },
+          };
+          return new Response(JSON.stringify({ status: 'ok', source: 'yahoo_fallback', symbol: nseSymbol, data: fallbackData }), { headers: jsonHeaders() });
         }
       } catch {}
       return new Response(JSON.stringify({ status: 'error', message: 'All data sources failed' }), { status: 502, headers: jsonHeaders() });
