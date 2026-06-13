@@ -8,6 +8,8 @@ export interface MarketNewsItem {
   pubDate: string;
 }
 
+const API_BASE = ''; // Same origin — Cloudflare Worker Functions handle /api/*
+
 export function useMarketNews() {
   const [articles, setArticles] = useState<MarketNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,36 +18,23 @@ export function useMarketNews() {
   const fetchNews = useCallback(async () => {
     try {
       setLoading(true);
-      const feeds = [
-        'https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms',
-        'https://www.moneycontrol.com/rss/latestnews.xml',
-      ];
+      const res = await fetch(`${API_BASE}/api/news`, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('News API failed');
+      const json = await res.json();
 
-      for (const feedUrl of feeds) {
-        try {
-          const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}&count=15`;
-          const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-          const data = await res.json();
-
-          if (data.status === 'ok' && data.items?.length > 0) {
-            const source = new URL(feedUrl).hostname.replace('www.', '');
-            const parsed = data.items.map((item: any) => ({
-              title: item.title?.trim(),
-              link: item.link,
-              time: new Date(item.pubDate).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata'}),
-              source,
-              pubDate: item.pubDate
-            }));
-            setArticles(parsed);
-            setError(null);
-            return;
-          }
-        } catch {
-          continue;
-        }
+      if (json.data && json.data.length > 0) {
+        const parsed = json.data.map((item: any) => ({
+          title: item.title?.trim(),
+          link: item.link,
+          time: new Date(item.pubDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+          source: item.source,
+          pubDate: item.pubDate,
+        }));
+        setArticles(parsed);
+        setError(null);
+      } else {
+        throw new Error('No news articles returned');
       }
-
-      throw new Error('Failed to load news data');
     } catch (err: any) {
       setError(err.message || 'Failed to fetch news feed');
     } finally {

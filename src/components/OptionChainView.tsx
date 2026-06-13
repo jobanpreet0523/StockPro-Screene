@@ -179,50 +179,33 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
       setLoading(true);
       const cleanSymbol = symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol;
       
-      // We prioritize index symbols like NIFTY, BANKNIFTY
       const upperSym = cleanSymbol.toUpperCase();
       const lookupSymbol = upperSym === 'RELIANCE' ? 'NIFTY' : (upperSym.includes('BANKNIFTY') || upperSym.includes('BANK') ? 'BANKNIFTY' : upperSym);
 
       try {
-        let nseJson: any = null;
-
-        // Attempt 1: Fetch from live worker proxy API
-        try {
-          const res = await fetch(`https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=${lookupSymbol}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && (data.records || data.filtered || data.data)) {
-              nseJson = data;
-            }
-          }
-        } catch (e) {
-          console.warn("Worker proxy lookup failed, attempting AllOrigins proxy as fallback...", e);
-        }
-
-        // Attempt 2: Fetch via allorigins.win proxy if Attempt 1 wasn't successful
-        if (!nseJson) {
-          const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.nseindia.com/api/option-chain-indices?symbol=${lookupSymbol}`)}`;
-          const res = await fetch(allOriginsUrl);
-          if (res.ok) {
-            const wrapper = await res.json();
-            if (wrapper.contents) {
-              nseJson = JSON.parse(wrapper.contents);
-            }
-          }
-        }
-
-        // Parse and construct standard OptionChain interface
-        if (nseJson) {
-          const parsed = parseNseOptionChain(nseJson, lookupSymbol);
-          if (parsed && parsed.options.length > 0) {
-            setChain(parsed);
-            setSelectedStrike(parsed.options[Math.floor(parsed.options.length / 2)]);
+        // Fetch from our server-side API (which handles NSE + Yahoo server-side)
+        const res = await fetch(`/api/option-chain/${lookupSymbol}`, { signal: AbortSignal.timeout(15000) });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status === 'ok' && json.data && json.data.options && json.data.options.length > 0) {
+            const chainData: OptionChain = {
+              symbol: json.data.symbol || lookupSymbol,
+              spotPrice: json.data.spotPrice,
+              pcr: json.data.pcr,
+              totalCallOi: json.data.totalCallOi,
+              totalPutOi: json.data.totalPutOi,
+              maxPain: json.data.maxPain,
+              expiryDate: json.data.expiryDate || 'Current',
+              options: json.data.options,
+            };
+            setChain(chainData);
+            setSelectedStrike(chainData.options[Math.floor(chainData.options.length / 2)]);
             setLoading(false);
             return;
           }
         }
 
-        throw new Error('Could not parse live NSE option chain payload');
+        throw new Error('Option chain API returned no data');
       } catch (err) {
         console.error("Option live sync error:", err);
         // Fallback option chain generation for serverless edge / static deploys

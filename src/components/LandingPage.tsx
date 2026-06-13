@@ -1,16 +1,85 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMarketStatus } from '../utils/marketStatus';
+
+interface LiveIndex {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  isPositive: boolean;
+}
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [market, setMarket] = useState(() => getMarketStatus());
+  const [liveIndices, setLiveIndices] = useState<LiveIndex[]>([]);
+  const [liveChain, setLiveChain] = useState<any>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setMarket(getMarketStatus()), 30000);
     return () => clearInterval(id);
   }, []);
+
+  // Fetch live data from our API
+  const fetchLiveData = useCallback(async () => {
+    try {
+      const [indicesRes, chainRes] = await Promise.allSettled([
+        fetch('/api/indices', { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/option-chain/NIFTY', { signal: AbortSignal.timeout(10000) }),
+      ]);
+
+      if (indicesRes.status === 'fulfilled' && indicesRes.value.ok) {
+        const indicesJson = await indicesRes.value.json();
+        if (indicesJson.data) setLiveIndices(indicesJson.data);
+      }
+
+      if (chainRes.status === 'fulfilled' && chainRes.value.ok) {
+        const chainJson = await chainRes.value.json();
+        if (chainJson.data) setLiveChain(chainJson.data);
+      }
+
+      setDataLoaded(true);
+    } catch (e) {
+      console.warn('Landing page live data fetch error:', e);
+      setDataLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLiveData();
+    const interval = setInterval(fetchLiveData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchLiveData]);
+
+  // Helper to get index data
+  const getNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEI') || { price: 24892.50, change: 145.30, changePercent: 0.58, isPositive: true };
+  const getBankNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEBANK') || { price: 52341.20, change: -62.80, changePercent: -0.12, isPositive: false };
+  const getFinNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEFN' || i.name?.includes('FIN')) || { price: 21450.00, change: 45.20, changePercent: 0.21, isPositive: true };
+
+  const nifty = getNifty();
+  const banknifty = getBankNifty();
+  const finnifty = getFinNifty();
+  const pcr = liveChain?.pcr || 1.34;
+  const maxPain = liveChain?.maxPain || 24900;
+  const spotPrice = nifty.price;
+  const totalCallOi = liveChain?.totalCallOi || 0;
+  const totalPutOi = liveChain?.totalPutOi || 0;
+  const options = liveChain?.options || [];
+  const atmStrike = Math.round(spotPrice / 50) * 50;
+
+  const fmtPrice = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtOI = (n: number) => {
+    if (n >= 10000000) return (n / 10000000).toFixed(2) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+  };
+  const chgBadge = (pct: number) => pct >= 0
+    ? `<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▲ +${pct.toFixed(2)}%</span>`
+    : `<span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▼ ${pct.toFixed(2)}%</span>`;
 
   useEffect(() => {
     // Intercept vanilla links in the injected HTML to use React Router
@@ -28,6 +97,43 @@ export default function LandingPage() {
     document.addEventListener('click', handleNavigation);
     return () => document.removeEventListener('click', handleNavigation);
   }, [navigate]);
+
+  // Build option chain rows HTML from live data
+  const chainRowsHtml = options.length > 0
+    ? options.filter(o => o.strikePrice >= atmStrike - 300 && o.strikePrice <= atmStrike + 300).map((opt: any) => {
+        const isATM = opt.strikePrice === atmStrike;
+        const isCallITM = spotPrice > opt.strikePrice;
+        const isPutITM = spotPrice < opt.strikePrice;
+        const atmClass = isATM ? 'border-2 border-emerald-500 bg-emerald-50/10' : 'hover:bg-slate-50/50 transition border-b border-gray-150';
+        const callBg = isCallITM ? 'bg-blue-50/20' : '';
+        const putBg = isPutITM ? 'bg-gray-100/40' : '';
+        const atmLabel = isATM ? '<span class="absolute top-0.5 right-1 text-[7px] bg-emerald-600 text-white font-extrabold px-1 rounded transform scale-75 whitespace-nowrap">ATM ACTIVE</span>' : '';
+        const ceOichgColor = (opt.callOiChg || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600';
+        const peOichgColor = (opt.putOiChg || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600';
+
+        return `<tr class="${atmClass}">
+          <td class="py-3 px-4 text-center ${callBg} ${ceOichgColor} font-bold font-mono">${(opt.callOiChg || 0) >= 0 ? '+' : ''}${fmtOI(opt.callOiChg || 0)}</td>
+          <td class="py-3 px-4 text-right ${callBg} font-mono">${fmtOI(opt.callVol || 0)}</td>
+          <td class="py-3 px-4 text-right ${callBg} font-mono">${(opt.callIv || 0).toFixed(1)}%</td>
+          <td class="py-3 px-4 text-right ${callBg} font-mono font-black text-slate-900 pr-6">₹${(opt.callLtp || 0).toFixed(1)}</td>
+          <td class="py-3 px-6 text-center font-bold text-slate-900 bg-gray-50 border-x border-gray-200 font-mono relative">${atmLabel}${opt.strikePrice.toLocaleString('en-IN')}</td>
+          <td class="py-3 px-4 text-left ${putBg} font-mono font-black text-slate-900 pl-6">₹${(opt.putLtp || 0).toFixed(1)}</td>
+          <td class="py-3 px-4 text-left ${putBg} font-mono">${(opt.putIv || 0).toFixed(1)}%</td>
+          <td class="py-3 px-4 text-left ${putBg} font-mono">${fmtOI(opt.putVol || 0)}</td>
+          <td class="py-3 px-4 text-center ${putBg} ${peOichgColor} font-bold font-mono">${(opt.putOiChg || 0) >= 0 ? '+' : ''}${fmtOI(opt.putOiChg || 0)}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="9" class="py-8 text-center text-slate-400 font-mono text-xs">Loading live option chain data...</td></tr>`;
+
+  // Build heatmap HTML from top stocks
+  const heatmapStocks = [
+    { name: 'BANKING', oiChg: '+3.42%', price: '+1.24%', vol: '1.4M', type: 'LBU', bg: 'bg-[#15803d]', text: 'text-white' },
+    { name: 'RELIANCE', oiChg: '+2.85%', price: '+0.95%', vol: '840K', type: 'LBU', bg: 'bg-[#15803d]', text: 'text-white' },
+    { name: 'IT INDEX', oiChg: '+1.20%', price: '+0.42%', vol: '1.1M', type: 'SC', bg: 'bg-[#dcfce7]', text: 'text-[#166534]' },
+    { name: 'AUTO INDEX', oiChg: '-2.80%', price: '-1.05%', vol: '920K', type: 'SBU', bg: 'bg-[#fee2e2]', text: 'text-[#991b1b]' },
+    { name: 'HDFC BANK', oiChg: '-1.52%', price: '-0.64%', vol: '2.1M', type: 'LU', bg: 'bg-[#fff1f2]', text: 'text-[#be123c]' },
+    { name: 'INFRA', oiChg: '+4.10%', price: '+2.38%', vol: '610K', type: 'LBU', bg: 'bg-[#15803d]', text: 'text-white' },
+  ];
 
   return <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
 
@@ -314,15 +420,13 @@ export default function LandingPage() {
                       <span class="text-[9px] bg-gray-100 text-gray-500 font-mono font-medium px-1 rounded">NEAR_FUT</span>
                     </div>
                     <div class="flex items-center gap-2.5">
-                      <span class="font-mono text-xs font-bold text-[#111827]">24,892.50</span>
-                      <span class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                        ▲ +0.85%
-                      </span>
+                      <span class="font-mono text-xs font-bold text-[#111827]">${fmtPrice(nifty.price)}</span>
+                      ${chgBadge(nifty.changePercent)}
                     </div>
                   </div>
                   <div class="mt-2 flex items-center justify-between text-[9.5px] font-mono text-slate-400">
-                    <span>Bid/Ask: <strong class="text-slate-700">24,891 / 24,893</strong></span>
-                    <span>OI Vol: <strong class="text-slate-700">421K Cr</strong></span>
+                    <span>Bid/Ask: <strong class="text-slate-700">${fmtPrice(nifty.price - 1)} / ${fmtPrice(nifty.price + 1)}</strong></span>
+                    <span>OI Vol: <strong class="text-slate-700">${totalCallOi > 0 ? fmtOI(totalCallOi) + ' Cr' : '421K Cr'}</strong></span>
                   </div>
                 </div>
                 
@@ -334,15 +438,13 @@ export default function LandingPage() {
                       <span class="text-[9px] bg-gray-100 text-gray-500 font-mono font-medium px-1 rounded">NEAR_FUT</span>
                     </div>
                     <div class="flex items-center gap-2.5">
-                      <span class="font-mono text-xs font-bold text-[#111827]">52,341.20</span>
-                      <span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                        ▼ -0.12%
-                      </span>
+                      <span class="font-mono text-xs font-bold text-[#111827]">${fmtPrice(banknifty.price)}</span>
+                      ${chgBadge(banknifty.changePercent)}
                     </div>
                   </div>
                   <div class="mt-2 flex items-center justify-between text-[9.5px] font-mono text-slate-400">
-                    <span>Bid/Ask: <strong class="text-slate-700">52,339 / 52,343</strong></span>
-                    <span>OI Vol: <strong class="text-slate-700">198K Cr</strong></span>
+                    <span>Bid/Ask: <strong class="text-slate-700">${fmtPrice(banknifty.price - 2)} / ${fmtPrice(banknifty.price + 2)}</strong></span>
+                    <span>OI Vol: <strong class="text-slate-700">${totalPutOi > 0 ? fmtOI(totalPutOi) + ' Cr' : '198K Cr'}</strong></span>
                   </div>
                 </div>
               </div>
@@ -408,7 +510,7 @@ export default function LandingPage() {
                   <!-- Put Call ratio tag badge -->
                   <div class="bg-[#111827] text-white rounded px-3 py-1 font-mono text-[11px] font-bold tracking-tight inline-flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Put-Call Ratio (PCR): <span class="text-emerald-400 font-black">1.34</span>
+                    Put-Call Ratio (PCR): <span class="text-emerald-400 font-black">${pcr.toFixed(2)}</span>
                   </div>
                   
                   <span class="text-gray-400 font-mono">Bull threshold (1.8)</span>
@@ -417,7 +519,7 @@ export default function LandingPage() {
             </div>
 
             <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-              <span>Sentiment Weighted Matrix: <strong class="text-emerald-600 font-bold">Strong Buy Protective Moat</strong></span>
+              <span>Sentiment Weighted Matrix: <strong class="text-emerald-600 font-bold">${pcr > 1.2 ? 'Strong Buy Protective Moat' : pcr >= 0.8 ? 'Neutral Consolidation' : 'Bearish Resistance Zone'}</strong></span>
               <span>Daily Update Complete</span>
             </div>
           </div>
@@ -712,8 +814,8 @@ export default function LandingPage() {
                   <div class="py-1">
                     <div class="text-[7px] uppercase text-slate-500">NIFTY 50 INDEX (PRO)</div>
                     <div class="text-[11px] font-black text-white flex items-center justify-between mt-0.5">
-                      <span>24,892.50</span>
-                      <span class="text-[7.5px] bg-emerald-500/10 text-emerald-400 px-1 rounded font-bold">+0.85%</span>
+                      <span>${fmtPrice(nifty.price)}</span>
+                      <span class="text-[7.5px] ${nifty.isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} px-1 rounded font-bold">${nifty.isPositive ? '+' : ''}${nifty.changePercent.toFixed(2)}%</span>
                     </div>
                   </div>
 
@@ -723,7 +825,7 @@ export default function LandingPage() {
                       <!-- Blue active wave -->
                       <path d="M 0 32 L 20 22 L 40 28 L 60 12 L 80 18 L 100 3" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
-                    <div class="text-[7px] text-slate-500 z-10 font-bold uppercase absolute bottom-1 right-1.5">PCR RATE: 1.34</div>
+                    <div class="text-[7px] text-slate-500 z-10 font-bold uppercase absolute bottom-1 right-1.5">PCR RATE: ${pcr.toFixed(2)}</div>
                   </div>
 
                   <!-- Compact OI Options Chain elements -->
@@ -1190,7 +1292,7 @@ export default function LandingPage() {
               <div class="relative z-10 grid grid-cols-3 gap-4 text-center font-mono text-[9px] mt-4 pt-3.5 border-t border-slate-900 text-slate-400 font-bold">
                 <div class="flex flex-col items-center">
                   <span class="text-slate-500 uppercase">BREAKEVEN</span>
-                  <strong class="text-slate-200 mt-1" id="optimal-breakeven">24,842.50 Spot</strong>
+                  <strong class="text-slate-200 mt-1" id="optimal-breakeven">${fmtPrice(maxPain - 50)} Spot</strong>
                 </div>
                 <div class="flex flex-col items-center border-x border-slate-900">
                   <span class="text-slate-500 uppercase">PROBABILITY OF PROFIT</span>
@@ -1773,15 +1875,15 @@ export default function LandingPage() {
                 <span class="text-[8px] text-gray-400 font-bold block tracking-wider uppercase">Active Index Node</span>
                 <div class="flex justify-between items-center bg-blue-50/70 p-1.5 rounded border border-blue-100 text-blue-900">
                   <span class="font-bold">NIFTY 50</span>
-                  <span class="font-black">24,892.50</span>
+                  <span class="font-black">${fmtPrice(nifty.price)}</span>
                 </div>
                 <div class="flex justify-between items-center p-1.5 rounded border border-gray-100 text-gray-700">
                   <span class="font-bold">BANKNIFTY</span>
-                  <span class="font-black text-rose-600">52,341.20</span>
+                  <span class="font-black ${banknifty.isPositive ? 'text-emerald-600' : 'text-rose-600'}">${fmtPrice(banknifty.price)}</span>
                 </div>
                 <div class="flex justify-between items-center p-1.5 rounded border border-gray-100 text-gray-700">
                   <span class="font-bold">FINNIFTY</span>
-                  <span class="font-black text-emerald-600">20,940.80</span>
+                  <span class="font-black ${finnifty.isPositive ? 'text-emerald-600' : 'text-rose-600'}">${fmtPrice(finnifty.price)}</span>
                 </div>
               </div>
               <!-- Large financial multi-line chart representing real-time coordinated data -->
@@ -1891,9 +1993,9 @@ export default function LandingPage() {
               <div class="my-auto space-y-1">
                 <div class="text-[7.5px] font-mono text-gray-550 flex justify-between uppercase">
                   <span>Nifty Index</span>
-                  <span class="text-blue-600 font-bold">+0.94%</span>
-                </div>
-                <div class="text-[12px] font-black font-mono tracking-tight text-gray-900 leading-none">24,892.50</div>
+                    <span class="text-blue-600 font-bold">${nifty.isPositive ? '+' : ''}${nifty.changePercent.toFixed(2)}%</span>
+                  </div>
+                <div class="text-[12px] font-black font-mono tracking-tight text-gray-900 leading-none">${fmtPrice(nifty.price)}</div>
                 
                 <!-- Coordinated trend line nested graphics -->
                 <div class="w-full h-16 bg-blue-50/20 rounded border border-gray-100 overflow-hidden">
@@ -1966,87 +2068,7 @@ export default function LandingPage() {
             </thead>
             
             <tbody class="divide-y divide-gray-150 text-[11px] text-slate-700">
-              
-              <!-- Strike 24,700 (CE - In the money, shaded soft blue; PE - Out of the money) -->
-              <tr class="hover:bg-slate-50/50 transition border-b border-gray-150">
-                <td class="py-3 px-4 text-center bg-blue-50/20 text-emerald-600 font-bold font-mono">+186.2%</td>
-                <td class="py-3 px-4 text-right bg-blue-50/20 font-mono">1.82M</td>
-                <td class="py-3 px-4 text-right bg-blue-50/20 font-mono">11.8%</td>
-                <td class="py-3 px-4 text-right bg-blue-50/20 font-mono font-black text-slate-900 pr-6">₹204.50</td>
-                
-                <td class="py-3 px-6 text-center font-bold text-slate-900 bg-gray-50 border-x border-gray-200 font-mono">24,700</td>
-                
-                <td class="py-3 px-4 text-left font-mono text-slate-700 pl-6">₹12.40</td>
-                <td class="py-3 px-4 text-left font-mono">14.2%</td>
-                <td class="py-3 px-4 text-left font-mono">420K</td>
-                <td class="py-3 px-4 text-center text-rose-600 font-bold font-mono">-18.4%</td>
-              </tr>
-
-              <!-- Strike 24,800 (CE - In the money, shaded soft blue; PE - Out of the money) -->
-              <tr class="hover:bg-slate-50/50 transition border-b border-gray-150">
-                <td class="py-3 px-4 text-center bg-blue-50/20 text-emerald-600 font-bold font-mono">+214.5%</td>
-                <td class="py-3 px-4 text-right bg-blue-50/20 font-mono">2.10M</td>
-                <td class="py-3 px-4 text-right bg-blue-50/20 font-mono">12.1%</td>
-                <td class="py-3 px-4 text-right bg-blue-50/20 font-mono font-black text-slate-900 pr-6">₹116.80</td>
-                
-                <td class="py-3 px-6 text-center font-bold text-slate-900 bg-gray-50 border-x border-gray-200 font-mono">24,800</td>
-                
-                <td class="py-3 px-4 text-left font-mono text-slate-700 pl-6">₹32.10</td>
-                <td class="py-3 px-4 text-left font-mono">13.5%</td>
-                <td class="py-3 px-4 text-left font-mono">890K</td>
-                <td class="py-3 px-4 text-center text-rose-600 font-bold font-mono">-10.5%</td>
-              </tr>
-
-              <!-- Strike 24,900 (ATM - Highly glowing premium green border highlights for active simulation) -->
-              <tr class="border-2 border-emerald-500 bg-emerald-50/10 hover:bg-emerald-50/20 relative transition">
-                <td class="py-3.5 px-4 text-center text-emerald-600 font-black font-mono flex items-center justify-center gap-1">
-                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                  +482.0%
-                </td>
-                <td class="py-3.5 px-4 text-right font-mono font-bold text-blue-650">4.85M</td>
-                <td class="py-3.5 px-4 text-right font-mono text-slate-800">12.8%</td>
-                <td class="py-3.5 px-4 text-right font-mono font-black text-slate-900 pr-6 text-emerald-600 font-black">₹68.40</td>
-                
-                <td class="py-3.5 px-6 text-center font-black text-emerald-850 bg-emerald-100 font-mono border-x border-emerald-400 relative">
-                  <span class="absolute top-0.5 right-1 text-[7px] bg-emerald-600 text-white font-extrabold px-1 rounded transform scale-75 whitespace-nowrap">ATM ACTIVE</span>
-                  24,900
-                </td>
-                
-                <td class="py-3.5 px-4 text-left font-mono font-black text-rose-600 pl-6">₹72.15</td>
-                <td class="py-3.5 px-4 text-left font-mono text-slate-800">12.9%</td>
-                <td class="py-3.5 px-4 text-left font-mono font-bold text-slate-650">3.94M</td>
-                <td class="py-3.5 px-4 text-center text-emerald-600 font-black font-mono">+164.2%</td>
-              </tr>
-
-              <!-- Strike 25,000 (CE - Out of the money; PE - In the money, shaded soft gray; with custom red border layout representation) -->
-              <tr class="border-y border-dashed border-rose-400 bg-rose-50/10 hover:bg-rose-50/25 transition">
-                <td class="py-3 px-4 text-center text-rose-600 font-bold font-mono">-42.5%</td>
-                <td class="py-3 px-4 text-right font-mono">1.10M</td>
-                <td class="py-3 px-4 text-right font-mono">13.6%</td>
-                <td class="py-3 px-4 text-right font-mono font-black text-slate-900 pr-6">₹22.50</td>
-                
-                <td class="py-3 px-6 text-center font-bold text-slate-900 bg-gray-50 border-x border-gray-200 font-mono">25,000</td>
-                
-                <td class="py-3 px-4 text-left bg-gray-100/40 font-mono font-black text-slate-900 pl-6">₹144.10</td>
-                <td class="py-3 px-4 text-left bg-gray-100/40 font-mono">12.2%</td>
-                <td class="py-3 px-4 text-left bg-gray-100/40 font-mono font-bold">1.28M</td>
-                <td class="py-3 px-4 text-center bg-gray-100/40 text-emerald-600 font-bold font-mono">+112.5%</td>
-              </tr>
-
-              <!-- Strike 25,100 (CE - Out of the money; PE - In the money, shaded soft gray) -->
-              <tr class="hover:bg-slate-50/50 transition border-b border-gray-150">
-                <td class="py-3 px-4 text-center text-rose-600 font-bold font-mono">-72.4%</td>
-                <td class="py-3 px-4 text-right font-mono">680K</td>
-                <td class="py-3 px-4 text-right font-mono">14.1%</td>
-                <td class="py-3 px-4 text-right font-mono font-black text-slate-900 pr-6">₹8.10</td>
-                
-                <td class="py-3 px-6 text-center font-bold text-slate-900 bg-gray-50 border-x border-gray-200 font-mono">25,100</td>
-                
-                <td class="py-3 px-4 text-left bg-gray-100/40 font-mono font-black text-slate-900 pl-6">₹238.40</td>
-                <td class="py-3 px-4 text-left bg-gray-100/40 font-mono">11.9%</td>
-                <td class="py-3 px-4 text-left bg-gray-100/40 font-mono">750K</td>
-                <td class="py-3 px-4 text-center bg-gray-100/40 text-emerald-600 font-bold font-mono">+84.1%</td>
-              </tr>
+              ${chainRowsHtml}
 
             </tbody>
           </table>

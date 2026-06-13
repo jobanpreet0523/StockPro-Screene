@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { IndexData } from '../types';
 import { INITIAL_INDICES } from '../data';
 
+const API_BASE = ''; // Same origin — Cloudflare Worker Functions handle /api/*
+
 export function useMarketIndices() {
   const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
   const [loading, setLoading] = useState(true);
@@ -9,47 +11,16 @@ export function useMarketIndices() {
 
   const fetchIndices = async () => {
     try {
-      const url = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=^NSEI,^NSEBANK,^CNXIT,USDINR=X,^VIX,GC=F,CL=F';
-      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) throw new Error('Failed to fetch from proxy');
-      
-      const raw = await res.json();
-      if (!raw.contents) throw new Error('No contents in response');
-      
-      const parsed = JSON.parse(raw.contents);
-      const quotes = parsed?.quoteResponse?.result || [];
-      
-      if (quotes.length === 0) throw new Error('Empty quotes array');
+      const res = await fetch(`${API_BASE}/api/indices`, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) throw new Error('API fetch failed');
+      const json = await res.json();
 
-      const liveData: IndexData[] = quotes.map((q: any) => {
-        let name = q.shortName || q.symbol;
-        if (q.symbol === '^NSEI') name = 'NIFTY 50';
-        if (q.symbol === '^NSEBANK') name = 'BANK NIFTY';
-        if (q.symbol === '^CNXIT') name = 'NIFTY IT';
-        if (q.symbol === 'USDINR=X') name = 'USD/INR';
-        if (q.symbol === '^VIX') name = 'INDIA VIX';
-        if (q.symbol === 'GC=F') name = 'GOLD';
-        if (q.symbol === 'CL=F') name = 'CRUDE OIL';
-
-        return {
-          symbol: q.symbol,
-          name,
-          price: q.regularMarketPrice || 0,
-          change: q.regularMarketChange || 0,
-          changePercent: q.regularMarketChangePercent || 0,
-          sparkline: [
-            q.regularMarketPrice * 0.99,
-            q.regularMarketPrice * 1.01,
-            q.regularMarketPrice * 0.995,
-            q.regularMarketPrice
-          ],
-          isPositive: (q.regularMarketChangePercent || 0) >= 0
-        };
-      });
-
-      setIndices(liveData);
-      setError(null);
+      if (json.data && json.data.length > 0) {
+        setIndices(json.data);
+        setError(null);
+      } else {
+        throw new Error('Empty data from API');
+      }
     } catch (err: any) {
       console.error('fetchIndices error:', err);
       setError(err.message || 'Failed to fetch indices');
@@ -60,7 +31,7 @@ export function useMarketIndices() {
 
   useEffect(() => {
     fetchIndices();
-    const interval = setInterval(fetchIndices, 60000);
+    const interval = setInterval(fetchIndices, 60000); // Refresh every 60s
     return () => clearInterval(interval);
   }, []);
 
