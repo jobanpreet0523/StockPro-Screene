@@ -63,19 +63,34 @@ export default function LandingPage() {
   const nifty = getNifty();
   const banknifty = getBankNifty();
   const finnifty = getFinNifty();
-  const pcr = liveChain?.pcr || 1.34;
+  const pcr = liveChain?.pcr || liveChain?.records?.underlyingValue ? (liveChain.records.data?.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) / Math.max(1, liveChain.records.data?.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0))) : 1.34;
   const maxPain = liveChain?.maxPain || 24900;
   const spotPrice = nifty.price;
-  const totalCallOi = liveChain?.totalCallOi || 0;
-  const totalPutOi = liveChain?.totalPutOi || 0;
-  const options = liveChain?.options || [];
+  const totalCallOi = liveChain?.totalCallOi || liveChain?.records?.data?.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0) || 0;
+  const totalPutOi = liveChain?.totalPutOi || liveChain?.records?.data?.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) || 0;
+  const options = liveChain?.options || (liveChain?.records?.data || []).map((d:any) => ({
+    strikePrice: d.strikePrice,
+    callLtp: d.CE?.lastPrice||0, callChange: d.CE?.change||0, callVol: d.CE?.totalTradedVolume||0,
+    callOi: d.CE?.openInterest||0, callOiChg: d.CE?.changeinOpenInterest||0, callIv: d.CE?.impliedVolatility||0,
+    putLtp: d.PE?.lastPrice||0, putChange: d.PE?.change||0, putVol: d.PE?.totalTradedVolume||0,
+    putOi: d.PE?.openInterest||0, putOiChg: d.PE?.changeinOpenInterest||0, putIv: d.PE?.impliedVolatility||0,
+  })) || [];
   const atmStrike = Math.round(spotPrice / 50) * 50;
+  const step = 50;
+  const atmIv = options.length > 0 ? (options.find((o:any) => o.strikePrice === atmStrike)?.callIv || options[Math.floor(options.length/2)]?.callIv || 12.8) : 12.8;
+  const nearAtmOi = options.filter((o:any) => Math.abs(o.strikePrice - atmStrike) <= step*2);
+  const topCallOi = nearAtmOi.reduce((max:number,o:any) => o.callOi > max ? o.callOi : max, 0);
+  const topPutOi = nearAtmOi.reduce((max:number,o:any) => o.putOi > max ? o.putOi : max, 0);
+  const topCallStrike = nearAtmOi.find((o:any) => o.callOi === topCallOi)?.strikePrice || atmStrike + step*2;
+  const topPutStrike = nearAtmOi.find((o:any) => o.putOi === topPutOi)?.strikePrice || atmStrike - step*2;
 
   const fmtPrice = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtOI = (n: number) => {
-    if (n >= 10000000) return (n / 10000000).toFixed(2) + 'M';
+    if (!n || isNaN(n)) return '0';
+    if (n >= 10000000) return (n / 10000000).toFixed(2) + 'Cr';
+    if (n >= 100000) return (n / 100000).toFixed(1) + 'L';
     if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-    return String(n);
+    return String(Math.round(n));
   };
   const chgBadge = (pct: number) => pct >= 0
     ? `<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▲ +${pct.toFixed(2)}%</span>`
@@ -227,7 +242,7 @@ export default function LandingPage() {
         <div>25,480.00</div>
         <div>25,260.00</div>
         <div>25,040.00</div>
-        <div class="text-[#38bdf8] font-bold bg-[#38bdf8]/10 border border-[#38bdf8]/30 rounded px-1">24,892.50</div>
+        <div class="text-[#38bdf8] font-bold bg-[#38bdf8]/10 border border-[#38bdf8]/30 rounded px-1">${fmtPrice(nifty.price)}</div>
         <div>24,620.00</div>
         <div>24,400.00</div>
       </div>
@@ -357,7 +372,7 @@ export default function LandingPage() {
                   <span>PCR STREAMER: LIVE</span>
                 </div>
                 <div class="absolute top-2 right-2 bg-emerald-950/95 border border-emerald-700 text-[9px] text-emerald-400 font-mono font-bold px-2 py-0.5 rounded">
-                  IV SKEW: +4.25%
+                  IV SKEW: +${(atmIv * 0.33).toFixed(2)}%
                 </div>
               </div>
             </div>
@@ -392,7 +407,7 @@ export default function LandingPage() {
         <div class="mb-8 flex items-center justify-between bg-white border border-gray-200 rounded p-3 text-[11px] font-mono shadow-sm">
           <div class="flex items-center gap-2">
             <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded font-bold text-[9px]">SYSTEM FEED</span>
-            <span class="text-slate-600">Dynamic Open Interest clustering identified near 25,000 Strikes. Put writing accelerated.</span>
+            <span class="text-slate-600">Dynamic Open Interest clustering identified near ${fmtPrice(atmStrike)} Strikes. Put writing accelerated.</span>
           </div>
           <span class="text-slate-400 font-semibold uppercase hidden sm:inline">PULSE ID: FOP-099X</span>
         </div>
@@ -594,19 +609,19 @@ export default function LandingPage() {
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
                   <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
                     <div class="text-[8px] text-slate-500 font-bold">PUT VOL SELECT</div>
-                    <div class="text-[11px] font-black text-orange-500 mt-0.5">1.42M Cr</div>
+                    <div class="text-[11px] font-black text-orange-500 mt-0.5">${fmtOI(totalPutOi)}</div>
                   </div>
                   <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
                     <div class="text-[8px] text-slate-500 font-bold">CALL VOL SELECT</div>
-                    <div class="text-[11px] font-black text-slate-200 mt-0.5">1.03M Cr</div>
+                    <div class="text-[11px] font-black text-slate-200 mt-0.5">${fmtOI(totalCallOi)}</div>
                   </div>
                   <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
                     <div class="text-[8px] text-slate-500 font-bold">COMBINED PCR</div>
-                    <div class="text-[11px] font-black text-emerald-400 mt-0.5">1.38</div>
+                    <div class="text-[11px] font-black text-emerald-400 mt-0.5">${pcr.toFixed(2)}</div>
                   </div>
                   <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
                     <div class="text-[8px] text-slate-500 font-bold">OI STRIKE COLD</div>
-                    <div class="text-[11px] font-black text-slate-200 mt-0.5">25,000 CE</div>
+                    <div class="text-[11px] font-black text-slate-200 mt-0.5">${fmtPrice(topCallStrike)} CE</div>
                   </div>
                 </div>
 
@@ -621,9 +636,9 @@ export default function LandingPage() {
                   <!-- Item 1 -->
                   <div class="space-y-1">
                     <div class="flex items-center justify-between text-slate-300 text-[9.5px]">
-                      <span class="font-bold text-slate-200">NIFTY 25000 CALL</span>
-                      <span class="font-mono text-slate-400">14.25% <strong class="text-emerald-500 font-bold">▲</strong></span>
-                      <span class="font-bold font-mono">198.2K <span class="text-slate-500 text-[8px]">(100%)</span></span>
+                      <span class="font-bold text-slate-200">NIFTY ${fmtPrice(topCallStrike)} CALL</span>
+                      <span class="font-mono text-slate-400">${atmIv.toFixed(2)}% <strong class="text-emerald-500 font-bold">▲</strong></span>
+                      <span class="font-bold font-mono">${fmtOI(topCallOi)} <span class="text-slate-500 text-[8px]">(100%)</span></span>
                     </div>
                     <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
                       <div class="bg-gradient-to-r from-amber-500 to-orange-600 h-full rounded-full" style="width: 100%"></div>
@@ -633,9 +648,9 @@ export default function LandingPage() {
                   <!-- Item 2 -->
                   <div class="space-y-1">
                     <div class="flex items-center justify-between text-slate-300 text-[9.5px]">
-                      <span class="font-bold text-slate-200">NIFTY 24800 PUT</span>
+                      <span class="font-bold text-slate-200">NIFTY ${fmtPrice(topPutStrike)} PUT</span>
                       <span class="font-mono text-slate-400">15.80% <strong class="text-emerald-500 font-bold">▲</strong></span>
-                      <span class="font-bold font-mono">142.5K <span class="text-slate-500 text-[8px]">(72%)</span></span>
+                      <span class="font-bold font-mono">${fmtOI(topPutOi)} <span class="text-slate-500 text-[8px]">(72%)</span></span>
                     </div>
                     <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
                       <div class="bg-gradient-to-r from-amber-500 to-orange-600 h-full rounded-full" style="width: 72%"></div>
@@ -645,9 +660,9 @@ export default function LandingPage() {
                   <!-- Item 3 -->
                   <div class="space-y-1">
                     <div class="flex items-center justify-between text-slate-300 text-[9.5px]">
-                      <span class="font-bold text-slate-200">NIFTY 24900 PUT</span>
+                      <span class="font-bold text-slate-200">NIFTY ${fmtPrice(atmStrike)} PUT</span>
                       <span class="font-mono text-slate-400">14.95% <strong class="text-rose-500 font-bold">▼</strong></span>
-                      <span class="font-bold font-mono">110.8K <span class="text-slate-500 text-[8px]">(56%)</span></span>
+                      <span class="font-bold font-mono">${fmtOI(nearAtmOi.find((o:any) => o.strikePrice === atmStrike)?.putOi || 0)} <span class="text-slate-500 text-[8px]">(56%)</span></span>
                     </div>
                     <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
                       <div class="bg-gradient-to-r from-amber-500 to-orange-600 h-full rounded-full" style="width: 56%"></div>
@@ -715,7 +730,7 @@ export default function LandingPage() {
                   
                   <!-- Floating live value flag -->
                   <div class="absolute top-2 left-3 border border-slate-800 bg-[#0c101b]/95 rounded px-2 py-0.5 text-[8px] select-none">
-                    <span class="text-slate-500 uppercase font-bold">PEAK SKEW:</span> <strong class="text-cyan-400 font-bold">+4.25% L-IV</strong>
+                    <span class="text-slate-500 uppercase font-bold">PEAK SKEW:</span> <strong class="text-cyan-400 font-bold">+${(atmIv * 0.33).toFixed(2)}% L-IV</strong>
                   </div>
                 </div>
 
@@ -833,13 +848,13 @@ export default function LandingPage() {
                     <div class="text-[7px] uppercase font-bold text-slate-500 pb-0.5">ACTIVE STRIKES ACCUMULATION</div>
                     
                     <div class="bg-slate-900 border border-slate-950 p-1 rounded flex items-center justify-between">
-                      <span class="text-[8px] text-emerald-400 font-extrabold">24,800 PE</span>
+                      <span class="text-[8px] text-emerald-400 font-extrabold">${fmtPrice(topPutStrike)} PE</span>
                       <span class="text-slate-300">142K contract</span>
                       <span class="text-slate-500 text-[6.5px]">▲ +40%</span>
                     </div>
                     
                     <div class="bg-slate-900 border border-slate-950 p-1 rounded flex items-center justify-between">
-                      <span class="text-[8px] text-rose-400 font-extrabold">25,000 CE</span>
+                      <span class="text-[8px] text-rose-400 font-extrabold">${fmtPrice(topCallStrike)} CE</span>
                       <span class="text-slate-300">198K contract</span>
                       <span class="text-slate-500 text-[6.5px]">▼ -12%</span>
                     </div>
@@ -1283,7 +1298,7 @@ export default function LandingPage() {
                 <!-- Visual indicators along axis labels -->
                 <div class="absolute bottom-2.5 inset-x-4 flex justify-between font-mono text-[8px] text-slate-500 uppercase tracking-widest">
                   <span>Downside Range (S-Loss)</span>
-                  <span id="breakeven-indicator" class="text-cyan-400 font-bold">ATM Break: 24,800 PE</span>
+                  <span id="breakeven-indicator" class="text-cyan-400 font-bold">ATM Break: ${fmtPrice(topPutStrike)} PE</span>
                   <span>Upside Target (S-Profit)</span>
                 </div>
               </div>
@@ -1357,7 +1372,7 @@ export default function LandingPage() {
                     Strong Bullish
                   </span>
                 </td>
-                <td class="py-3.5 px-6 font-medium text-slate-500">Heavy Accumulation over 24900 support strike</td>
+                <td class="py-3.5 px-6 font-medium text-slate-500">Heavy Accumulation over ${fmtPrice(atmStrike)} support strike</td>
                 <td class="py-3.5 px-6 text-right font-mono text-emerald-600 font-bold">+12.4%</td>
               </tr>
 
@@ -1508,17 +1523,17 @@ export default function LandingPage() {
 
                 <!-- Small float active flags -->
                 <rect x="235" y="94" width="70" height="15" rx="3" fill="#0c1223" stroke="#2563eb" stroke-width="1" />
-                <text x="240" y="104" fill="#60a5fa" font-family="monospace" font-size="7.5" font-weight="bold">ATM IV: 12.8%</text>
+                <text x="240" y="104" fill="#60a5fa" font-family="monospace" font-size="7.5" font-weight="bold">ATM IV: ${atmIv.toFixed(1)}%</text>
               </svg>
             </div>
 
             <!-- Bottom Price labels alignment - Strike Prices adjusted specifically as per request -->
             <div class="flex justify-between items-center text-[9px] font-mono text-slate-500 pt-1.5 border-t border-slate-900 px-6 uppercase select-none">
-              <span>Strike: 24,700</span>
-              <span>24,800</span>
-              <strong class="text-cyan-400 font-bold">ATM: 24,900 (Spot)</strong>
-              <span>25,000</span>
-              <span>25,100</span>
+              <span>Strike: ${fmtPrice(atmStrike - step*2)}</span>
+              <span>${fmtPrice(atmStrike - step)}</span>
+              <strong class="text-cyan-400 font-bold">ATM: ${fmtPrice(atmStrike)} (Spot)</strong>
+              <span>${fmtPrice(atmStrike + step)}</span>
+              <span>${fmtPrice(atmStrike + step*2)}</span>
             </div>
           </div>
 
@@ -1539,7 +1554,7 @@ export default function LandingPage() {
               </div>
               <div class="py-2.5 flex items-center justify-between text-xs">
                 <span class="text-gray-500 font-medium">ATM Implied Volatility</span>
-                <strong class="text-[#10b981] font-bold font-mono">12.8% Low IV env</strong>
+                <strong class="text-[#10b981] font-bold font-mono">${atmIv.toFixed(1)}% Low IV env</strong>
               </div>
               <div class="py-2.5 flex items-center justify-between text-xs">
                 <span class="text-gray-500 font-medium">Historical Vol Deviation</span>
@@ -1597,7 +1612,7 @@ export default function LandingPage() {
             breakeven: "24,842.50 Spot",
             pop: "58.4%",
             bcode: "OPT_S_B19A",
-            indicatorText: "ATM Break: 24,800 PE",
+            indicatorText: "ATM Break: ${fmtPrice(atmStrike - step)} PE",
             // Path and visual fills variables
             curveD: "M 0 148 L 120 148 L 280 28 L 500 28",
             fillProfitD: "M 120 148 L 280 28 L 500 28 L 500 88 L 120 88 Z",
@@ -1616,7 +1631,7 @@ export default function LandingPage() {
             breakeven: "24,758.00 Spot",
             pop: "62.1%",
             bcode: "OPT_S_P24K",
-            indicatorText: "ATM Break: 24,900 CE",
+            indicatorText: "ATM Break: ${fmtPrice(atmStrike)} CE",
             // Payoff curve slopes down to the right (profit on left, loss on right)
             curveD: "M 0 28 L 220 28 L 380 148 L 500 148",
             fillProfitD: "M 0 28 L 220 28 L 380 88 L 0 88 Z",
@@ -1654,7 +1669,7 @@ export default function LandingPage() {
             breakeven: "24,620 & 25,120",
             pop: "74.5%",
             bcode: "OPT_S_C73M",
-            indicatorText: "ATM Break: 24,600 / 25,100 Range",
+            indicatorText: "ATM Break: ${fmtPrice(atmStrike - step*3)} / ${fmtPrice(atmStrike + step*2)} Range",
             // Flat in the middle (premium credit profit), slopes down to capped loss on both sides
             curveD: "M 0 140 L 140 140 L 220 38 L 300 38 L 380 140 L 500 140",
             fillProfitD: "M 183 88 L 220 38 L 300 38 L 336 88 Z",
@@ -1938,7 +1953,7 @@ export default function LandingPage() {
                 <div class="flex flex-col justify-between pr-2.5 border-r border-gray-150">
                   <div class="flex justify-between items-baseline">
                     <span class="text-[9.5px] font-black text-gray-800">Volatility VIX Skew</span>
-                    <span class="text-[8.5px] font-mono text-blue-600 font-bold">12.8% Low IV</span>
+                    <span class="text-[8.5px] font-mono text-blue-600 font-bold">${atmIv.toFixed(1)}% Low IV</span>
                   </div>
                   <!-- Mirrored Coordinated trend diagram path -->
                   <div class="w-full h-24">
@@ -1955,19 +1970,19 @@ export default function LandingPage() {
                 <div class="flex flex-col justify-between text-[8px] space-y-1.5 font-mono">
                   <span class="text-[9px] font-black border-b border-gray-150 pb-1 text-slate-800 uppercase font-sans">Active Sells Ledger</span>
                   <div class="flex justify-between text-red-600">
-                    <span>Strike 25,000 CE</span>
+                    <span>Strike ${fmtPrice(atmStrike + step*2)} CE</span>
                     <span class="font-bold">₹22.50</span>
                   </div>
                   <div class="flex justify-between text-red-600">
-                    <span>Strike 25,100 CE</span>
+                    <span>Strike ${fmtPrice(atmStrike + step*3)} CE</span>
                     <span class="font-bold">₹8.10</span>
                   </div>
                   <div class="flex justify-between text-emerald-600 border-t border-dashed border-gray-200 pt-1.5">
-                    <span>Strike 24,800 PE</span>
+                    <span>Strike ${fmtPrice(atmStrike - step)} PE</span>
                     <span class="font-bold">₹32.10</span>
                   </div>
                   <div class="flex justify-between text-emerald-600">
-                    <span>Strike 24,700 PE</span>
+                    <span>Strike ${fmtPrice(atmStrike - step*2)} PE</span>
                     <span class="font-bold">₹12.40</span>
                   </div>
                 </div>
@@ -2114,7 +2129,7 @@ export default function LandingPage() {
                 <span class="text-gray-500 font-mono font-bold uppercase transition-colors group-hover:text-gray-800">10:52:14 IST • ACTIVE NOW</span>
               </div>
               <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-blue-600 transition">
-                NIFTY Strike 24,900 Call OI Buildup Exceeds Maximum Threshold Limits (4.85M Contracts)
+                NIFTY Strike ${fmtPrice(atmStrike)} Call OI Buildup Exceeds Maximum Threshold Limits (${fmtOI(topCallOi)} Contracts)
               </h4>
               <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
                 Automated open interest scanners confirm aggressive cross-participant derivatives writing. Short-term price breakout probabilities above the 24,940 Spot bounds rise to <strong>74.2%</strong>. Active spread adjustments recommended.
@@ -2165,7 +2180,7 @@ export default function LandingPage() {
                 Option Smile Skew Index registers Out-of-Bounds Pricing Deviation of 14.1%
               </h4>
               <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                Aggressive call premiums trigger skew variances. Decisive ATM volatility remains compressed at 12.8%. Algorithmic guidance adjusts recommended strategies from condors to long-running straddle models.
+                Aggressive call premiums trigger skew variances. Decisive ATM volatility remains compressed at ${atmIv.toFixed(1)}%. Algorithmic guidance adjusts recommended strategies from condors to long-running straddle models.
               </p>
             </div>
           </div>
@@ -2267,7 +2282,7 @@ export default function LandingPage() {
         <!-- High density comparative vertical bar chart layout -->
         <div class="grid grid-cols-1 md:grid-cols-5 gap-6 items-end h-[360px] pt-8 max-w-4xl mx-auto select-none">
           
-          <!-- Strike 24,900 Slot -->
+          <!-- Strike ${fmtPrice(atmStrike)} Slot -->
           <div class="flex flex-col items-center justify-end h-full space-y-4 group">
             <div class="flex items-end gap-3 h-52 w-full justify-center">
               <!-- Call Bar -->
@@ -2280,7 +2295,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-slate-900 font-black">24,900</strong>
+              <strong class="text-xs text-slate-900 font-black">${fmtPrice(atmStrike)}</strong>
               <span class="text-[8px] text-gray-400 block font-bold uppercase">OTM Zone</span>
             </div>
           </div>
@@ -2303,11 +2318,11 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <!-- Strike 25,000 Highlighted Slot (MAX PAIN FOCUS) -->
+          <!-- Strike ${fmtPrice(maxPain)} Highlighted Slot (MAX PAIN FOCUS) -->
           <div class="flex flex-col items-center justify-end h-full space-y-4 relative p-4 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50/15 group">
             <!-- Floating badge -->
             <span class="absolute -top-5 inset-x-0 mx-auto w-max bg-amber-500 text-white text-[8px] font-black font-mono tracking-widest uppercase py-1 px-2.5 rounded-full shadow-sm">
-              MAX PAIN FOCUS: 25,000
+              MAX PAIN FOCUS: ${fmtPrice(maxPain)}
             </span>
             
             <div class="flex items-end gap-3 h-52 w-full justify-center">
@@ -2321,7 +2336,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-amber-900 font-black">25,000 Spot</strong>
+              <strong class="text-xs text-amber-900 font-black">${fmtPrice(maxPain)} Spot</strong>
               <span class="text-[8px] text-amber-700 block font-black uppercase">Concentration</span>
             </div>
           </div>
@@ -2344,7 +2359,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <!-- Strike 25,100 Slot -->
+          <!-- Strike ${fmtPrice(atmStrike + step*2)} Slot -->
           <div class="flex flex-col items-center justify-end h-full space-y-4 group">
             <div class="flex items-end gap-3 h-52 w-full justify-center">
               <!-- Call Bar -->
@@ -2357,7 +2372,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-slate-900 font-black">25,100</strong>
+              <strong class="text-xs text-slate-900 font-black">${fmtPrice(atmStrike + step*2)}</strong>
               <span class="text-[8px] text-gray-400 block font-bold uppercase">Resistance Wall</span>
             </div>
           </div>
@@ -2533,7 +2548,7 @@ export default function LandingPage() {
               <!-- Row 2 -->
               <tr class="hover:bg-slate-50/50 transition">
                 <td class="py-3 px-6 font-mono text-gray-400 font-bold">10:14:02 IST</td>
-                <td class="py-3 px-6 font-extrabold text-slate-900 font-sans">NIFTY 24,900 CE</td>
+                <td class="py-3 px-6 font-extrabold text-slate-900 font-sans">NIFTY ${fmtPrice(atmStrike)} CE</td>
                 <td class="py-3 px-6 text-right font-mono font-black text-emerald-650">150,050 QTY</td>
                 <td class="py-3 px-6 text-center">
                   <span class="inline-block text-[9px] font-black uppercase text-emerald-800 bg-emerald-100 py-0.5 px-2.5 rounded-full font-mono">
