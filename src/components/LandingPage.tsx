@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMarketStatus } from '../utils/marketStatus';
-import ParticleBackground from './ParticleBackground';
 
 interface LiveIndex {
   symbol: string;
@@ -3041,6 +3040,5 @@ export default function LandingPage() {
     </script>
     <script src="/live-data.js"></script>
   ` }} />
-  <ParticleBackground />
   </>;
 }

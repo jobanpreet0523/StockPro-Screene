@@ -2,6 +2,7 @@ import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import Layout from './components/Layout';
+import ParticleBackground from './components/ParticleBackground';
 import ScreenerPage from './pages/ScreenerPage';
 import ScannerPage from './pages/ScannerPage';
 import OptionChainPage from './pages/OptionChainPage';
@@ -63,6 +64,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        <ParticleBackground />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
