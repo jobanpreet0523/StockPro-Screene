@@ -159,14 +159,17 @@ async function handleAPI(path, url, request, env) {
       const nseSymbol = symMap[raw.toUpperCase()] || raw.toUpperCase();
 
       // Try NSE API
-      const apiPath = `/api/option-chain-indices?symbol=${encodeURIComponent(nseSymbol)}`;
-      const nseData = await nseFetch(apiPath, env);
+      let nseData = null;
+      try {
+        const apiPath = `/api/option-chain-indices?symbol=${encodeURIComponent(nseSymbol)}`;
+        nseData = await nseFetch(apiPath, env);
+      } catch {}
       if (nseData?.records?.data?.length) {
         return new Response(JSON.stringify({ status: 'ok', source: 'nse', symbol: nseSymbol, data: nseData }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
       }
-      // Fallback: try equity endpoint for stock options
-      const eqPath = `/api/option-chain-equities?symbol=${encodeURIComponent(nseSymbol)}`;
+      // Try equity endpoint for stock options
       try {
+        const eqPath = `/api/option-chain-equities?symbol=${encodeURIComponent(nseSymbol)}`;
         const eqData = await nseFetch(eqPath, env);
         if (eqData?.records?.data?.length) {
           return new Response(JSON.stringify({ status: 'ok', source: 'nse_equity', symbol: nseSymbol, data: eqData }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
