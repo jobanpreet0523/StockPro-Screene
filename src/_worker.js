@@ -248,6 +248,58 @@ function generateFallbackChain(symbol, spotPrice) {
 }
 
 // ════════════════════════════════════════════════════════════════
+//  RSS XML Parser (lightweight, no external deps)
+// ════════════════════════════════════════════════════════════════
+function parseRssXml(xml, sourceName) {
+  const articles = [];
+  // Match <item>...</item> blocks
+  const itemRegex = /<item[\s>]/gi;
+  let match;
+  const items = [];
+  let searchIdx = 0;
+
+  while ((match = itemRegex.exec(xml)) !== null) {
+    items.push(match.index);
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    const start = items[i];
+    const end = i + 1 < items.length ? items[i + 1] : xml.length;
+    const block = xml.substring(start, end);
+
+    const title = extractCdataOrText(block, 'title');
+    const link = extractTag(block, 'link');
+    const pubDate = extractTag(block, 'pubDate');
+
+    if (title) {
+      articles.push({
+        title: title.replace(/&amp;/g, '&').trim(),
+        link: link || '#',
+        pubDate: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+        source: sourceName,
+      });
+    }
+  }
+  return articles;
+}
+
+function extractCdataOrText(block, tag) {
+  // Try CDATA first: <tag><![CDATA[...]]></tag>
+  const cdataRegex = new RegExp(`<${tag}[^>]*>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>`, 'i');
+  const cdataMatch = block.match(cdataRegex);
+  if (cdataMatch) return cdataMatch[1];
+
+  // Plain text: <tag>text</tag>
+  return extractTag(block, tag);
+}
+
+function extractTag(block, tag) {
+  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i');
+  const match = block.match(regex);
+  return match ? match[1].trim() : '';
+}
+
+// ════════════════════════════════════════════════════════════════
 //  API Route Handler
 // ════════════════════════════════════════════════════════════════
 async function handleApiRoute(path, url, request, env) {
@@ -426,6 +478,27 @@ async function handleApiRoute(path, url, request, env) {
       ];
 
       for (const feed of feeds) {
+        // Method 1: Direct RSS XML parsing (most reliable)
+        try {
+          const res = await fetch(feed.url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+            },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (res.ok) {
+            const xml = await res.text();
+            const articles = parseRssXml(xml, feed.source);
+            if (articles.length > 0) {
+              return new Response(JSON.stringify({
+                status: 'ok', timestamp: Date.now(), source: feed.source, data: articles.slice(0, 15),
+              }), { headers: jsonHeaders });
+            }
+          }
+        } catch {}
+
+        // Method 2: RSS2JSON fallback
         try {
           const rssUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=15`;
           const res = await fetch(rssUrl, {
