@@ -1,6 +1,11 @@
 // Cloudflare Worker for StockPro Screener
 // Handles API routes and delegates static assets to the Assets binding
 // Compatible with Workers + Static Assets (wrangler [assets] config)
+//
+// Routing logic:
+// 1. /api/* and /indices → Worker handles (returns JSON)
+// 2. Static asset match → served by ASSETS binding
+// 3. No match (SPA routes like /screener) → Worker returns index.html via ASSETS
 
 export default {
   async fetch(request, env) {
@@ -12,11 +17,16 @@ export default {
       return handleApiRoute(path, url, request, env);
     }
 
-    // ── Static Assets (SPA) ─────────────────────────────────────
-    // Delegate everything else to the Assets binding.
-    // not_found_handling = "single-page-application" in wrangler.toml
-    // ensures /screener, /option-chain etc. serve index.html
-    return env.ASSETS.fetch(request);
+    // ── Try serving static asset ────────────────────────────────
+    const assetResponse = await env.ASSETS.fetch(request);
+    if (assetResponse.status !== 404) {
+      return assetResponse;
+    }
+
+    // ── SPA Fallback ────────────────────────────────────────────
+    // For client-side routes like /screener, /option-chain etc.
+    // that don't match a static file, serve index.html
+    return env.ASSETS.fetch(new Request(new URL('/', url.origin)));
   },
 };
 
@@ -55,7 +65,6 @@ const YAHOO_HEADERS = {
 };
 
 async function fetchYahooChart(symbol, range = '1d', interval = '1d') {
-  // The v8 chart API is more reliable than the v7 quotes API
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
   const res = await fetch(url, { headers: YAHOO_HEADERS });
   if (!res.ok) throw new Error(`Yahoo chart API returned ${res.status}`);
@@ -63,7 +72,7 @@ async function fetchYahooChart(symbol, range = '1d', interval = '1d') {
 }
 
 async function fetchYahooQuotes(symbols) {
-  // Try v7 quotes first, then fall back to v8 chart
+  // Try v7 quotes API first
   const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`;
   try {
     const res = await fetch(url, { headers: YAHOO_HEADERS });
@@ -73,7 +82,7 @@ async function fetchYahooQuotes(symbols) {
     }
   } catch {}
 
-  // Fallback: fetch each symbol individually via chart API
+  // Fallback: fetch each symbol via v8 chart API
   const symbolList = symbols.split(',');
   const results = [];
   for (const sym of symbolList) {
@@ -81,20 +90,22 @@ async function fetchYahooQuotes(symbols) {
       const json = await fetchYahooChart(sym, '5d', '1d');
       const meta = json?.chart?.result?.[0]?.meta;
       if (meta) {
+        const prevClose = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
+        const price = meta.regularMarketPrice;
         results.push({
           symbol: meta.symbol,
-          regularMarketPrice: meta.regularMarketPrice,
-          regularMarketChange: meta.chartPreviousClose ? meta.regularMarketPrice - meta.chartPreviousClose : 0,
-          regularMarketChangePercent: meta.chartPreviousClose ? ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100 : 0,
+          regularMarketPrice: price,
+          regularMarketChange: prevClose ? price - prevClose : 0,
+          regularMarketChangePercent: prevClose ? ((price - prevClose) / prevClose) * 100 : 0,
           regularMarketVolume: meta.regularMarketVolume || 0,
           shortName: meta.shortName || meta.symbol,
           longName: meta.longName || meta.shortName || meta.symbol,
-          marketCap: meta.marketCap || 0,
-          trailingPE: meta.trailingPE || 0,
-          regularMarketOpen: meta.regularMarketPrice ? meta.regularMarketPrice * (1 + (Math.random() - 0.5) * 0.005) : 0,
-          regularMarketDayHigh: meta.regularMarketPrice ? meta.regularMarketPrice * 1.008 : 0,
-          regularMarketDayLow: meta.regularMarketPrice ? meta.regularMarketPrice * 0.992 : 0,
-          regularMarketPreviousClose: meta.chartPreviousClose || meta.previousClose || 0,
+          marketCap: 0,
+          trailingPE: 0,
+          regularMarketOpen: meta.regularMarketPreviousOpen || price,
+          regularMarketDayHigh: meta.regularMarketDayHigh || price * 1.008,
+          regularMarketDayLow: meta.regularMarketDayLow || price * 0.992,
+          regularMarketPreviousClose: prevClose,
         });
       }
     } catch { /* skip */ }
@@ -190,7 +201,7 @@ function parseNseOptionChain(nseData, symbol) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  Fallback Option Chain Generator (Yahoo spot + computed chain)
+//  Fallback Option Chain Generator
 // ════════════════════════════════════════════════════════════════
 function generateFallbackChain(symbol, spotPrice) {
   const isBankNifty = symbol === 'BANKNIFTY' || symbol === '^NSEBANK';
@@ -253,11 +264,8 @@ async function handleApiRoute(path, url, request, env) {
       const json = await fetchYahooQuotes(symbols);
       const quotes = json?.quoteResponse?.result || [];
       const indexMap = {
-        '^NSEI': 'NIFTY 50',
-        '^NSEBANK': 'BANK NIFTY',
-        '^BSESN': 'SENSEX',
-        '^CNXIT': 'NIFTY IT',
-        '^VIX': 'INDIA VIX',
+        '^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY', '^BSESN': 'SENSEX',
+        '^CNXIT': 'NIFTY IT', '^VIX': 'INDIA VIX',
       };
 
       const indices = quotes.map(q => ({
@@ -276,10 +284,7 @@ async function handleApiRoute(path, url, request, env) {
       }));
 
       return new Response(JSON.stringify({
-        status: 'ok',
-        timestamp: Date.now(),
-        source: 'live_yahoo',
-        data: indices,
+        status: 'ok', timestamp: Date.now(), source: 'live_yahoo', data: indices,
       }), { headers: jsonHeaders });
     }
 
@@ -288,15 +293,14 @@ async function handleApiRoute(path, url, request, env) {
       const json = await fetchYahooQuotes('^NSEI,^NSEBANK,^BSESN');
       const quotes = json?.quoteResponse?.result || [];
       const find = (sym) => quotes.find(q => q.symbol === sym);
-
       const nifty = find('^NSEI');
       const banknifty = find('^NSEBANK');
       const sensex = find('^BSESN');
 
       return new Response(JSON.stringify({
-        nifty50: nifty ? { price: nifty.regularMarketPrice, change: nifty.regularMarketChangePercent } : { price: 24892.50, change: 0.58 },
-        banknifty: banknifty ? { price: banknifty.regularMarketPrice, change: banknifty.regularMarketChangePercent } : { price: 52341.20, change: -0.12 },
-        sensex: sensex ? { price: sensex.regularMarketPrice, change: sensex.regularMarketChangePercent } : { price: 81943.50, change: 0.60 },
+        nifty50: nifty ? { price: nifty.regularMarketPrice, change: nifty.regularMarketChangePercent } : { price: 24892.50, change: 0 },
+        banknifty: banknifty ? { price: banknifty.regularMarketPrice, change: banknifty.regularMarketChangePercent } : { price: 52341.20, change: 0 },
+        sensex: sensex ? { price: sensex.regularMarketPrice, change: sensex.regularMarketChangePercent } : { price: 81943.50, change: 0 },
       }), { headers: jsonHeaders });
     }
 
@@ -340,11 +344,7 @@ async function handleApiRoute(path, url, request, env) {
       }));
 
       return new Response(JSON.stringify({
-        status: 'ok',
-        timestamp: Date.now(),
-        source: 'live_yahoo',
-        count: data.length,
-        data,
+        status: 'ok', timestamp: Date.now(), source: 'live_yahoo', count: data.length, data,
       }), { headers: jsonHeaders });
     }
 
@@ -363,11 +363,8 @@ async function handleApiRoute(path, url, request, env) {
       const parsed = parseNseOptionChain(nseData, targetSymbol);
       if (parsed && parsed.options.length > 0) {
         return new Response(JSON.stringify({
-          status: 'ok',
-          symbol: targetSymbol,
-          data: parsed,
-          source: 'real_nse',
-          timestamp: parsed.timestamp,
+          status: 'ok', symbol: targetSymbol, data: parsed,
+          source: 'real_nse', timestamp: parsed.timestamp,
         }), { headers: jsonHeaders });
       }
 
@@ -380,10 +377,7 @@ async function handleApiRoute(path, url, request, env) {
         if (meta?.regularMarketPrice) {
           const chain = generateFallbackChain(targetSymbol, meta.regularMarketPrice);
           return new Response(JSON.stringify({
-            status: 'ok',
-            symbol: targetSymbol,
-            data: chain,
-            source: 'yahoo_spot_fallback',
+            status: 'ok', symbol: targetSymbol, data: chain, source: 'yahoo_spot_fallback',
           }), { headers: jsonHeaders });
         }
       } catch {}
@@ -392,10 +386,7 @@ async function handleApiRoute(path, url, request, env) {
       const defaultSpots = { 'NIFTY': 24892.50, 'BANKNIFTY': 52341.20, 'FINNIFTY': 21450.00 };
       const chain = generateFallbackChain(targetSymbol, defaultSpots[targetSymbol] || 24000);
       return new Response(JSON.stringify({
-        status: 'ok',
-        symbol: targetSymbol,
-        data: chain,
-        source: 'static_fallback',
+        status: 'ok', symbol: targetSymbol, data: chain, source: 'static_fallback',
       }), { headers: jsonHeaders });
     }
 
@@ -412,25 +403,18 @@ async function handleApiRoute(path, url, request, env) {
           const price = meta.regularMarketPrice;
           const prevClose = meta.previousClose || meta.chartPreviousClose || price;
           return new Response(JSON.stringify({
-            status: 'ok',
-            underlying,
-            spotPrice: price,
-            spot: price,
+            status: 'ok', underlying, spotPrice: price, spot: price,
             change: price - prevClose,
             changePercent: prevClose ? ((price - prevClose) / prevClose) * 100 : 0,
-            source: 'live_yahoo',
-            timestamp: Date.now(),
+            source: 'live_yahoo', timestamp: Date.now(),
           }), { headers: jsonHeaders });
         }
       } catch {}
 
       const defaultSpots = { 'NIFTY': 24892.50, 'BANKNIFTY': 52341.20, 'FINNIFTY': 21450.00 };
       return new Response(JSON.stringify({
-        status: 'ok',
-        underlying,
-        spotPrice: defaultSpots[underlying.toUpperCase()] || 24000,
-        source: 'static_fallback',
-        timestamp: Date.now(),
+        status: 'ok', underlying, spotPrice: defaultSpots[underlying.toUpperCase()] || 24000,
+        source: 'static_fallback', timestamp: Date.now(),
       }), { headers: jsonHeaders });
     }
 
@@ -458,33 +442,25 @@ async function handleApiRoute(path, url, request, env) {
               source: item.author || feed.source,
             }));
             return new Response(JSON.stringify({
-              status: 'ok',
-              timestamp: Date.now(),
-              source: feed.source,
-              data: articles,
+              status: 'ok', timestamp: Date.now(), source: feed.source, data: articles,
             }), { headers: jsonHeaders });
           }
         } catch { continue; }
       }
 
       return new Response(JSON.stringify({
-        status: 'ok',
-        timestamp: Date.now(),
-        source: 'fallback',
-        data: [],
+        status: 'ok', timestamp: Date.now(), source: 'fallback', data: [],
       }), { headers: jsonHeaders });
     }
 
     // ── Unknown API route ─────────────────────────────────────
     return new Response(JSON.stringify({
-      status: 'error',
-      message: 'Unknown API endpoint',
+      status: 'error', message: 'Unknown API endpoint',
     }), { status: 404, headers: jsonHeaders });
 
   } catch (err) {
     return new Response(JSON.stringify({
-      status: 'error',
-      message: err.message || 'Internal server error',
+      status: 'error', message: err.message || 'Internal server error',
     }), { status: 500, headers: jsonHeaders });
   }
 }
