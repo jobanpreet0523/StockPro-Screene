@@ -1,6 +1,5 @@
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMarketStatus } from '../utils/marketStatus';
 import ParticleBackground from './ParticleBackground';
@@ -236,7 +235,7 @@ export default function LandingPage() {
 
     <!-- 2. THE HERO SECTION UPGRADE (Inspired by StockPro Premium Layout & Active Trading Desktop UI) -->
     <header id="hero-header" class="relative bg-[#020617] border-b border-slate-950 overflow-hidden min-h-[520px]">
-      <div id="particle-bg-container" style="position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;"></div>
+      
       
       <!-- High-Tech PC Trading Grid paper background with axis indicators (Dark neon contrast) -->
       <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:50px_50px] opacity-[0.45] pointer-events-none"></div>
@@ -3042,18 +3041,6 @@ export default function LandingPage() {
     </script>
     <script src="/live-data.js"></script>
   ` }} />
-  <ParticlePortal />
+  <ParticleBackground />
   </>;
-}
-
-function ParticlePortal() {
-  const [container, setContainer] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const el = document.getElementById('particle-bg-container');
-    if (el) setContainer(el);
-  }, []);
-
-  if (!container) return null;
-  return createPortal(<ParticleBackground />, container);
 }

@@ -1,11 +1,11 @@
 import React, { useRef, useEffect } from 'react';
 
 /**
- * 3D Floating Particle Background
- * Renders a canvas with animated particles floating in 3D perspective space.
- * Designed for the dark hero section of StockPro landing page.
- * Features: perspective projection, depth-based sizing/opacity, connecting lines,
- * mouse parallax interaction, and pulsing glow effects.
+ * 3D Floating Particle Background — Full Page Overlay
+ * Fixed canvas covering the entire viewport with animated particles
+ * floating in 3D perspective space. Uses mix-blend-mode: screen
+ * so particles glow beautifully on dark sections and subtly on light sections.
+ * pointer-events: none ensures all clicks pass through.
  */
 export default function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,26 +18,27 @@ export default function ParticleBackground() {
     if (!ctx) return;
 
     let animationId: number;
-    let width = 0;
-    let height = 0;
-    let mouseX = 0;
-    let mouseY = 0;
-    let targetMouseX = 0;
-    let targetMouseY = 0;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let mouseX = width / 2;
+    let mouseY = height / 2;
+    let targetMouseX = width / 2;
+    let targetMouseY = height / 2;
     let isVisible = true;
 
     // Particle config
-    const PARTICLE_COUNT = 100;
-    const MAX_DEPTH = 1000;
-    const FOV = 500;
-    const CONNECTION_DISTANCE = 130;
+    const PARTICLE_COUNT = 130;
+    const MAX_DEPTH = 1200;
+    const FOV = 600;
+    const CONNECTION_DISTANCE = 140;
 
     const COLORS = [
-      { r: 56, g: 189, b: 248 },   // sky-400 (#38bdf8) — primary
+      { r: 56, g: 189, b: 248 },   // sky-400 (#38bdf8)
       { r: 6, g: 182, b: 212 },     // cyan-500 (#06b6d4)
       { r: 37, g: 99, b: 235 },     // blue-600 (#2563eb)
       { r: 16, g: 185, b: 129 },    // emerald-500 (#10b981)
       { r: 99, g: 102, b: 241 },    // indigo-500 (#6366f1)
+      { r: 139, g: 92, b: 246 },    // violet-500 (#8b5cf6)
     ];
 
     interface Particle {
@@ -55,20 +56,13 @@ export default function ParticleBackground() {
     const particles: Particle[] = [];
 
     function resize() {
-      if (!canvas) return;
-      const parent = canvas.parentElement;
-      if (parent) {
-        width = parent.offsetWidth;
-        height = parent.offsetHeight;
-      } else {
-        width = window.innerWidth;
-        height = window.innerHeight;
-      }
+      width = window.innerWidth;
+      height = window.innerHeight;
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      canvas.style.width = width + 'px';
-      canvas.style.height = height + 'px';
+      canvas!.width = width * dpr;
+      canvas!.height = height * dpr;
+      canvas!.style.width = width + 'px';
+      canvas!.style.height = height + 'px';
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
@@ -76,15 +70,15 @@ export default function ParticleBackground() {
       particles.length = 0;
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         particles.push({
-          x: (Math.random() - 0.5) * width * 2.5,
-          y: (Math.random() - 0.5) * height * 2.5,
+          x: (Math.random() - 0.5) * width * 3,
+          y: (Math.random() - 0.5) * height * 3,
           z: Math.random() * MAX_DEPTH,
-          vx: (Math.random() - 0.5) * 0.35,
-          vy: (Math.random() - 0.5) * 0.35,
-          vz: -(Math.random() * 0.4 + 0.15),
+          vx: (Math.random() - 0.5) * 0.25,
+          vy: (Math.random() - 0.5) * 0.25,
+          vz: -(Math.random() * 0.3 + 0.08),
           color: COLORS[Math.floor(Math.random() * COLORS.length)],
           pulseOffset: Math.random() * Math.PI * 2,
-          baseSize: Math.random() * 1.8 + 0.8,
+          baseSize: Math.random() * 1.5 + 0.6,
         });
       }
     }
@@ -107,28 +101,27 @@ export default function ParticleBackground() {
       ctx.clearRect(0, 0, width, height);
 
       // Smooth mouse tracking
-      mouseX += (targetMouseX - mouseX) * 0.05;
-      mouseY += (targetMouseY - mouseY) * 0.05;
+      mouseX += (targetMouseX - mouseX) * 0.04;
+      mouseY += (targetMouseY - mouseY) * 0.04;
 
       // Mouse influence offset (subtle parallax)
-      const mxOff = (mouseX - width / 2) * 0.015;
-      const myOff = (mouseY - height / 2) * 0.015;
+      const mxOff = (mouseX - width / 2) * 0.012;
+      const myOff = (mouseY - height / 2) * 0.012;
 
       // Update and project particles
       const projected: { px: number; py: number; scale: number; particle: Particle; depth: number }[] = [];
 
       for (const p of particles) {
-        // Move with slight mouse influence based on depth
         const depthFactor = 1 - p.z / MAX_DEPTH;
-        p.x += p.vx + mxOff * depthFactor * 0.08;
-        p.y += p.vy + myOff * depthFactor * 0.08;
+        p.x += p.vx + mxOff * depthFactor * 0.05;
+        p.y += p.vy + myOff * depthFactor * 0.05;
         p.z += p.vz;
 
         // Wrap around depth
         if (p.z < 1) {
           p.z = MAX_DEPTH;
-          p.x = (Math.random() - 0.5) * width * 2.5;
-          p.y = (Math.random() - 0.5) * height * 2.5;
+          p.x = (Math.random() - 0.5) * width * 3;
+          p.y = (Math.random() - 0.5) * height * 3;
         }
         if (p.z > MAX_DEPTH) {
           p.z = 1;
@@ -136,8 +129,7 @@ export default function ParticleBackground() {
 
         const { x: px, y: py, scale } = project(p);
 
-        // Only process visible particles
-        if (px > -100 && px < width + 100 && py > -100 && py < height + 100) {
+        if (px > -150 && px < width + 150 && py > -150 && py < height + 150) {
           projected.push({ px, py, scale, particle: p, depth: p.z });
         }
       }
@@ -145,7 +137,7 @@ export default function ParticleBackground() {
       // Sort by depth (far first)
       projected.sort((a, b) => b.depth - a.depth);
 
-      // Draw connections (only for closer particles)
+      // Draw connections
       ctx.lineWidth = 0.5;
       for (let i = 0; i < projected.length; i++) {
         const a = projected[i];
@@ -158,7 +150,7 @@ export default function ParticleBackground() {
           const dist = Math.sqrt(dx * dx + dy * dy);
           const maxDist = CONNECTION_DISTANCE * ((a.scale + b.scale) / 2);
           if (dist < maxDist) {
-            const alpha = (1 - dist / maxDist) * 0.12 * (1 - a.depth / MAX_DEPTH);
+            const alpha = (1 - dist / maxDist) * 0.08 * (1 - a.depth / MAX_DEPTH);
             ctx.beginPath();
             ctx.strokeStyle = `rgba(${a.particle.color.r}, ${a.particle.color.g}, ${a.particle.color.b}, ${alpha})`;
             ctx.moveTo(a.px, a.py);
@@ -170,19 +162,19 @@ export default function ParticleBackground() {
 
       // Draw particles
       for (const { px, py, scale, particle: p, depth } of projected) {
-        const pulse = 0.65 + 0.35 * Math.sin(time * 0.0008 + p.pulseOffset);
-        const depthAlpha = Math.max(0.08, (1 - depth / MAX_DEPTH) * 0.8);
+        const pulse = 0.55 + 0.45 * Math.sin(time * 0.0006 + p.pulseOffset);
+        const depthAlpha = Math.max(0.05, (1 - depth / MAX_DEPTH) * 0.7);
         const alpha = depthAlpha * pulse;
-        const radius = Math.max(0.5, p.baseSize * scale * 3);
+        const radius = Math.max(0.5, p.baseSize * scale * 2.2);
 
-        // Outer glow
-        const gradient = ctx.createRadialGradient(px, py, 0, px, py, radius * 4);
-        gradient.addColorStop(0, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${alpha * 0.4})`);
-        gradient.addColorStop(0.3, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${alpha * 0.15})`);
+        // Outer glow (larger, softer)
+        const gradient = ctx.createRadialGradient(px, py, 0, px, py, radius * 5);
+        gradient.addColorStop(0, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${alpha * 0.3})`);
+        gradient.addColorStop(0.25, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${alpha * 0.1})`);
         gradient.addColorStop(1, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, 0)`);
         ctx.beginPath();
         ctx.fillStyle = gradient;
-        ctx.arc(px, py, radius * 4, 0, Math.PI * 2);
+        ctx.arc(px, py, radius * 5, 0, Math.PI * 2);
         ctx.fill();
 
         // Core particle
@@ -191,10 +183,10 @@ export default function ParticleBackground() {
         ctx.arc(px, py, radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bright center
+        // Bright center dot
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.45})`;
-        ctx.arc(px, py, radius * 0.25, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.35})`;
+        ctx.arc(px, py, radius * 0.2, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -202,37 +194,28 @@ export default function ParticleBackground() {
     }
 
     function handleMouseMove(e: MouseEvent) {
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      targetMouseX = e.clientX - rect.left;
-      targetMouseY = e.clientY - rect.top;
+      targetMouseX = e.clientX;
+      targetMouseY = e.clientY;
     }
 
-    // Use IntersectionObserver to pause animation when not visible
-    const observer = new IntersectionObserver(
-      (entries) => { isVisible = entries[0]?.isIntersecting ?? true; },
-      { threshold: 0 }
-    );
-    observer.observe(canvas);
+    // Pause when tab is not visible
+    const handleVisibilityChange = () => {
+      isVisible = !document.hidden;
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     resize();
     initParticles();
     animationId = requestAnimationFrame(draw);
 
     window.addEventListener('resize', resize);
-    // Listen on the parent header for mouse events (canvas has pointer-events: none)
-    const parentEl = canvas.parentElement;
-    if (parentEl) {
-      parentEl.addEventListener('mousemove', handleMouseMove as EventListener);
-    }
+    window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', resize);
-      if (parentEl) {
-        parentEl.removeEventListener('mousemove', handleMouseMove as EventListener);
-      }
-      observer.disconnect();
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -240,13 +223,14 @@ export default function ParticleBackground() {
     <canvas
       ref={canvasRef}
       style={{
-        position: 'absolute',
+        position: 'fixed',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
+        width: '100vw',
+        height: '100vh',
         pointerEvents: 'none',
-        zIndex: 1,
+        zIndex: 9999,
+        mixBlendMode: 'screen',
       }}
     />
   );
