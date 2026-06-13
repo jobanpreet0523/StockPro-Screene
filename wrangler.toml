@@ -7,8 +7,8 @@ directory = "./dist"
 binding = "ASSETS"
 
 # KV namespace for caching NSE data (60s TTL)
-# Create with: npx wrangler kv namespace create STOCKPRO_KV
-# Then paste the id below
-[[kv_namespaces]]
-binding = "STOCKPRO_KV"
-id = ""  # Will be set after KV namespace creation
+# To enable: run `npx wrangler kv namespace create STOCKPRO_KV`
+# Then add the id below and uncomment
+# [[kv_namespaces]]
+# binding = "STOCKPRO_KV"
+# id = "YOUR_KV_NAMESPACE_ID"
