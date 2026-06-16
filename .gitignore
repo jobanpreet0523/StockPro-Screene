@@ -10,3 +10,5 @@ coverage/
 .gitconfig
 uploads/
 .config/
+
+.env
