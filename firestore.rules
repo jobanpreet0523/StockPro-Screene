@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidProfile(data) {
+      return data.keys().hasOnly(['theme'])
+          && (data.theme == 'light' || data.theme == 'dark');
+    }
+
+    function isValidWatchlist(data, userId) {
+      return data.userId == userId
+          && data.symbols is list
+          && data.symbols.size() <= 10;
+    }
+
+    match /userProfile/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidProfile(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidProfile(incoming());
+    }
+
+    match /watchlists/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidWatchlist(incoming(), userId);
+      allow update: if isSignedIn() && isOwner(userId) && isValidWatchlist(incoming(), userId);
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

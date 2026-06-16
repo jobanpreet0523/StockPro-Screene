@@ -1,0 +1,38 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "User Profile",
+      "description": "User preferences like theme",
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark"]
+        }
+      }
+    },
+    "watchlist": {
+      "title": "Watchlist",
+      "description": "User's watchlisted stocks, limited to 10 stocks.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "symbols": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "userProfile/{userId}": {
+      "schema": { "$ref": "#/entities/userProfile" },
+      "description": "Stores user profiles with their preferences."
+    },
+    "watchlists/{userId}": {
+      "schema": { "$ref": "#/entities/watchlist" },
+      "description": "Stores users' stock watchlists (max 10 stock symbols)."
+    }
+  }
+}
