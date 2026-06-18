@@ -23,10 +23,10 @@ interface ScreenerRowProps {
 }
 
 function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, formatMarketCap, realData, isLoading, isWatchlisted, onToggleWatchlist }: ScreenerRowProps) {
-  const displayPrice = realData ? realData.price : stock.price;
-  const displayChangePercent = realData ? realData.changePercent.toFixed(2) : stock.changePercent;
-  const displayVolume = realData ? realData.volume : stock.volume;
-  const displayChange = realData ? realData.change : stock.change;
+  const displayPrice = (realData ? realData.price : stock.price) ?? 0;
+  const displayChangePercent = realData ? (realData.changePercent ?? 0).toFixed(2) : stock.changePercent;
+  const displayVolume = (realData ? realData.volume : stock.volume) ?? 0;
+  const displayChange = (realData ? realData.change : stock.change) ?? 0;
 
   const [prevPrice, setPrevPrice] = useState<number>(displayPrice);
   const [flash, setFlash] = useState<'up' | 'down' | null>(null);
@@ -98,7 +98,7 @@ function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, form
           <div className="flex justify-end"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div></div>
         ) : (
           <span className={`inline-block px-1.5 py-0.5 transition-all text-right select-none ${flashBgClass}`}>
-            {displayPrice >= 100 ? displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : displayPrice.toFixed(2)}
+            {displayPrice >= 100 ? displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (displayPrice ?? 0).toFixed(2)}
           </span>
         )}
       </td>
@@ -379,14 +379,16 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
   };
 
   const formatVolume = (vol: number) => {
-    if (vol >= 1000000) return `${(vol / 1000000).toFixed(2)}M`;
-    if (vol >= 1000) return `${(vol / 1000).toFixed(0)}K`;
-    return vol.toString();
+    const v = vol ?? 0;
+    if (v >= 1000000) return `${(v / 1000000).toFixed(2)}M`;
+    if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
+    return v.toString();
   };
 
   const formatMarketCap = (cap: number) => {
-    if (cap >= 1000000) return `₹${(cap / 1000000).toFixed(2)}T`;
-    return `₹${cap.toLocaleString()}Cr`;
+    const c = cap ?? 0;
+    if (c >= 1000000) return `₹${(c / 1000000).toFixed(2)}T`;
+    return `₹${c.toLocaleString()}Cr`;
   };
 
   const handleExportCSV = () => {

@@ -23,7 +23,7 @@ export function fmtLakhCrore(n: number): string {
 export function fmtPct(n: number, decimals = 2): string {
   if (n == null || isNaN(n)) return '—';
   const sign = n >= 0 ? '+' : '';
-  return sign + n.toFixed(decimals) + '%';
+  return sign + (n ?? 0).toFixed(decimals) + '%';
 }
 
 export function fmtOI(n: number): string {

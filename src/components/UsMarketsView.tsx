@@ -159,16 +159,18 @@ export default function UsMarketsView() {
   }, []);
 
   const formatVolume = (vol: number) => {
-    if (vol >= 1000000000) return `${(vol / 1000000000).toFixed(1)}B`;
-    if (vol >= 1000000) return `${(vol / 1000000).toFixed(1)}M`;
-    if (vol >= 1000) return `${(vol / 1000).toFixed(0)}K`;
-    return vol.toLocaleString();
+    const v = vol ?? 0;
+    if (v >= 1000000000) return `${(v / 1000000000).toFixed(1)}B`;
+    if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+    if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
+    return v.toLocaleString();
   };
 
   const formatMarketCap = (cap: number) => {
-    if (cap >= 1000000000000) return `$${(cap / 1000000000000).toFixed(2)}T`;
-    if (cap >= 1000000000) return `$${(cap / 1000000000).toFixed(1)}B`;
-    return `$${(cap / 1000000).toFixed(0)}M`;
+    const c = cap ?? 0;
+    if (c >= 1000000000000) return `$${(c / 1000000000000).toFixed(2)}T`;
+    if (c >= 1000000000) return `$${(c / 1000000000).toFixed(1)}B`;
+    return `$${(c / 1000000).toFixed(0)}M`;
   };
 
   const sectors = ['All', ...new Set(Object.values(US_STOCK_SECTORS).map(s => s.sector))];
@@ -200,7 +202,7 @@ export default function UsMarketsView() {
                   </span>
                   <div className={`text-[10px] font-bold flex items-center gap-0.5 font-mono ${isUp ? 'text-emerald-500' : 'text-rose-500'}`}>
                     {isUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                    <span>{isUp ? '+' : ''}{idx.changePercent.toFixed(2)}%</span>
+                    <span>{isUp ? '+' : ''}{(idx.changePercent ?? 0).toFixed(2)}%</span>
                   </div>
                 </div>
               </div>
@@ -218,7 +220,7 @@ export default function UsMarketsView() {
           <span className="text-[10px] font-bold text-slate-400 uppercase font-mono tracking-wide">Live FX Rate (USD/INR)</span>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-sm font-extrabold text-[#38bdf8] font-mono">
-              ₹{usdInrRate.toFixed(4)}
+              ₹{(usdInrRate ?? 83.5).toFixed(4)}
             </span>
             <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1 rounded font-black uppercase border border-emerald-500/10">Connected</span>
           </div>
@@ -346,7 +348,7 @@ export default function UsMarketsView() {
 
                       {/* CHANGE % */}
                       <td className={`py-3 px-4 text-right font-bold ${isUp ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {stk.changePercent >= 0 ? '+' : ''}{stk.changePercent.toFixed(2)}%
+                        {(stk.changePercent ?? 0) >= 0 ? '+' : ''}{(stk.changePercent ?? 0).toFixed(2)}%
                       </td>
 
                       {/* VOLUME */}

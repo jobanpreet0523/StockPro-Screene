@@ -109,7 +109,8 @@ export default function Header({
   ).slice(0, 5);
 
   const formatPrice = (val: number) => {
-    return val >= 1000 ? val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : val.toFixed(2);
+    const v = val ?? 0;
+    return v >= 1000 ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : v.toFixed(2);
   };
 
   return (

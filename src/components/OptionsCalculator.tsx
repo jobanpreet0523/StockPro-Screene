@@ -152,7 +152,7 @@ export default function OptionsCalculator() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-850">
           <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block uppercase">Breakeven</span>
-          <span className="text-sm font-bold text-slate-900 dark:text-white mt-1">₹{results.breakeven.toFixed(2)}</span>
+          <span className="text-sm font-bold text-slate-900 dark:text-white mt-1">₹{(results.breakeven ?? 0).toFixed(2)}</span>
         </div>
         <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-850">
           <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block uppercase">Total investment</span>

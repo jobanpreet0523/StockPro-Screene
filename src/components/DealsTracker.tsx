@@ -193,10 +193,10 @@ export default function DealsTracker() {
 
     return {
       newestDate,
-      totalBuyCr: Number(totalBuy.toFixed(2)),
-      totalSellCr: Number(totalSell.toFixed(2)),
+      totalBuyCr: Number((totalBuy ?? 0).toFixed(2)),
+      totalSellCr: Number((totalSell ?? 0).toFixed(2)),
       mostTradedSymbol: maxStock,
-      mostTradedVal: Number(maxVal.toFixed(2))
+      mostTradedVal: Number((maxVal ?? 0).toFixed(2))
     };
   }, [deals]);
 
@@ -219,9 +219,9 @@ export default function DealsTracker() {
     return Object.entries(agg)
       .map(([sym, item]) => ({
         stock: sym,
-        'Cumulative BUY Value (₹Cr)': Number(item.buy.toFixed(1)),
-        'Cumulative SELL Value (₹Cr)': Number(item.sell.toFixed(1)),
-        totalValue: Number(item.total.toFixed(1))
+        'Cumulative BUY Value (₹Cr)': Number((item.buy ?? 0).toFixed(1)),
+        'Cumulative SELL Value (₹Cr)': Number((item.sell ?? 0).toFixed(1)),
+        totalValue: Number((item.total ?? 0).toFixed(1))
       }))
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 10);
@@ -633,7 +633,7 @@ export default function DealsTracker() {
                       </td>
                       <td className="py-3 px-5 text-right font-mono text-xs font-black">
                         <span className={isBuy ? 'text-emerald-600' : 'text-rose-600'}>
-                          ₹{deal.value.toFixed(2)} Cr
+                          ₹{(deal.value ?? 0).toFixed(2)} Cr
                         </span>
                       </td>
                     </tr>

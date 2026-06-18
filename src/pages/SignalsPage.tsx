@@ -77,7 +77,7 @@ export default function SignalsPage() {
       `Entry: ₹${formatNum(s.entry)}\n` +
       `Target: ₹${formatNum(s.target)}\n` +
       `Stop Loss: ₹${formatNum(s.stopLoss)}\n` +
-      `Change: ${s.changePercent >= 0 ? '+' : ''}${s.changePercent.toFixed(2)}%\n` +
+      `Change: ${(s.changePercent ?? 0) >= 0 ? '+' : ''}${(s.changePercent ?? 0).toFixed(2)}%\n` +
       `Confidence: ${s.confidence}%`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -151,8 +151,8 @@ export default function SignalsPage() {
 
                 <div className="flex items-end justify-between">
                   <div className="text-lg font-black text-slate-900 dark:text-white font-mono">₹{formatNum(s.price)}</div>
-                  <div className={`text-xs font-bold font-mono ${s.changePercent >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                    {s.changePercent >= 0 ? '+' : ''}{s.changePercent.toFixed(2)}%
+                  <div className={`text-xs font-bold font-mono ${(s.changePercent ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    {(s.changePercent ?? 0) >= 0 ? '+' : ''}{(s.changePercent ?? 0).toFixed(2)}%
                   </div>
                 </div>
 

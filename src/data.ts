@@ -477,10 +477,10 @@ export function generateHistoricalCandles(basePrice: number, pointsCount = 100, 
     result.push({
       time: timeString,
       timestamp,
-      open: Number(open.toFixed(2)),
-      high: Number(high.toFixed(2)),
-      low: Number(low.toFixed(2)),
-      close: Number(close.toFixed(2)),
+      open: Number((open ?? 0).toFixed(2)),
+      high: Number((high ?? 0).toFixed(2)),
+      low: Number((low ?? 0).toFixed(2)),
+      close: Number((close ?? 0).toFixed(2)),
       volume: currentVol
     });
 
