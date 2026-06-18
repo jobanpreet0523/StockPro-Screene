@@ -251,22 +251,15 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
     const fetchStockData = async (symbol: string) => {
       try {
         setLoadingStocks(prev => ({ ...prev, [symbol]: true }));
-        const response = await fetch(`/api/yahoo-finance/${symbol}`, { signal: AbortSignal.timeout(8000) });
+        const response = await fetch(`/api/yahoo-finance/${symbol}`, {
+          signal: AbortSignal.timeout(15000)
+        });
         if (response.ok) {
-          const json = await response.json();
-          const meta = json?.chart?.result?.[0]?.meta;
-          if (meta) {
-            const price = meta.regularMarketPrice;
-            const prevClose = meta.previousClose || price;
-            const change = price - prevClose;
-            const changePercent = prevClose ? (change / prevClose) * 100 : 0;
-            const volume = meta.regularMarketVolume || meta.volume || 0;
-            
-            setRealStockData(prev => ({
-              ...prev,
-              [symbol]: { price, change, changePercent, volume }
-            }));
-          }
+          const data = await response.json();
+          setRealStockData(prev => ({
+            ...prev,
+            [symbol]: data
+          }));
         }
       } catch (err) {
         console.warn("Failed to fetch", symbol, err);

@@ -11,7 +11,7 @@ export function useMarketIndices() {
 
   const fetchIndices = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/indices`, { signal: AbortSignal.timeout(10000) });
+      const res = await fetch(`${API_BASE}/api/indices`, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error('API fetch failed');
       const json = await res.json();
 

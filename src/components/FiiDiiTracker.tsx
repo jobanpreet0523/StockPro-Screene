@@ -31,18 +31,15 @@ export default function FiiDiiTracker() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const url = 'https://www.nseindia.com/api/fiidiiTradeReact';
-        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        
-        const response = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+        const response = await fetch('/api/nse/fiidii', { signal: AbortSignal.timeout(15000) });
         const json = await response.json();
         
         let parsedData: FiiDiiData[] = [];
 
         // Parse NSE Response if valid
-        if (json.contents) {
-          const nseData = JSON.parse(json.contents);
-          if (nseData && nseData.length > 0) {
+        if (json.status === 'ok' && json.data) {
+          const nseData = json.data;
+          if (Array.isArray(nseData) && nseData.length > 0) {
              // nseData is typically an array of objects
              const fii = nseData.find((item: any) => item.category === 'FII/FPI *');
              const dii = nseData.find((item: any) => item.category === 'DII **');
