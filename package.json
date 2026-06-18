@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npx esbuild src/_worker.js --bundle --format=esm --outfile=dist/_worker.js --platform=browser --minify --conditions=worker",
     "preview": "vite preview"
   },
   "dependencies": {
