@@ -78,7 +78,7 @@ export default function MarketCards({ indices, onSelectIndex }: MarketCardsProps
                 </span>
               </div>
               <p className={`text-[10px] font-mono mt-0.5 ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} font-medium`}>
-                {isPositive ? '+' : ''}{idx.change.toFixed(2)}
+                {isPositive ? '+' : ''}{(idx.change ?? 0).toFixed(2)}
               </p>
             </div>
             

@@ -230,7 +230,7 @@ export default function FiiDiiTracker() {
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#fff', fontSize: '11px', fontFamily: 'monospace' }}
                     itemStyle={{ color: '#fff' }}
-                    formatter={(value: number) => [`₹${value.toFixed(0)} Cr`, 'FII Net']}
+                    formatter={(value: number) => [`₹${(value ?? 0).toFixed(0)} Cr`, 'FII Net']}
                   />
                   <ReferenceLine y={0} stroke="#475569" strokeDasharray="3 3" opacity={0.5} />
                   <Bar dataKey="fiiNet" radius={[2, 2, 0, 0]}>

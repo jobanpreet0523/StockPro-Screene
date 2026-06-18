@@ -19,7 +19,7 @@ export function calcMaxPain(options: { strikePrice: number; callOi: number; putO
 
 export function calcPCR(totalPutOI: number, totalCallOI: number): number {
   if (!totalCallOI) return 0;
-  return +(totalPutOI / totalCallOI).toFixed(2);
+  return +((totalPutOI ?? 0) / (totalCallOI ?? 1)).toFixed(2);
 }
 
 export function calcATMStrike(spot: number, step: number): number {

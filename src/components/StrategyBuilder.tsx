@@ -177,8 +177,8 @@ export default function StrategyBuilder() {
     const extremeLow = extendedData[0].pnl;
     const extremeHigh = extendedData[extendedData.length - 1].pnl;
     
-    let displayMaxProf = maxProf > 500000 ? 'Unlimited' : `₹${maxProf.toFixed(2)}`;
-    let displayMaxLoss = maxLoss < -500000 ? 'Unlimited' : `₹${maxLoss.toFixed(2)}`;
+    let displayMaxProf = maxProf > 500000 ? 'Unlimited' : `₹${(maxProf ?? 0).toFixed(2)}`;
+    let displayMaxLoss = maxLoss < -500000 ? 'Unlimited' : `₹${(maxLoss ?? 0).toFixed(2)}`;
 
     // Breakevens approximation
     const breakevens: number[] = [];
@@ -196,7 +196,7 @@ export default function StrategyBuilder() {
     // RR calculation
     let rr = 'N/A';
     if (typeof maxProf === 'number' && typeof maxLoss === 'number' && maxLoss < 0 && maxProf > 0) {
-      rr = `1 : ${(maxProf / Math.abs(maxLoss)).toFixed(2)}`;
+      rr = `1 : ${(maxProf / Math.abs(maxLoss ?? 1)).toFixed(2)}`;
     } else if (displayMaxLoss === 'Unlimited' && typeof maxProf === 'number' && maxProf > 0) {
        rr = 'Risk Unbounded';
     } else if (displayMaxProf === 'Unlimited' && typeof maxLoss === 'number') {
@@ -383,7 +383,7 @@ export default function StrategyBuilder() {
                     <div className="bg-slate-800/30 p-2.5 rounded-lg border border-slate-700/30">
                       <span className="text-[9px] text-slate-400 uppercase font-bold block mb-1">Net Premium</span>
                       <span className={`text-xs font-bold font-mono ${stats.netPremium >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {stats.netPremium >= 0 ? '+' : ''}{stats.netPremium.toFixed(2)}
+                        {stats.netPremium >= 0 ? '+' : ''}{(stats.netPremium ?? 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="bg-slate-800/30 p-2.5 rounded-lg border border-slate-700/30">
@@ -438,7 +438,7 @@ export default function StrategyBuilder() {
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: 8, color: '#fff', fontSize: '11px', fontFamily: 'monospace' }}
                       itemStyle={{ color: '#fff' }}
-                      formatter={(value: number) => [`₹${value.toFixed(2)}`, 'P&L']}
+                      formatter={(value: number) => [`₹${(value ?? 0).toFixed(2)}`, 'P&L']}
                       labelFormatter={(label) => `Spot Price: ${label}`}
                     />
                     <ReferenceLine y={0} stroke="#64748b" strokeOpacity={0.5} strokeDasharray="3 3" />

@@ -227,7 +227,7 @@ export default function RiskCalculator() {
                       <span className="text-[10px] text-slate-400 uppercase tracking-wide font-bold">Recommended Lots</span>
                     </div>
                     <div className="text-white text-2xl font-black font-mono tracking-tight mt-1">{stats.recLots}</div>
-                    <div className="text-[10px] text-slate-500 mt-1 font-mono">Risking ₹{stats.riskPerShare.toFixed(2)} / share</div>
+                    <div className="text-[10px] text-slate-500 mt-1 font-mono">Risking ₹{(stats.riskPerShare ?? 0).toFixed(2)} / share</div>
                   </div>
                </div>
 
@@ -237,7 +237,7 @@ export default function RiskCalculator() {
                      <AlertCircle size={20} className={stats.sizeWarningText} />
                      <div>
                        <div className={`font-bold text-sm ${stats.sizeWarningText}`}>Position too large!</div>
-                       <div className="text-[11px] text-slate-400 mt-0.5">This trade requires {stats.allocationPercent.toFixed(1)}% of your capital. Target is &lt; 20%.</div>
+                       <div className="text-[11px] text-slate-400 mt-0.5">This trade requires {(stats.allocationPercent ?? 0).toFixed(1)}% of your capital. Target is &lt; 20%.</div>
                      </div>
                   </div>
                )}
@@ -259,7 +259,7 @@ export default function RiskCalculator() {
                          {stats.rrStatus === 'good' ? 'Good setup ✓' : 
                           stats.rrStatus === 'poor' ? 'Poor risk/reward' : 'Average setup'}
                        </div>
-                       <div className="text-[11px] text-slate-400 mt-0.5">Risk/Reward Ratio is 1 : {stats.rrRatio.toFixed(2)}</div>
+                       <div className="text-[11px] text-slate-400 mt-0.5">Risk/Reward Ratio is 1 : {(stats.rrRatio ?? 0).toFixed(2)}</div>
                      </div>
                   </div>
                )}
@@ -276,14 +276,14 @@ export default function RiskCalculator() {
                   </div>
                   <div className="bg-slate-800/30 p-3 rounded-lg border border-slate-700/30">
                     <span className="text-[9px] text-slate-400 uppercase font-bold block mb-1">Return on Capital</span>
-                    <span className="text-sm font-bold font-mono text-sky-400">{stats.returnOnCapital.toFixed(1)}%</span>
+                    <span className="text-sm font-bold font-mono text-sky-400">{(stats.returnOnCapital ?? 0).toFixed(1)}%</span>
                   </div>
                </div>
 
                {/* Capital Allocation Bar */}
                <div className="mt-2">
                   <div className="flex justify-between text-[10px] font-mono font-bold mb-1.5">
-                     <span className="text-slate-400">Capital Utilized ({stats.allocationPercent.toFixed(1)}%)</span>
+                     <span className="text-slate-400">Capital Utilized ({(stats.allocationPercent ?? 0).toFixed(1)}%)</span>
                      <span className="text-slate-500">Total: ₹{accountSize.toLocaleString()}</span>
                   </div>
                   <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden flex">

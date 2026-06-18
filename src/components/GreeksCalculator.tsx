@@ -64,13 +64,13 @@ export default function GreeksCalculator() {
       const res = blackScholes(shiftedSpot, K, days, r, iv, activeType.toLowerCase() as 'call'|'put');
       return {
         shiftLabel: shift === 0 ? 'Current' : `${shift > 0 ? '+' : ''}${(shift * 100).toFixed(0)}%`,
-        shiftedSpot: Number(shiftedSpot.toFixed(1)),
-        delta: Number(res.delta.toFixed(3)),
-        gamma: Number(res.gamma.toFixed(5)),
-        theta: Number(res.theta.toFixed(2)),
-        vega: Number(res.vega.toFixed(2)),
-        rho: Number(res.rho.toFixed(2)),
-        price: Number(res.theoreticalPrice.toFixed(2)),
+        shiftedSpot: Number((shiftedSpot ?? 0).toFixed(1)),
+        delta: Number((res.delta ?? 0).toFixed(3)),
+        gamma: Number((res.gamma ?? 0).toFixed(5)),
+        theta: Number((res.theta ?? 0).toFixed(2)),
+        vega: Number((res.vega ?? 0).toFixed(2)),
+        rho: Number((res.rho ?? 0).toFixed(2)),
+        price: Number((res.theoreticalPrice ?? 0).toFixed(2)),
         bg: shift === 0 ? 'bg-indigo-50/50 dark:bg-indigo-950/20 font-bold border-indigo-200 dark:border-indigo-800' : ''
       };
     });
@@ -92,8 +92,8 @@ export default function GreeksCalculator() {
       const gPut = blackScholes(S, str, days, r, iv, 'put');
       return {
         strike: str,
-        'Call Delta': Number(gCall.delta.toFixed(3)),
-        'Put Delta': Number(gPut.delta.toFixed(3)),
+        'Call Delta': Number((gCall.delta ?? 0).toFixed(3)),
+        'Put Delta': Number((gPut.delta ?? 0).toFixed(3)),
         'ATM Reference': baseStrike === str ? 0.5 : null
       };
     });
@@ -283,7 +283,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-emerald-400 group-hover:text-emerald-600 transition" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white mt-1.5 font-mono">
-            {greeks.delta >= 0 ? '+' : ''}{greeks.delta.toFixed(3)}
+            {(greeks.delta ?? 0) >= 0 ? '+' : ''}{(greeks.delta ?? 0).toFixed(3)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">Rate of Price Change</p>
         </div>
@@ -299,7 +299,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-blue-400 group-hover:text-blue-600 transition" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white mt-1.5 font-mono">
-            {greeks.gamma.toFixed(5)}
+            {(greeks.gamma ?? 0).toFixed(5)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">Delta Acceleration</p>
         </div>
@@ -315,7 +315,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-rose-400 group-hover:text-rose-600 transition" />
           </div>
           <div className="text-xl font-black text-rose-600 dark:text-rose-400 mt-1.5 font-mono">
-            {greeks.theta.toFixed(2)}
+            {(greeks.theta ?? 0).toFixed(2)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">Time Decay / Day</p>
         </div>
@@ -331,7 +331,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-purple-400 group-hover:text-purple-600 transition" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white mt-1.5 font-mono">
-            {greeks.vega.toFixed(2)}
+            {(greeks.vega ?? 0).toFixed(2)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">IV Volatility Sensitivity</p>
         </div>
@@ -347,7 +347,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-amber-400 group-hover:text-amber-600 transition" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white mt-1.5 font-mono">
-            {greeks.rho.toFixed(2)}
+            {(greeks.rho ?? 0).toFixed(2)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">Interest Rate Sensitivity</p>
         </div>

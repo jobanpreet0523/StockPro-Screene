@@ -158,24 +158,24 @@ export default function Heatmap() {
       // Base size computation. We'll use percentage of container.
       // Since CSS grid treemap is complex, we will approximate a flex layout 
       // with varying widths/flex-grow to mimic a heatmap structure.
-      const weight = (stock.marketCap / totalCap) * 100;
+      const weight = ((stock.marketCap ?? 0) / totalCap) * 100;
       const minWeight = 1; // minimum size
 
       return (
         <div 
           key={stock.symbol}
           onClick={() => setSelectedStock(stock.symbol)}
-          className={`${getColor(stock.changePercent)} cursor-pointer transition-all hover:ring-2 hover:ring-white hover:z-10 rounded border border-slate-900/50 flex flex-col items-center justify-center p-1 overflow-hidden shrink-0`}
+          className={`${getColor(stock.changePercent ?? 0)} cursor-pointer transition-all hover:ring-2 hover:ring-white hover:z-10 rounded border border-slate-900/50 flex flex-col items-center justify-center p-1 overflow-hidden shrink-0`}
           style={{ 
             flexGrow: Math.max(weight, minWeight),
             flexBasis: `${Math.max(weight * 3, 5)}%`,
             minHeight: `${Math.max(weight * 2, 60)}px` 
           }}
-          title={`${stock.symbol}: ${stock.changePercent.toFixed(2)}%`}
+          title={`${stock.symbol}: ${(stock.changePercent ?? 0).toFixed(2)}%`}
         >
           <span className="text-white font-bold font-mono text-[10px] sm:text-xs truncate max-w-full mix-blend-plus-lighter">{stock.symbol}</span>
           <span className="text-white font-mono text-[9px] sm:text-[10px] opacity-90 truncate mix-blend-plus-lighter">
-            {stock.changePercent > 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+            {(stock.changePercent ?? 0) > 0 ? '+' : ''}{(stock.changePercent ?? 0).toFixed(2)}%
           </span>
         </div>
       );
@@ -201,8 +201,8 @@ export default function Heatmap() {
           {stocks.length > 0 && (
             <div className="flex items-center gap-3 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50 mr-2">
               <span className="text-xs font-bold text-slate-300">NIFTY</span>
-              <span className={`text-sm font-bold font-mono ${indexStats.pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {indexStats.pct >= 0 ? '+' : ''}{indexStats.pct.toFixed(2)}%
+              <span className={`text-sm font-bold font-mono ${(indexStats.pct ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {(indexStats.pct ?? 0) >= 0 ? '+' : ''}{(indexStats.pct ?? 0).toFixed(2)}%
               </span>
               <div className="w-px h-4 bg-slate-700 mx-1"></div>
               <span className="text-[10px] font-mono"><span className="text-emerald-400">{indexStats.advances}</span> / <span className="text-rose-400">{indexStats.declines}</span></span>
