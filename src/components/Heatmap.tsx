@@ -75,8 +75,9 @@ export default function Heatmap() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const url = `/api/yahoo-finance/quotes?symbols=${NIFTY50_SYMBOLS}`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      const response = await fetch(`/api/yahoo-finance/quotes?symbols=${NIFTY50_SYMBOLS}`, {
+        signal: AbortSignal.timeout(15000)
+      });
       const data = await response.json();
       
       const parsed: StockData[] = data.quoteResponse.result.map((item: any) => {

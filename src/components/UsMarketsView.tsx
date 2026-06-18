@@ -72,9 +72,9 @@ export default function UsMarketsView() {
       setLoading(true);
       const tickers = Object.keys(US_STOCK_SECTORS);
       const symbolsString = [...tickers, '^GSPC', '^IXIC', '^DJI', 'USDINR=X'].join(',');
-      const url = `/api/yahoo-finance/quotes?symbols=${encodeURIComponent(symbolsString)}`;
-      
-      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      const res = await fetch(`/api/yahoo-finance/quotes?symbols=${encodeURIComponent(symbolsString)}`, {
+        signal: AbortSignal.timeout(15000)
+      });
       if (!res.ok) throw new Error('API gateway returned bad status');
       const payload = await res.json();
       const quotes = payload?.quoteResponse?.result || [];

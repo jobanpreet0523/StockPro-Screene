@@ -18,7 +18,7 @@ export function useMarketNews() {
   const fetchNews = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/api/news`, { signal: AbortSignal.timeout(8000) });
+      const res = await fetch(`${API_BASE}/api/news`, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error('News API failed');
       const json = await res.json();
 

@@ -12,7 +12,7 @@ export function useLiveStocks() {
   const fetchLiveStocks = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/api/stocks`, { signal: AbortSignal.timeout(10000) });
+      const res = await fetch(`${API_BASE}/api/stocks`, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error('API fetch failed');
       const json = await res.json();
 
