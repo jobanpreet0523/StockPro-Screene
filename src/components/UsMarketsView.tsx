@@ -72,15 +72,11 @@ export default function UsMarketsView() {
       setLoading(true);
       const tickers = Object.keys(US_STOCK_SECTORS);
       const symbolsString = [...tickers, '^GSPC', '^IXIC', '^DJI', 'USDINR=X'].join(',');
-      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsString)}`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const url = `/api/yahoo-finance/quotes?symbols=${encodeURIComponent(symbolsString)}`;
       
-      const res = await fetch(proxyUrl);
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
       if (!res.ok) throw new Error('API gateway returned bad status');
-      const wrapper = await res.json();
-      if (!wrapper.contents) throw new Error('CORS proxy payload invalid');
-      
-      const payload = JSON.parse(wrapper.contents);
+      const payload = await res.json();
       const quotes = payload?.quoteResponse?.result || [];
       
       if (quotes.length === 0) throw new Error('Empty quotes array received from Yahoo Finance');

@@ -445,9 +445,9 @@ async function handleStaticAssetsProxy(filename, request, env) {
 }
 
 // HELPER: Fetch Yahoo Finance Quote Data
-async function getLivePrice(symbol) {
+async function getLivePrice(symbol, origin) {
   try {
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`, {
+    const res = await fetch(`${origin}/api/yahoo-finance/${symbol}?interval=1m&range=1d`, {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
     const data = await res.json();
@@ -463,7 +463,7 @@ async function getLivePrice(symbol) {
 }
 
 // HELPER: Get Options Chain Spot & Strike Pricing Models
-async function getOptionData(underlying) {
+async function getOptionData(underlying, origin) {
   try {
     const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/data?underlying=${underlying}`;
     const response = await fetch(backendUrl);
@@ -481,8 +481,8 @@ async function getOptionData(underlying) {
   };
   
   const ticker = symbolMap[underlying] || "^NSEI";
-  const spotData = await getLivePrice(ticker);
-  const vixData = await getLivePrice("^INDIAVIX");
+  const spotData = await getLivePrice(ticker, origin);
+  const vixData = await getLivePrice("^INDIAVIX", origin);
   
   const spot = underlying === "NIFTY" ? 24892.50 : (spotData ? spotData.price : 47840.15);
   const change = underlying === "NIFTY" ? 145.30 : (spotData ? spotData.change : 128.40);
@@ -528,7 +528,7 @@ async function getOptionData(underlying) {
 }
 
 // HELPER: Fetch, Calculate & Package InvestingPro Live Metrics
-async function getProData(symbol) {
+async function getProData(symbol, origin) {
   try {
     const backendUrl = `https://stockpro-screener.jobanpreet0523.workers.dev/api/pro-data?symbol=${symbol}`;
     const response = await fetch(backendUrl);
@@ -540,7 +540,7 @@ async function getProData(symbol) {
   }
 
   try {
-    const res = await fetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=financialData,defaultKeyStatistics,summaryDetail,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,assetProfile`, {
+    const res = await fetch(`${origin}/api/yahoo-finance/${symbol}?modules=financialData,defaultKeyStatistics,summaryDetail,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,assetProfile`, {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
     const raw = await res.json();

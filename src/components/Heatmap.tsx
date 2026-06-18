@@ -75,9 +75,8 @@ export default function Heatmap() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${NIFTY50_SYMBOLS}`;
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-      const response = await fetch(proxyUrl);
+      const url = `/api/yahoo-finance/quotes?symbols=${NIFTY50_SYMBOLS}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
       const data = await response.json();
       
       const parsed: StockData[] = data.quoteResponse.result.map((item: any) => {

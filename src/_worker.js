@@ -152,6 +152,34 @@ async function yahooQuotes(symbols) {
 // ═══════════════════════════════════════════════════════════════════
 async function handleAPI(path, url, request, env) {
   try {
+    // ── /api/yahoo-finance/:symbol (CORS Proxy) ──────────────
+    if (path.startsWith('/api/yahoo-finance/')) {
+      const parts = path.split('/');
+      const symbol = parts[3]; // /api/yahoo-finance/SYMBOL
+
+      if (symbol === 'quotes') {
+        const symbols = url.searchParams.get('symbols');
+        const urlQuotes = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`;
+        const res = await fetch(urlQuotes, { headers: { 'User-Agent': YAHOO_UA, Accept: 'application/json' } });
+        return new Response(res.body, { status: res.status, headers: jsonHeaders({ 'Content-Type': 'application/json' }) });
+      }
+
+      // Handle specific modules for quoteSummary if needed
+      const modules = url.searchParams.get('modules');
+      if (modules) {
+        const urlSum = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${modules}`;
+        const res = await fetch(urlSum, { headers: { 'User-Agent': YAHOO_UA, Accept: 'application/json' } });
+        return new Response(res.body, { status: res.status, headers: jsonHeaders({ 'Content-Type': 'application/json' }) });
+      }
+
+      // Default: v8 chart data
+      const range = url.searchParams.get('range') || '1d';
+      const interval = url.searchParams.get('interval') || '1d';
+      const urlChart = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
+      const res = await fetch(urlChart, { headers: { 'User-Agent': YAHOO_UA, Accept: 'application/json' } });
+      return new Response(res.body, { status: res.status, headers: jsonHeaders({ 'Content-Type': 'application/json' }) });
+    }
+
     // ── /api/option-chain/:symbol ────────────────────────────
     if (path.startsWith('/api/option-chain/')) {
       const raw = path.split('/')[3] || 'NIFTY';
