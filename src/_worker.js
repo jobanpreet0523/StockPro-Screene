@@ -19,9 +19,14 @@ export default {
     }
 
     // ── Static Assets + SPA fallback ───────────────────────────
-    const assetRes = await env.ASSETS.fetch(request);
-    if (assetRes.status !== 404) return assetRes;
-    return env.ASSETS.fetch(new Request(new URL('/', url.origin)));
+    try {
+      const assetRes = await env.ASSETS.fetch(request.clone());
+      if (assetRes.status !== 404) return assetRes;
+    } catch (err) {}
+
+    // Fallback to index.html for SPA client-side routing
+    // Only if not an API route (redundant check but safe)
+    return env.ASSETS.fetch(new Request(new URL('/index.html', url.origin)));
   },
 };
 
