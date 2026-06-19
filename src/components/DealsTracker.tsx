@@ -193,10 +193,10 @@ export default function DealsTracker() {
 
     return {
       newestDate,
-      totalBuyCr: Number((totalBuy ?? 0).toFixed(2)),
-      totalSellCr: Number((totalSell ?? 0).toFixed(2)),
+      totalBuyCr: Number(typeof totalBuy === 'number' ? totalBuy.toFixed(2) : Number(totalBuy || 0).toFixed(2)),
+      totalSellCr: Number(typeof totalSell === 'number' ? totalSell.toFixed(2) : Number(totalSell || 0).toFixed(2)),
       mostTradedSymbol: maxStock,
-      mostTradedVal: Number((maxVal ?? 0).toFixed(2))
+      mostTradedVal: Number(typeof maxVal === 'number' ? maxVal.toFixed(2) : Number(maxVal || 0).toFixed(2))
     };
   }, [deals]);
 
@@ -219,9 +219,9 @@ export default function DealsTracker() {
     return Object.entries(agg)
       .map(([sym, item]) => ({
         stock: sym,
-        'Cumulative BUY Value (₹Cr)': Number((item.buy ?? 0).toFixed(1)),
-        'Cumulative SELL Value (₹Cr)': Number((item.sell ?? 0).toFixed(1)),
-        totalValue: Number((item.total ?? 0).toFixed(1))
+        'Cumulative BUY Value (₹Cr)': Number(typeof item.buy === 'number' ? item.buy.toFixed(1) : Number(item.buy || 0).toFixed(1)),
+        'Cumulative SELL Value (₹Cr)': Number(typeof item.sell === 'number' ? item.sell.toFixed(1) : Number(item.sell || 0).toFixed(1)),
+        totalValue: Number(typeof item.total === 'number' ? item.total.toFixed(1) : Number(item.total || 0).toFixed(1))
       }))
       .sort((a, b) => b.totalValue - a.totalValue)
       .slice(0, 10);
@@ -626,14 +626,14 @@ export default function DealsTracker() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-slate-705 dark:text-slate-200">
-                        {deal.quantity.toLocaleString('en-IN')}
+                        {(deal.quantity || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-slate-705 dark:text-slate-200">
-                        ₹{deal.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹{(deal.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="py-3 px-5 text-right font-mono text-xs font-black">
                         <span className={isBuy ? 'text-emerald-600' : 'text-rose-600'}>
-                          ₹{(deal.value ?? 0).toFixed(2)} Cr
+                          ₹{typeof deal.value === 'number' ? deal.value.toFixed(2) : Number(deal.value || 0).toFixed(2)} Cr
                         </span>
                       </td>
                     </tr>

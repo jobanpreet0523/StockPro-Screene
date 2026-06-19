@@ -156,14 +156,16 @@
     // PCR
     if (state.pcr > 0) {
       const pcrColor = state.pcr > 1.2 ? "#10b981" : state.pcr < 0.8 ? "#ef4444" : "#eab308";
-      patchValueByText("1.34", state.pcr.toFixed(2), pcrColor);
-      patchValueByText("1.38", state.pcr.toFixed(2), pcrColor);
+      const pcrStr = typeof state.pcr === 'number' ? state.pcr.toFixed(2) : Number(state.pcr || 0).toFixed(2);
+      patchValueByText("1.34", pcrStr, pcrColor);
+      patchValueByText("1.38", pcrStr, pcrColor);
     }
 
     // IV
     if (state.iv > 0) {
-      patchValueByText("12.8%", state.iv.toFixed(1) + "%");
-      patchValueByText("14.2%", state.iv.toFixed(1) + "%");
+      const ivStr = typeof state.iv === 'number' ? state.iv.toFixed(1) : Number(state.iv || 0).toFixed(1);
+      patchValueByText("12.8%", ivStr + "%");
+      patchValueByText("14.2%", ivStr + "%");
     }
 
     // Update badge

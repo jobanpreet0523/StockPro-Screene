@@ -92,8 +92,8 @@ export default function GreeksCalculator() {
       const gPut = blackScholes(S, str, days, r, iv, 'put');
       return {
         strike: str,
-        'Call Delta': Number((gCall.delta ?? 0).toFixed(3)),
-        'Put Delta': Number((gPut.delta ?? 0).toFixed(3)),
+        'Call Delta': Number(typeof gCall.delta === 'number' ? gCall.delta.toFixed(3) : Number(gCall.delta || 0).toFixed(3)),
+        'Put Delta': Number(typeof gPut.delta === 'number' ? gPut.delta.toFixed(3) : Number(gPut.delta || 0).toFixed(3)),
         'ATM Reference': baseStrike === str ? 0.5 : null
       };
     });
@@ -283,7 +283,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-emerald-400 group-hover:text-emerald-600 transition" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white mt-1.5 font-mono">
-            {(greeks.delta ?? 0) >= 0 ? '+' : ''}{(greeks.delta ?? 0).toFixed(3)}
+            {(greeks.delta ?? 0) >= 0 ? '+' : ''}{typeof greeks.delta === 'number' ? greeks.delta.toFixed(3) : Number(greeks.delta || 0).toFixed(3)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">Rate of Price Change</p>
         </div>
@@ -299,7 +299,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-blue-400 group-hover:text-blue-600 transition" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white mt-1.5 font-mono">
-            {(greeks.gamma ?? 0).toFixed(5)}
+            {typeof greeks.gamma === 'number' ? greeks.gamma.toFixed(5) : Number(greeks.gamma || 0).toFixed(5)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">Delta Acceleration</p>
         </div>
@@ -315,7 +315,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-rose-400 group-hover:text-rose-600 transition" />
           </div>
           <div className="text-xl font-black text-rose-600 dark:text-rose-400 mt-1.5 font-mono">
-            {(greeks.theta ?? 0).toFixed(2)}
+            {typeof greeks.theta === 'number' ? greeks.theta.toFixed(2) : Number(greeks.theta || 0).toFixed(2)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">Time Decay / Day</p>
         </div>
@@ -331,7 +331,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-purple-400 group-hover:text-purple-600 transition" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white mt-1.5 font-mono">
-            {(greeks.vega ?? 0).toFixed(2)}
+            {typeof greeks.vega === 'number' ? greeks.vega.toFixed(2) : Number(greeks.vega || 0).toFixed(2)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">IV Volatility Sensitivity</p>
         </div>
@@ -347,7 +347,7 @@ export default function GreeksCalculator() {
             <HelpCircle size={13} className="text-amber-400 group-hover:text-amber-600 transition" />
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white mt-1.5 font-mono">
-            {(greeks.rho ?? 0).toFixed(2)}
+            {typeof greeks.rho === 'number' ? greeks.rho.toFixed(2) : Number(greeks.rho || 0).toFixed(2)}
           </div>
           <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono">Interest Rate Sensitivity</p>
         </div>

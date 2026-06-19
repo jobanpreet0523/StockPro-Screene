@@ -73,7 +73,7 @@ export default function IVRankTool() {
           />
         </svg>
         <div className="absolute bottom-0 text-center flex flex-col items-center">
-          <span className={`text-3xl font-black font-mono ${colorClass}`}>{(value ?? 0).toFixed(1)}</span>
+          <span className={`text-3xl font-black font-mono ${colorClass}`}>{typeof value === 'number' ? value.toFixed(1) : Number(value || 0).toFixed(1)}</span>
         </div>
       </div>
     );

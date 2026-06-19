@@ -9,9 +9,11 @@ export function useLiveStocks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLiveStocks = async () => {
+  const fetchLiveStocks = async (isManual = false) => {
     try {
-      setLoading(true);
+      if (isManual) {
+        setLoading(true);
+      }
       const res = await fetch(`${API_BASE}/api/stocks`, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error('API fetch failed');
       const json = await res.json();
@@ -36,5 +38,5 @@ export function useLiveStocks() {
     return () => clearInterval(interval);
   }, []);
 
-  return { stocks, loading, error, retry: fetchLiveStocks };
+  return { stocks, loading, error, retry: () => fetchLiveStocks(true) };
 }

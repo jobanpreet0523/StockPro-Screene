@@ -186,7 +186,9 @@ const PUBLIC_PATHS = [
   "/api/market-indices",
   "/api/market-status",
   "/api/news",
+  "/api/market-news",
   "/api/block-deals",
+  "/api/bulk-deals",
   "/api/nse/fiidii",
   "/api/yahoo-finance/",
   "/api/option-chain/",
@@ -349,7 +351,7 @@ async function handleAPI(path, url, request, env) {
     }
 
     // ── /api/news ────────────────────────────────────────────
-    if (path === '/api/news') {
+    if (path === '/api/news' || path === '/api/market-news') {
       const feeds = [
         'https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms',
         'https://www.moneycontrol.com/rss/latestnews.xml',
@@ -382,13 +384,13 @@ async function handleAPI(path, url, request, env) {
     }
 
     // ── /api/block-deals ──────────────────────────────────────
-    if (path === '/api/block-deals') {
+    if (path === '/api/block-deals' || path === '/api/bulk-deals') {
       const deals = [
-        { time: '10:45:30', symbol: 'RELIANCE', value: '14.2 Cr', type: 'BLOCK', node: 'NSE' },
-        { time: '10:14:02', symbol: 'NIFTY', value: '150,050 QTY', type: 'LBU', node: 'NSE' },
-        { time: '09:34:50', symbol: 'HDFC BANK', value: '90,000 QTY', type: 'SC', node: 'BSE' },
-        { time: '09:12:15', symbol: 'INFOSYS', value: '8.4 Cr', type: 'BLOCK', node: 'NSE' },
-        { time: '09:05:42', symbol: 'ICICI BANK', value: '11.5 Cr', type: 'SBU', node: 'DOM' },
+        { date: '2026-05-15', symbol: 'RELIANCE', clientName: 'Morgan Stanley Asia', buySell: 'BUY', quantity: 580000, price: 2450.50, value: 142.12 },
+        { date: '2026-05-15', symbol: 'TCS', clientName: 'LIC of India', buySell: 'BUY', quantity: 120000, price: 3890.20, value: 46.68 },
+        { date: '2026-05-14', symbol: 'HDFCBANK', clientName: 'Societe Generale', buySell: 'SELL', quantity: 950000, price: 1620.15, value: 153.91 },
+        { date: '2026-05-14', symbol: 'INFY', clientName: 'Goldman Sachs', buySell: 'BUY', quantity: 300000, price: 1410.50, value: 42.31 },
+        { date: '2026-05-13', symbol: 'ICICIBANK', clientName: 'Fidelity Investments', buySell: 'SELL', quantity: 800000, price: 1120.00, value: 89.60 },
       ];
       return new Response(JSON.stringify({ status: 'ok', data: deals }), { headers: jsonHeaders() });
     }
