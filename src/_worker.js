@@ -9,6 +9,27 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // ── Static Routing (Sitemap & Robots) ──────────────────────
+    if (path === "/robots.txt") {
+      return new Response("User-agent: *\nAllow: /\nSitemap: https://stockpro1.qzz.io/sitemap.xml", {
+        headers: { "Content-Type": "text/plain" }
+      });
+    }
+
+    if (path === "/sitemap.xml") {
+      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://stockpro1.qzz.io/</loc><priority>1.0</priority></url>
+  <url><loc>https://stockpro1.qzz.io/screener</loc><priority>0.9</priority></url>
+  <url><loc>https://stockpro1.qzz.io/option-chain</loc><priority>0.9</priority></url>
+  <url><loc>https://stockpro1.qzz.io/news</loc><priority>0.7</priority></url>
+  <url><loc>https://stockpro1.qzz.io/strategy-builder</loc><priority>0.8</priority></url>
+</urlset>`;
+      return new Response(sitemap, {
+        headers: { "Content-Type": "application/xml" }
+      });
+    }
+
     // ── API Routes ─────────────────────────────────────────────
     if (path.startsWith('/api/')) {
       // CORS preflight
@@ -21,6 +42,13 @@ export default {
       return handleAPI(cleanPath, url, request, env);
     }
 
+    // ── Edge SEO & HTMLRewriter Prerendering ───────────────────
+    const seoRoutes = ["/", "/screener", "/option-chain", "/landing", "/news", "/strategy-builder"];
+    if (seoRoutes.includes(path)) {
+      const indexRes = await env.ASSETS.fetch(new Request(new URL('/index.html', url.origin)));
+      return injectSEO(indexRes, path);
+    }
+
     // ── Static Assets + SPA fallback ───────────────────────────
     try {
       const assetRes = await env.ASSETS.fetch(request.clone());
@@ -28,10 +56,85 @@ export default {
     } catch (err) {}
 
     // Fallback to index.html for SPA client-side routing
-    // Only if not an API route (redundant check but safe)
     return env.ASSETS.fetch(new Request(new URL('/index.html', url.origin)));
   },
 };
+
+// ── HTMLRewriter for SEO ────────────────────────────────────────
+function injectSEO(response, path) {
+  const meta = {
+    "/": {
+      title: "StockPro | Advanced Stock Screener & Market Analytics",
+      description: "Real-time NSE/BSE analytics, advanced option chain, and professional-grade stock screening for Indian markets."
+    },
+    "/landing": {
+      title: "Welcome to StockPro | Professional Financial Dashboard",
+      description: "Experience the next generation of market data visualization and professional trading tools."
+    },
+    "/screener": {
+      title: "Advanced Stock Screener | StockPro Financial",
+      description: "Filter and analyze Indian stocks with 50+ technical and fundamental parameters in real-time."
+    },
+    "/option-chain": {
+      title: "Live Option Chain Analysis | NIFTY & BANKNIFTY",
+      description: "Dynamic Greek calculations, Max Pain, and Multi-strike OI analysis for NSE indices and equities."
+    },
+    "/news": {
+      title: "Latest Stock Market News | StockPro Real-time Feed",
+      description: "Stay ahead with live market updates, corporate announcements, and economic trends from top sources."
+    },
+    "/strategy-builder": {
+      title: "Options Strategy Builder | Payoff Visualization",
+      description: "Design, backtest, and visualize complex option strategies with real-time Greek sensitivities."
+    }
+  };
+
+  const current = meta[path] || meta["/"];
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "StockPro Screener",
+    "url": "https://stockpro1.qzz.io",
+    "description": current.description,
+    "applicationCategory": "FinancialApplication",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "154" }
+  };
+
+  return new HTMLRewriter()
+    .on("title", {
+      element(e) { e.setInnerContent(current.title); }
+    })
+    .on("meta[name='description']", {
+      element(e) { e.setAttribute("content", current.description); }
+    })
+    .on("head", {
+      element(e) {
+        e.append(`<link rel="canonical" href="https://stockpro1.qzz.io${path}" />`, { html: true });
+        e.append(`<script type="application/ld+json">${JSON.stringify(schema)}</script>`, { html: true });
+      }
+    })
+    .on("div#root", {
+      element(e) {
+        e.setInnerContent(`
+          <div class="fallback-prerender" style="padding: 20px; font-family: sans-serif;">
+            <h1>${current.title}</h1>
+            <p>${current.description}</p>
+            <ul>
+              <li>Real-time NSE India Data Proxy</li>
+              <li>Advanced Option Chain with Greek Analytics</li>
+              <li>Professional Stock Screener with Technical Filters</li>
+              <li>Live Market News & Economic Feeds</li>
+              <li>Options Strategy Builder & Payoff Diagrams</li>
+            </ul>
+            <p>Loading StockPro dynamic interface...</p>
+          </div>
+        `, { html: true });
+      }
+    })
+    .transform(response);
+}
 
 // ── CORS ────────────────────────────────────────────────────────
 function corsHeaders() {

@@ -1,11 +1,16 @@
 import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useSeoTags } from '../hooks/useSeoTags';
 import { Activity } from 'lucide-react';
 import OptionChainView from '../components/OptionChainView';
 import SectionErrorBoundary from '../components/SectionErrorBoundary';
 import { useDashboard } from '../components/Layout';
 
 export default function OptionChainPage() {
+  useSeoTags({
+    title: "Live Option Chain Analysis | NIFTY & BANKNIFTY",
+    description: "Dynamic Greek calculations, Max Pain, and Multi-strike OI analysis for NSE indices and equities."
+  });
   const { stocks, selectedStockSymbol, setSelectedStockSymbol, activeStock, handleSelectStock } = useDashboard();
   const [searchParams] = useSearchParams();
 

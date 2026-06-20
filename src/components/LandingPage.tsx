@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSeoTags } from '../hooks/useSeoTags';
 import { getMarketStatus } from '../utils/marketStatus';
 
 interface LiveIndex {
@@ -14,6 +15,10 @@ interface LiveIndex {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  useSeoTags({
+    title: "Welcome to StockPro | Professional Financial Dashboard",
+    description: "Experience the next generation of market data visualization and professional trading tools."
+  });
   const [market, setMarket] = useState(() => getMarketStatus());
   const [liveIndices, setLiveIndices] = useState<LiveIndex[]>([]);
   const [liveChain, setLiveChain] = useState<any>(null);
