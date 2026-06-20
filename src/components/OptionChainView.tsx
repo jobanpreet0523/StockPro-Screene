@@ -17,6 +17,8 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
   const { theme } = useTheme();
   const { isPro } = useAuth();
   const [chain, setChain] = useState<OptionChain | null>(null);
+  const [expiryDates, setExpiryDates] = useState<string[]>([]);
+  const [selectedExpiry, setSelectedExpiry] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedStrike, setSelectedStrike] = useState<OptionData | null>(null);
   const [simPositions, setSimPositions] = useState<Position[]>([]);
@@ -100,6 +102,13 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
 
   const filteredOptions = useMemo(() => {
     let list = sortedOptions;
+
+    if (selectedExpiry && chain?.options) {
+      // If the chain options contain multiple expiries, we filter here.
+      // However, usually our parser already filters. If we want dynamic switching
+      // without re-fetching everything, we'd need to keep the raw data.
+      // For now, fetchChain handles the re-fetch with selectedExpiry.
+    }
     
     // NIFTY specific: Display strikes within ±500 from ATM
     const spot = chain?.spotPrice || 0;
@@ -184,9 +193,19 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
 
       try {
         // Fetch from our server-side API (which handles NSE + Yahoo server-side)
-        const res = await fetch(`/api/option-chain/${lookupSymbol}`, { signal: AbortSignal.timeout(15000) });
+        const url = selectedExpiry
+          ? `/api/option-chain/${lookupSymbol}?expiry=${selectedExpiry}`
+          : `/api/option-chain/${lookupSymbol}`;
+
+        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
         if (res.ok) {
           const json = await res.json();
+
+          // Try to extract expiryDates if available in the raw data records
+          if (json.data?.records?.expiryDates) {
+            setExpiryDates(json.data.records.expiryDates);
+          }
+
           if (json.status === 'ok' && json.data && json.data.options && json.data.options.length > 0) {
             const chainData: OptionChain = {
               symbol: json.data.symbol || lookupSymbol,
@@ -199,6 +218,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
               options: json.data.options,
             };
             setChain(chainData);
+            if (!selectedExpiry) setSelectedExpiry(chainData.expiryDate);
             setSelectedStrike(chainData.options[Math.floor(chainData.options.length / 2)]);
             setLoading(false);
             return;
@@ -316,7 +336,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
     const pollInterval = isIndexStr ? 180000 : (isPro ? 15000 : 15 * 60 * 1000); 
     const timer = setInterval(fetchChain, pollInterval);
     return () => clearInterval(timer);
-  }, [symbol, isPro]);
+  }, [symbol, isPro, selectedExpiry]);
 
   // Calculations for Option payoff diagrams
   const minStrategyPrice = chain ? chain.spotPrice * 0.88 : 0;
@@ -530,9 +550,23 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
       {/* Main Option Chain side-by-side Sheet Grid */}
       <div id="option-matrix" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl">
         <div className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3 flex flex-col sm:flex-row justify-between items-center px-4 gap-3">
-          <h3 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider font-mono">
-            Derivatives Matrix ({chain.symbol}) — Expiry: {chain.expiryDate}
-          </h3>
+          <div className="flex items-center gap-4">
+            <h3 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider font-mono">
+              Derivatives Matrix ({chain.symbol})
+            </h3>
+
+            {expiryDates.length > 0 && (
+              <select
+                value={selectedExpiry}
+                onChange={(e) => setSelectedExpiry(e.target.value)}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-[10px] font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                {expiryDates.map(date => (
+                  <option key={date} value={date}>{date}</option>
+                ))}
+              </select>
+            )}
+          </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <div className="relative w-full sm:w-48">

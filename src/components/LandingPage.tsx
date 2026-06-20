@@ -751,18 +751,12 @@ export default function LandingPage() {
                   </div>
                   
                   <div class="grid grid-cols-12 gap-1.5 h-10 items-end px-1 bg-slate-950/60 p-2 rounded border border-slate-900 select-none">
-                    <div class="bg-rose-500 h-[28%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[45%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[62%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[80%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-full rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[22%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[33%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[50%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[85%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[92%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[30%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[12%] rounded-sm opacity-90 col-span-1"></div>
+                    ${options.slice(0, 12).map((o: any) => {
+                      const maxVol = Math.max(...options.map((x: any) => x.callVol + x.putVol), 1);
+                      const height = Math.min(100, Math.max(10, ((o.callVol + o.putVol) / maxVol) * 100));
+                      const isUp = o.callLtp > o.putLtp;
+                      return `<div class="${isUp ? 'bg-emerald-500' : 'bg-rose-500'} rounded-sm opacity-90 col-span-1" style="height: ${height}%"></div>`;
+                    }).join('')}
                   </div>
                 </div>
 
@@ -2295,12 +2289,12 @@ export default function LandingPage() {
           <div class="flex flex-col items-center justify-end h-full space-y-4 group">
             <div class="flex items-end gap-3 h-52 w-full justify-center">
               <!-- Call Bar -->
-              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: 60%;" title="Call OI: 3.8M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">3.8M</span>
+              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === atmStrike)?.callOi || 0) / (topCallOi || 1) * 100)}%;" title="Call OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike)?.callOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike)?.callOi || 0)}</span>
               </div>
               <!-- Put Bar -->
-              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: 35%;" title="Put OI: 2.1M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">2.1M</span>
+              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === atmStrike)?.putOi || 0) / (topPutOi || 1) * 100)}%;" title="Put OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike)?.putOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike)?.putOi || 0)}</span>
               </div>
             </div>
             <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
@@ -2309,20 +2303,20 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <!-- Strike 24,850 Slot -->
+          <!-- Strike ${fmtPrice(atmStrike - step)} Slot -->
           <div class="flex flex-col items-center justify-end h-full space-y-4 group">
             <div class="flex items-end gap-3 h-52 w-full justify-center">
               <!-- Call Bar -->
-              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: 42%;" title="Call OI: 2.4M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">2.4M</span>
+              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === atmStrike - step)?.callOi || 0) / (topCallOi || 1) * 100)}%;" title="Call OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike - step)?.callOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike - step)?.callOi || 0)}</span>
               </div>
               <!-- Put Bar -->
-              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: 58%;" title="Put OI: 3.6M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">3.6M</span>
+              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === atmStrike - step)?.putOi || 0) / (topPutOi || 1) * 100)}%;" title="Put OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike - step)?.putOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike - step)?.putOi || 0)}</span>
               </div>
             </div>
             <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-slate-900 font-black">24,850</strong>
+              <strong class="text-xs text-slate-900 font-black">${fmtPrice(atmStrike - step)}</strong>
               <span class="text-[8px] text-gray-400 block font-bold uppercase">Support Build</span>
             </div>
           </div>
@@ -2336,12 +2330,12 @@ export default function LandingPage() {
             
             <div class="flex items-end gap-3 h-52 w-full justify-center">
               <!-- Call Bar -->
-              <div class="w-8 bg-emerald-600 rounded-t-sm relative shadow-sm" style="height: 85%;" title="Call OI: 4.9M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-black text-emerald-800">4.9M</span>
+              <div class="w-8 bg-emerald-600 rounded-t-sm relative shadow-sm" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === maxPain)?.callOi || 0) / (topCallOi || 1) * 100)}%;" title="Call OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === maxPain)?.callOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-black text-emerald-800">${fmtOI(nearAtmOi.find(o => o.strikePrice === maxPain)?.callOi || 0)}</span>
               </div>
               <!-- Put Bar -->
-              <div class="w-8 bg-rose-600 rounded-t-sm relative shadow-sm" style="height: 82%;" title="Put OI: 4.8M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-black text-rose-800">4.8M</span>
+              <div class="w-8 bg-rose-600 rounded-t-sm relative shadow-sm" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === maxPain)?.putOi || 0) / (topPutOi || 1) * 100)}%;" title="Put OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === maxPain)?.putOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-black text-rose-800">${fmtOI(nearAtmOi.find(o => o.strikePrice === maxPain)?.putOi || 0)}</span>
               </div>
             </div>
             <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
@@ -2350,20 +2344,20 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <!-- Strike 24,950 Slot -->
+          <!-- Strike ${fmtPrice(atmStrike + step)} Slot -->
           <div class="flex flex-col items-center justify-end h-full space-y-4 group">
             <div class="flex items-end gap-3 h-52 w-full justify-center">
               <!-- Call Bar -->
-              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: 52%;" title="Call OI: 3.1M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">3.1M</span>
+              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === atmStrike + step)?.callOi || 0) / (topCallOi || 1) * 100)}%;" title="Call OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike + step)?.callOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike + step)?.callOi || 0)}</span>
               </div>
               <!-- Put Bar -->
-              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: 30%;" title="Put OI: 1.8M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">1.8M</span>
+              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === atmStrike + step)?.putOi || 0) / (topPutOi || 1) * 100)}%;" title="Put OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike + step)?.putOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike + step)?.putOi || 0)}</span>
               </div>
             </div>
             <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-slate-900 font-black">24,950</strong>
+              <strong class="text-xs text-slate-900 font-black">${fmtPrice(atmStrike + step)}</strong>
               <span class="text-[8px] text-gray-400 block font-bold uppercase">Pivot Node</span>
             </div>
           </div>
@@ -2372,12 +2366,12 @@ export default function LandingPage() {
           <div class="flex flex-col items-center justify-end h-full space-y-4 group">
             <div class="flex items-end gap-3 h-52 w-full justify-center">
               <!-- Call Bar -->
-              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: 72%;" title="Call OI: 4.2M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">4.2M</span>
+              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === atmStrike + step*2)?.callOi || 0) / (topCallOi || 1) * 100)}%;" title="Call OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike + step*2)?.callOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike + step*2)?.callOi || 0)}</span>
               </div>
               <!-- Put Bar -->
-              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: 18%;" title="Put OI: 1.0M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">1.0M</span>
+              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: ${Math.min(95, (nearAtmOi.find(o => o.strikePrice === atmStrike + step*2)?.putOi || 0) / (topPutOi || 1) * 100)}%;" title="Put OI: ${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike + step*2)?.putOi || 0)}">
+                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">${fmtOI(nearAtmOi.find(o => o.strikePrice === atmStrike + step*2)?.putOi || 0)}</span>
               </div>
             </div>
             <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
