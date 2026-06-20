@@ -751,12 +751,14 @@ export default function LandingPage() {
                   </div>
                   
                   <div class="grid grid-cols-12 gap-1.5 h-10 items-end px-1 bg-slate-950/60 p-2 rounded border border-slate-900 select-none">
-                    ${options.slice(0, 12).map((o: any) => {
+                    ${(() => {
                       const maxVol = Math.max(...options.map((x: any) => x.callVol + x.putVol), 1);
-                      const height = Math.min(100, Math.max(10, ((o.callVol + o.putVol) / maxVol) * 100));
-                      const isUp = o.callLtp > o.putLtp;
-                      return `<div class="${isUp ? 'bg-emerald-500' : 'bg-rose-500'} rounded-sm opacity-90 col-span-1" style="height: ${height}%"></div>`;
-                    }).join('')}
+                      return options.slice(0, 12).map((o: any) => {
+                        const height = Math.min(100, Math.max(10, ((o.callVol + o.putVol) / maxVol) * 100));
+                        const isUp = o.callLtp > o.putLtp;
+                        return `<div class="${isUp ? 'bg-emerald-500' : 'bg-rose-500'} rounded-sm opacity-90 col-span-1" style="height: ${height}%"></div>`;
+                      }).join('');
+                    })()}
                   </div>
                 </div>
 
