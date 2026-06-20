@@ -80,7 +80,7 @@ export default function OptionsCalculator() {
   }, [optionType, action, strike, premium, totalQty]);
 
   return (
-    <div className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mt-6">
+    <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl p-5 rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm mt-6">
       <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
         <Calculator size={16} className="text-emerald-500" />
         Options P&L Calculator

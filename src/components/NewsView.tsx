@@ -32,7 +32,7 @@ export default function NewsView() {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col p-6 w-full" id="news-matrix">
+    <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col p-6 w-full" id="news-matrix">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-850 pb-5 mb-5">
         <div className="flex items-center gap-3">
           <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-lg shrink-0 border border-emerald-500/20">
@@ -101,7 +101,7 @@ export default function NewsView() {
               href={art.link}
               target="_blank"
               rel="noopener noreferrer nofollow"
-              className="group bg-slate-50 hover:bg-white dark:bg-slate-900/40 dark:hover:bg-slate-900/90 border border-slate-100 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-750 p-4 rounded-xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-4 cursor-pointer text-inherit decoration-none"
+              className="group bg-white/20 hover:bg-white/40 dark:bg-slate-900/40 dark:hover:bg-slate-900/60 backdrop-blur-xl border border-slate-100/30 dark:border-slate-850/50 hover:border-slate-300 dark:hover:border-slate-750 p-4 rounded-xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-4 cursor-pointer text-inherit decoration-none"
             >
               <div className="flex flex-col gap-2">
                 {art.title.includes('Global Bond Yields') && (

@@ -94,7 +94,7 @@ export default function RiskCalculator() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Col - Inputs */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl p-5 shadow-sm space-y-6">
+        <div className="lg:col-span-5 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-xl p-5 shadow-sm space-y-6">
           <h3 className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 font-mono tracking-wider flex items-center gap-2">
             Trade Setup
           </h3>
@@ -202,7 +202,7 @@ export default function RiskCalculator() {
 
         {/* Right Col - Outputs */}
         <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg text-white h-full relative overflow-hidden">
+          <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 rounded-xl p-6 shadow-lg text-white h-full relative overflow-hidden">
              
             {/* Background pattern */}
             <div className="absolute -right-6 -top-6 text-slate-800/30 pointer-events-none">

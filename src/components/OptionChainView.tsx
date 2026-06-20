@@ -466,8 +466,8 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
   return (
     <div className="flex flex-col gap-6" id="option_chain_workspace">
       {/* Metrics Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 transition-all duration-300 shadow-sm">
-        <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl bg-white/10 dark:bg-slate-900/20 backdrop-blur-md border border-slate-200/30 dark:border-slate-800/40 transition-all duration-300 shadow-sm">
+        <div className="p-3 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-lg shadow-sm">
           <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block tracking-wider font-semibold">Spot Price</span>
           <span className="text-base font-extrabold text-slate-900 dark:text-white mt-1 block font-mono">
             ₹{spot.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -483,7 +483,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
           )}
         </div>
 
-        <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg shadow-sm">
+        <div className="p-3 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-lg shadow-sm">
           <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block tracking-wider font-semibold">Put-Call Ratio (PCR)</span>
           <span className={`text-base font-extrabold mt-1 block font-mono ${getPcrColorClass(pcrVal)}`}>
             {pcrVal}
@@ -493,7 +493,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
           </span>
         </div>
 
-        <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg shadow-sm">
+        <div className="p-3 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-lg shadow-sm">
           <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block tracking-wider font-semibold">Estimated MAX PAIN</span>
           <span className="text-base font-extrabold text-rose-600 dark:text-rose-400 mt-1 block font-mono">
             ₹{chain.maxPain.toLocaleString()}
@@ -503,7 +503,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
           </span>
         </div>
 
-        <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg shadow-sm">
+        <div className="p-3 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-lg shadow-sm">
           <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block tracking-wider font-semibold">Aggregate Open Interest</span>
           <div className="flex items-center justify-between mt-1 text-xs font-mono text-slate-650 dark:text-slate-300">
             <div>
@@ -520,10 +520,10 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
       </div>
 
       {/* Dynamic TradingView Chart Overlay with Stocks */}
-      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+      <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
         <div 
           onClick={() => setShowChart(!showChart)}
-          className="bg-slate-50 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3.5 flex justify-between items-center px-4 cursor-pointer select-none transition-all duration-200"
+          className="bg-slate-50/50 dark:bg-slate-900/60 hover:bg-slate-100/50 dark:hover:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/50 p-3.5 flex justify-between items-center px-4 cursor-pointer select-none transition-all duration-200"
           id="fo_chart_header"
         >
           <div className="flex items-center gap-2">
@@ -548,8 +548,8 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
       </div>
 
       {/* Main Option Chain side-by-side Sheet Grid */}
-      <div id="option-matrix" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl">
-        <div className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3 flex flex-col sm:flex-row justify-between items-center px-4 gap-3">
+      <div id="option-matrix" className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl">
+        <div className="bg-slate-100/50 dark:bg-slate-900 border-b border-slate-200/50 dark:border-slate-800/50 p-3 flex flex-col sm:flex-row justify-between items-center px-4 gap-3">
           <div className="flex items-center gap-4">
             <h3 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider font-mono">
               Derivatives Matrix ({chain.symbol})
@@ -815,8 +815,8 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
       </div>
 
       {/* DERIVATIVES STRATEGY BOARD (Simulator) */}
-      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm dark:shadow-xl transition-all duration-300" id="strategy_simulator">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-3 mb-4 gap-4">
+      <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-xl p-5 shadow-sm dark:shadow-xl transition-all duration-300" id="strategy_simulator">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100/50 dark:border-slate-850/50 pb-3 mb-4 gap-4">
           <div>
             <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Calculator size={15} className="text-emerald-500 dark:text-emerald-400" />

@@ -464,7 +464,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
   };
 
   return (
-    <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm dark:shadow-xl transition-all duration-300" id="screener_viewport">
+    <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl rounded-xl border border-slate-200/50 dark:border-slate-800/50 p-5 shadow-sm dark:shadow-xl transition-all duration-300" id="screener_viewport">
       {/* Search Presets Row */}
       <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 mb-6 border-b border-slate-100 dark:border-slate-850 pb-5">
         <div>
@@ -748,7 +748,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
       </div>
 
       {/* Recommended Brokers Section */}
-      <div className="mt-12 mb-4">
+      <div className="mt-12 mb-4 bg-white/10 dark:bg-slate-900/20 backdrop-blur-md p-6 rounded-2xl border border-slate-200/30 dark:border-slate-800/40">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-2">
             <Star size={20} className="text-yellow-500 fill-yellow-500" />
