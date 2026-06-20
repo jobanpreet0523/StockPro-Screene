@@ -101,8 +101,8 @@ export default function EmailCapturePopup() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 md:p-8 max-w-md w-full relative overflow-hidden text-white">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150] flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-slate-900/60 backdrop-blur-2xl border border-slate-800/50 rounded-2xl shadow-2xl p-6 md:p-8 max-w-md w-full relative overflow-hidden text-white">
         
         {/* Absolute Glowing Elements */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>

@@ -185,7 +185,7 @@ export default function Heatmap() {
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full" id="heatmap_view">
       {/* Header Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm text-white">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 rounded-xl p-4 shadow-sm text-white">
         <div>
           <h1 className="text-xl font-sans font-black flex items-center gap-2">
             <Grid size={20} className="text-emerald-400" />
@@ -235,7 +235,7 @@ export default function Heatmap() {
       </div>
 
       {/* Heatmap Area */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-2 md:p-4 shadow-lg min-h-[500px] flex gap-2 w-full flex-wrap content-start">
+      <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 rounded-xl p-2 md:p-4 shadow-lg min-h-[500px] flex gap-2 w-full flex-wrap content-start">
         {loading && stocks.length === 0 ? (
           <div className="w-full h-[400px] flex items-center justify-center flex-col gap-3 text-slate-500">
              <div className="w-8 h-8 rounded-full border-2 border-emerald-500/30 border-t-emerald-500 animate-spin"></div>

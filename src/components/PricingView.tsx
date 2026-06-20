@@ -66,7 +66,7 @@ export default function PricingView() {
 
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {/* Basic Plan */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-sm flex flex-col">
+        <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-8 shadow-sm flex flex-col">
           <div className="mb-6">
             <h3 className="text-xl font-bold mb-2">Free Core Access</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -128,7 +128,7 @@ export default function PricingView() {
         </div>
 
         {/* Pro Plan */}
-        <div className="bg-gradient-to-b from-slate-900 to-slate-950 dark:from-slate-900 dark:to-black border border-emerald-500/30 rounded-2xl p-8 shadow-xl shadow-emerald-500/5 flex flex-col relative overflow-hidden">
+        <div className="bg-slate-900/40 backdrop-blur-xl border border-emerald-500/30 rounded-2xl p-8 shadow-xl shadow-emerald-500/5 flex flex-col relative overflow-hidden">
           {/* Pro indicator */}
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
 
