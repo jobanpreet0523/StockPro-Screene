@@ -273,7 +273,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
         totalPutOi += opt.putOi;
       });
       
-      const pcr = totalCallOi > 0 ? Number(((totalPutOi ?? 0) / (totalCallOi ?? 1)).toFixed(2)) : 1.0;
+      const pcr = totalCallOi > 0 ? Number((typeof totalPutOi === 'number' && typeof totalCallOi === 'number' ? (totalPutOi / totalCallOi).toFixed(2) : Number((totalPutOi || 0) / (totalCallOi || 1)).toFixed(2))) : 1.0;
       
       // Pain matrix minimization algorithm
       let maxPain = spotPrice;
@@ -380,7 +380,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
 
   const formatVolume = (vol: number) => {
     const v = vol ?? 0;
-    if (v >= 100000) return `${(v / 1000).toFixed(0)}K`;
+    if (v >= 100000) return `${typeof v === 'number' ? (v / 1000).toFixed(0) : Number(v / 1000).toFixed(0)}K`;
     return v.toLocaleString();
   };
 
@@ -407,7 +407,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
         putOi += opt.putOi;
       });
     }
-    const derivedPcr = callOi > 0 ? Number(((putOi ?? 0) / (callOi ?? 1)).toFixed(2)) : 1.0;
+    const derivedPcr = callOi > 0 ? Number((typeof putOi === 'number' && typeof callOi === 'number' ? (putOi / callOi).toFixed(2) : Number((putOi || 0) / (callOi || 1)).toFixed(2))) : 1.0;
     return { realPcr: derivedPcr, realCallOi: callOi, realPutOi: putOi };
   }, [chain]);
 
@@ -716,7 +716,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
                               : 'bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
-                        {(option.callLtp ?? 0).toFixed(1)}
+                        {typeof option.callLtp === 'number' ? option.callLtp.toFixed(1) : Number(option.callLtp || 0).toFixed(1)}
                       </td>
                       <td className={`py-2 px-1 text-center border-r border-slate-200 dark:border-slate-850 text-[10px] ${option.callChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} ${isAtm ? 'bg-yellow-200/10 dark:bg-yellow-500/5' : isCallItm ? 'bg-amber-100/20 dark:bg-[#292211]/30' : ''}`}>
                         {option.callChange >= 0 ? '+' : ''}{option.callChange}%
@@ -746,7 +746,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
                               : 'bg-slate-50 dark:bg-slate-950/20'
                         }`}
                       >
-                        {(option.putLtp ?? 0).toFixed(1)}
+                        {typeof option.putLtp === 'number' ? option.putLtp.toFixed(1) : Number(option.putLtp || 0).toFixed(1)}
                       </td>
                       <td 
                         title={isPutIvHigh ? 'Unusual Market Activity: Implied Volatility exceeds 30%' : undefined}

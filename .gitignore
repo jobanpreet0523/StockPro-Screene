@@ -10,5 +10,6 @@ coverage/
 .gitconfig
 uploads/
 .config/
+.wrangler/
 
 .env

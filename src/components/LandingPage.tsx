@@ -27,6 +27,11 @@ export default function LandingPage() {
   // Fetch live data from our API
   const fetchLiveData = useCallback(async () => {
     try {
+      // Landing page now relies on global indices if possible,
+      // but for pure landing experience we can keep a local fetch OR
+      // just rely on the public/live-data.js patcher.
+      // To resolve ticker sync red banner issues on other pages,
+      // we'll keep this but ensure it doesn't interfere.
       const [indicesRes, chainRes] = await Promise.allSettled([
         fetch('/api/indices', { signal: AbortSignal.timeout(10000) }),
         fetch('/api/option-chain/NIFTY', { signal: AbortSignal.timeout(10000) }),
@@ -51,7 +56,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     fetchLiveData();
-    const interval = setInterval(fetchLiveData, 30000);
+    // We reduced frequency to avoid flooding and sync errors
+    const interval = setInterval(fetchLiveData, 60000);
     return () => clearInterval(interval);
   }, [fetchLiveData]);
 
@@ -88,14 +94,14 @@ export default function LandingPage() {
   const fmtOI = (n: number) => {
     const val = n ?? 0;
     if (!val || isNaN(val)) return '0';
-    if (val >= 10000000) return (val / 10000000).toFixed(2) + 'Cr';
-    if (val >= 100000) return (val / 100000).toFixed(1) + 'L';
-    if (val >= 1000) return (val / 1000).toFixed(1) + 'K';
+    if (val >= 10000000) return (typeof val === 'number' ? (val / 10000000).toFixed(2) : Number(val / 10000000).toFixed(2)) + 'Cr';
+    if (val >= 100000) return (typeof val === 'number' ? (val / 100000).toFixed(1) : Number(val / 100000).toFixed(1)) + 'L';
+    if (val >= 1000) return (typeof val === 'number' ? (val / 1000).toFixed(1) : Number(val / 1000).toFixed(1)) + 'K';
     return String(Math.round(val));
   };
   const chgBadge = (pct: number) => (pct ?? 0) >= 0
-    ? `<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▲ +${(pct ?? 0).toFixed(2)}%</span>`
-    : `<span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▼ ${(pct ?? 0).toFixed(2)}%</span>`;
+    ? `<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▲ +${typeof pct === 'number' ? pct.toFixed(2) : Number(pct || 0).toFixed(2)}%</span>`
+    : `<span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▼ ${typeof pct === 'number' ? pct.toFixed(2) : Number(pct || 0).toFixed(2)}%</span>`;
 
   useEffect(() => {
     // Intercept vanilla links in the injected HTML to use React Router
@@ -130,11 +136,11 @@ export default function LandingPage() {
         return `<tr class="${atmClass}">
           <td class="py-3 px-4 text-center ${callBg} ${ceOichgColor} font-bold font-mono">${(opt.callOiChg || 0) >= 0 ? '+' : ''}${fmtOI(opt.callOiChg || 0)}</td>
           <td class="py-3 px-4 text-right ${callBg} font-mono">${fmtOI(opt.callVol || 0)}</td>
-          <td class="py-3 px-4 text-right ${callBg} font-mono">${(opt.callIv ?? 0).toFixed(1)}%</td>
-          <td class="py-3 px-4 text-right ${callBg} font-mono font-black text-slate-900 pr-6">₹${(opt.callLtp ?? 0).toFixed(1)}</td>
+          <td class="py-3 px-4 text-right ${callBg} font-mono">${typeof opt.callIv === 'number' ? opt.callIv.toFixed(1) : Number(opt.callIv || 0).toFixed(1)}%</td>
+          <td class="py-3 px-4 text-right ${callBg} font-mono font-black text-slate-900 pr-6">₹${typeof opt.callLtp === 'number' ? opt.callLtp.toFixed(1) : Number(opt.callLtp || 0).toFixed(1)}</td>
           <td class="py-3 px-6 text-center font-bold text-slate-900 bg-gray-50 border-x border-gray-200 font-mono relative">${atmLabel}${(opt.strikePrice ?? 0).toLocaleString('en-IN')}</td>
-          <td class="py-3 px-4 text-left ${putBg} font-mono font-black text-slate-900 pl-6">₹${(opt.putLtp ?? 0).toFixed(1)}</td>
-          <td class="py-3 px-4 text-left ${putBg} font-mono">${(opt.putIv ?? 0).toFixed(1)}%</td>
+          <td class="py-3 px-4 text-left ${putBg} font-mono font-black text-slate-900 pl-6">₹${typeof opt.putLtp === 'number' ? opt.putLtp.toFixed(1) : Number(opt.putLtp || 0).toFixed(1)}</td>
+          <td class="py-3 px-4 text-left ${putBg} font-mono">${typeof opt.putIv === 'number' ? opt.putIv.toFixed(1) : Number(opt.putIv || 0).toFixed(1)}%</td>
           <td class="py-3 px-4 text-left ${putBg} font-mono">${fmtOI(opt.putVol || 0)}</td>
           <td class="py-3 px-4 text-center ${putBg} ${peOichgColor} font-bold font-mono">${(opt.putOiChg || 0) >= 0 ? '+' : ''}${fmtOI(opt.putOiChg || 0)}</td>
         </tr>`;
@@ -164,7 +170,7 @@ export default function LandingPage() {
             <line x1="6" y1="20" x2="6" y2="14"></line>
           </svg>
         </div>
-        <div class="loader-text">StockPro Screener</div>
+        <div class="loader-text"></div>
         <div class="loader-subtext">Pro Derivatives Terminal</div>
       </div>
       <div class="loader-track">
@@ -364,7 +370,7 @@ export default function LandingPage() {
               <!-- Realistic High-density trading interface content -->
               <div class="relative aspect-video rounded-lg overflow-hidden border border-slate-800 bg-[#020617]">
                 <img 
-                  src="/src/assets/images/premium_terminal_interface_1780886741287.png" 
+                  src="/assets/images/premium_terminal_interface_1780886741287.png"
                   alt="F&O Analytics Pro Premium Trading Interface Preview" 
                   class="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-300"
                 />
@@ -375,7 +381,7 @@ export default function LandingPage() {
                   <span>PCR STREAMER: LIVE</span>
                 </div>
                 <div class="absolute top-2 right-2 bg-emerald-950/95 border border-emerald-700 text-[9px] text-emerald-400 font-mono font-bold px-2 py-0.5 rounded">
-                  IV SKEW: +${((atmIv ?? 0) * 0.33).toFixed(2)}%
+                  IV SKEW: +${typeof atmIv === 'number' ? (atmIv * 0.33).toFixed(2) : Number((atmIv || 0) * 0.33).toFixed(2)}%
                 </div>
               </div>
             </div>
@@ -528,7 +534,7 @@ export default function LandingPage() {
                   <!-- Put Call ratio tag badge -->
                   <div class="bg-[#111827] text-white rounded px-3 py-1 font-mono text-[11px] font-bold tracking-tight inline-flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Put-Call Ratio (PCR): <span class="text-emerald-400 font-black">${(pcr ?? 0).toFixed(2)}</span>
+                    Put-Call Ratio (PCR): <span class="text-emerald-400 font-black">${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</span>
                   </div>
                   
                   <span class="text-gray-400 font-mono">Bull threshold (1.8)</span>
@@ -620,7 +626,7 @@ export default function LandingPage() {
                   </div>
                   <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
                     <div class="text-[8px] text-slate-500 font-bold">COMBINED PCR</div>
-                    <div class="text-[11px] font-black text-emerald-400 mt-0.5">${(pcr ?? 0).toFixed(2)}</div>
+                    <div class="text-[11px] font-black text-emerald-400 mt-0.5">${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</div>
                   </div>
                   <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
                     <div class="text-[8px] text-slate-500 font-bold">OI STRIKE COLD</div>
@@ -640,7 +646,7 @@ export default function LandingPage() {
                   <div class="space-y-1">
                     <div class="flex items-center justify-between text-slate-300 text-[9.5px]">
                       <span class="font-bold text-slate-200">NIFTY ${fmtPrice(topCallStrike)} CALL</span>
-                      <span class="font-mono text-slate-400">${(atmIv ?? 0).toFixed(2)}% <strong class="text-emerald-500 font-bold">▲</strong></span>
+                      <span class="font-mono text-slate-400">${typeof atmIv === 'number' ? atmIv.toFixed(2) : Number(atmIv || 0).toFixed(2)}% <strong class="text-emerald-500 font-bold">▲</strong></span>
                       <span class="font-bold font-mono">${fmtOI(topCallOi)} <span class="text-slate-500 text-[8px]">(100%)</span></span>
                     </div>
                     <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
@@ -733,7 +739,7 @@ export default function LandingPage() {
                   
                   <!-- Floating live value flag -->
                   <div class="absolute top-2 left-3 border border-slate-800 bg-[#0c101b]/95 rounded px-2 py-0.5 text-[8px] select-none">
-                    <span class="text-slate-500 uppercase font-bold">PEAK SKEW:</span> <strong class="text-cyan-400 font-bold">+${((atmIv ?? 0) * 0.33).toFixed(2)}% L-IV</strong>
+                    <span class="text-slate-500 uppercase font-bold">PEAK SKEW:</span> <strong class="text-cyan-400 font-bold">+${typeof atmIv === 'number' ? (atmIv * 0.33).toFixed(2) : Number((atmIv || 0) * 0.33).toFixed(2)}% L-IV</strong>
                   </div>
                 </div>
 
@@ -833,7 +839,7 @@ export default function LandingPage() {
                     <div class="text-[7px] uppercase text-slate-500">NIFTY 50 INDEX (PRO)</div>
                     <div class="text-[11px] font-black text-white flex items-center justify-between mt-0.5">
                       <span>${fmtPrice(nifty.price)}</span>
-                      <span class="text-[7.5px] ${nifty.isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} px-1 rounded font-bold">${nifty.isPositive ? '+' : ''}${(nifty.changePercent ?? 0).toFixed(2)}%</span>
+                    <span class="text-[7.5px] ${nifty.isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} px-1 rounded font-bold">${nifty.isPositive ? '+' : ''}${typeof nifty.changePercent === 'number' ? nifty.changePercent.toFixed(2) : Number(nifty.changePercent || 0).toFixed(2)}%</span>
                     </div>
                   </div>
 
@@ -843,7 +849,7 @@ export default function LandingPage() {
                       <!-- Blue active wave -->
                       <path d="M 0 32 L 20 22 L 40 28 L 60 12 L 80 18 L 100 3" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
-                    <div class="text-[7px] text-slate-500 z-10 font-bold uppercase absolute bottom-1 right-1.5">PCR RATE: ${(pcr ?? 0).toFixed(2)}</div>
+                    <div class="text-[7px] text-slate-500 z-10 font-bold uppercase absolute bottom-1 right-1.5">PCR RATE: ${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</div>
                   </div>
 
                   <!-- Compact OI Options Chain elements -->
@@ -1526,7 +1532,7 @@ export default function LandingPage() {
 
                 <!-- Small float active flags -->
                 <rect x="235" y="94" width="70" height="15" rx="3" fill="#0c1223" stroke="#2563eb" stroke-width="1" />
-                <text x="240" y="104" fill="#60a5fa" font-family="monospace" font-size="7.5" font-weight="bold">ATM IV: ${(atmIv ?? 0).toFixed(1)}%</text>
+                <text x="240" y="104" fill="#60a5fa" font-family="monospace" font-size="7.5" font-weight="bold">ATM IV: ${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}%</text>
               </svg>
             </div>
 
@@ -1557,7 +1563,7 @@ export default function LandingPage() {
               </div>
               <div class="py-2.5 flex items-center justify-between text-xs">
                 <span class="text-gray-500 font-medium">ATM Implied Volatility</span>
-                <strong class="text-[#10b981] font-bold font-mono">${(atmIv ?? 0).toFixed(1)}% Low IV env</strong>
+                <strong class="text-[#10b981] font-bold font-mono">${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}% Low IV env</strong>
               </div>
               <div class="py-2.5 flex items-center justify-between text-xs">
                 <span class="text-gray-500 font-medium">Historical Vol Deviation</span>
@@ -1748,7 +1754,7 @@ export default function LandingPage() {
             <!-- Dynamic Image Container -->
             <div class="aspect-video w-full bg-slate-50 border-b border-gray-100 relative overflow-hidden">
               <img 
-                src="/src/assets/images/ai_market_rally_graph_1780886754704.png" 
+                src="/assets/images/ai_market_rally_graph_1780886754704.png"
                 alt="AI tech market chart" 
                 class="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
               />
@@ -1784,7 +1790,7 @@ export default function LandingPage() {
             <!-- Dynamic Image Container -->
             <div class="aspect-video w-full bg-slate-50 border-b border-gray-100 relative overflow-hidden">
               <img 
-                src="/src/assets/images/urban_trading_skyscrapers_1780886767951.png" 
+                src="/assets/images/urban_trading_skyscrapers_1780886767951.png"
                 alt="Skyscraper skyscraper visual" 
                 class="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
               />
@@ -1956,7 +1962,7 @@ export default function LandingPage() {
                 <div class="flex flex-col justify-between pr-2.5 border-r border-gray-150">
                   <div class="flex justify-between items-baseline">
                     <span class="text-[9.5px] font-black text-gray-800">Volatility VIX Skew</span>
-                    <span class="text-[8.5px] font-mono text-blue-600 font-bold">${(atmIv ?? 0).toFixed(1)}% Low IV</span>
+                    <span class="text-[8.5px] font-mono text-blue-600 font-bold">${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}% Low IV</span>
                   </div>
                   <!-- Mirrored Coordinated trend diagram path -->
                   <div class="w-full h-24">
@@ -2011,7 +2017,7 @@ export default function LandingPage() {
               <div class="my-auto space-y-1">
                 <div class="text-[7.5px] font-mono text-gray-550 flex justify-between uppercase">
                   <span>Nifty Index</span>
-                    <span class="text-blue-600 font-bold">${nifty.isPositive ? '+' : ''}${(nifty.changePercent ?? 0).toFixed(2)}%</span>
+                    <span class="text-blue-600 font-bold">${nifty.isPositive ? '+' : ''}${typeof nifty.changePercent === 'number' ? nifty.changePercent.toFixed(2) : Number(nifty.changePercent || 0).toFixed(2)}%</span>
                   </div>
                 <div class="text-[12px] font-black font-mono tracking-tight text-gray-900 leading-none">${fmtPrice(nifty.price)}</div>
                 
@@ -2183,7 +2189,7 @@ export default function LandingPage() {
                 Option Smile Skew Index registers Out-of-Bounds Pricing Deviation of 14.1%
               </h4>
               <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                Aggressive call premiums trigger skew variances. Decisive ATM volatility remains compressed at ${(atmIv ?? 0).toFixed(1)}%. Algorithmic guidance adjusts recommended strategies from condors to long-running straddle models.
+                Aggressive call premiums trigger skew variances. Decisive ATM volatility remains compressed at ${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}%. Algorithmic guidance adjusts recommended strategies from condors to long-running straddle models.
               </p>
             </div>
           </div>

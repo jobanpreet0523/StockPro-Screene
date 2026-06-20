@@ -9,8 +9,12 @@ export function useMarketIndices() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchIndices = async () => {
+  const fetchIndices = async (isManual = false) => {
     try {
+      if (!isManual) {
+        // If not a manual retry, check if we already have data to avoid flicker/red banner
+        // though in this simple hook we'll just proceed but with a longer timeout if needed.
+      }
       const res = await fetch(`${API_BASE}/api/indices`, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error('API fetch failed');
       const json = await res.json();
@@ -35,5 +39,5 @@ export function useMarketIndices() {
     return () => clearInterval(interval);
   }, []);
 
-  return { indices, loading, error, retry: fetchIndices };
+  return { indices, loading, error, retry: () => fetchIndices(true) };
 }

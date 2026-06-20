@@ -38,6 +38,8 @@ export default function StockChart({ symbol, name }: StockChartProps) {
     if (target === '^NSEBANK' || cleanSymbol === 'BANKNIFTY') return 'NSE:BANKNIFTY';
     if (target === '^BSESN' || cleanSymbol === 'SENSEX') return 'BSE:SENSEX';
     if (target === '^IXIC') return 'NASDAQ:IXIC';
+    if (target === '^GSPC') return 'SP:SPX';
+    if (target === '^DJI') return 'DJ:DJI';
     
     return getTVSymbol(cleanSymbol);
   }, [symbol]);

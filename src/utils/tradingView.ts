@@ -6,6 +6,7 @@ const US_NASDAQ = new Set([
 ]);
 
 export const getTVSymbol = (s: string) => {
+  if (s.includes(':')) return s; // Already has prefix
   const sym = s.toUpperCase().replace('.NS', '').replace('.BO', '');
   if (US_NASDAQ.has(sym)) return `NASDAQ:${sym}`;
   return `NSE:${sym}`;

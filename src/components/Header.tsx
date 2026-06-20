@@ -110,7 +110,7 @@ export default function Header({
 
   const formatPrice = (val: number) => {
     const v = val ?? 0;
-    return v >= 1000 ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : v.toFixed(2);
+    return v >= 1000 ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (typeof v === 'number' ? v.toFixed(2) : Number(v || 0).toFixed(2));
   };
 
   return (

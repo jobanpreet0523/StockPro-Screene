@@ -171,11 +171,11 @@ export default function Heatmap() {
             flexBasis: `${Math.max(weight * 3, 5)}%`,
             minHeight: `${Math.max(weight * 2, 60)}px` 
           }}
-          title={`${stock.symbol}: ${(stock.changePercent ?? 0).toFixed(2)}%`}
+          title={`${stock.symbol}: ${typeof stock.changePercent === 'number' ? stock.changePercent.toFixed(2) : Number(stock.changePercent || 0).toFixed(2)}%`}
         >
           <span className="text-white font-bold font-mono text-[10px] sm:text-xs truncate max-w-full mix-blend-plus-lighter">{stock.symbol}</span>
           <span className="text-white font-mono text-[9px] sm:text-[10px] opacity-90 truncate mix-blend-plus-lighter">
-            {(stock.changePercent ?? 0) > 0 ? '+' : ''}{(stock.changePercent ?? 0).toFixed(2)}%
+            {(stock.changePercent ?? 0) > 0 ? '+' : ''}{typeof stock.changePercent === 'number' ? stock.changePercent.toFixed(2) : Number(stock.changePercent || 0).toFixed(2)}%
           </span>
         </div>
       );
@@ -202,7 +202,7 @@ export default function Heatmap() {
             <div className="flex items-center gap-3 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50 mr-2">
               <span className="text-xs font-bold text-slate-300">NIFTY</span>
               <span className={`text-sm font-bold font-mono ${(indexStats.pct ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {(indexStats.pct ?? 0) >= 0 ? '+' : ''}{(indexStats.pct ?? 0).toFixed(2)}%
+                {(indexStats.pct ?? 0) >= 0 ? '+' : ''}{typeof indexStats.pct === 'number' ? indexStats.pct.toFixed(2) : Number(indexStats.pct || 0).toFixed(2)}%
               </span>
               <div className="w-px h-4 bg-slate-700 mx-1"></div>
               <span className="text-[10px] font-mono"><span className="text-emerald-400">{indexStats.advances}</span> / <span className="text-rose-400">{indexStats.declines}</span></span>

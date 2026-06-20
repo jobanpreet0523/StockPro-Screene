@@ -826,14 +826,14 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
   // Helper formatting values
   const formatVolume = (vol: number) => {
     const v = vol ?? 0;
-    if (v >= 1000000) return `${(v / 1000000).toFixed(2)}M`;
-    if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
+    if (v >= 1000000) return `${(typeof v === 'number' ? (v / 1000000).toFixed(2) : Number(v / 1000000).toFixed(2))}M`;
+    if (v >= 1000) return `${(typeof v === 'number' ? (v / 1000).toFixed(0) : Number(v / 1000).toFixed(0))}K`;
     return v.toString();
   };
 
   const formatMarketCap = (cap: number) => {
     const c = cap ?? 0;
-    if (c >= 100000) return `₹${(c / 1000000).toFixed(2)}T`;
+    if (c >= 100000) return `₹${(typeof c === 'number' ? (c / 1000000).toFixed(2) : Number(c / 1000000).toFixed(2))}T`;
     return `₹${c.toLocaleString()}Cr`;
   };
 
@@ -1414,7 +1414,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
 
                           {/* LTP (₹) */}
                           <td className="py-3 px-3 text-right font-mono text-slate-850 dark:text-slate-205 text-[11px] font-bold">
-                            ₹{(stock.price ?? 0) >= 100 ? (stock.price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (stock.price ?? 0).toFixed(2)}
+                            ₹{(stock.price ?? 0) >= 100 ? (stock.price ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (typeof stock.price === 'number' ? stock.price.toFixed(2) : Number(stock.price || 0).toFixed(2))}
                           </td>
 
                           {/* Change% */}
