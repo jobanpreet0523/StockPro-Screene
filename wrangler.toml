@@ -1,14 +1,23 @@
 name = "stockpro-screener"
-compatibility_date = "2024-12-01"
-main = "src/_worker.js"
+main = "src/worker.ts"
+compatibility_date = "2024-01-01"
 
-[assets]
-directory = "./dist"
-binding = "ASSETS"
+[vars]
+# Non-sensitive environment variables can go here
 
-# KV namespace for caching NSE data (60s TTL)
-# To enable: run `npx wrangler kv namespace create STOCKPRO_KV`
-# Then add the id below and uncomment
-# [[kv_namespaces]]
-# binding = "STOCKPRO_KV"
-# id = "YOUR_KV_NAMESPACE_ID"
+[env.production]
+name = "stockpro-screener"
+vars = { ENVIRONMENT = "production" }
+
+# Static assets configuration
+[site]
+bucket = "./dist"
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# KV namespace for caching (optional but recommended)
+[[kv_namespaces]]
+binding = "CACHE"
+id = "your_kv_namespace_id"
