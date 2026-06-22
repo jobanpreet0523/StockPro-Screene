@@ -43,20 +43,41 @@ export default {
     }
 
     // ── Edge SEO & HTMLRewriter Prerendering ───────────────────
-    const seoRoutes = ["/", "/screener", "/option-chain", "/landing", "/news", "/strategy-builder"];
-    if (seoRoutes.includes(path)) {
-      const indexRes = await env.ASSETS.fetch(new Request(new URL('/index.html', url.origin)));
-      return injectSEO(indexRes, path);
+    // Path normalization for SPA routes (handles trailing slashes)
+    const normalizedPath = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
+    const seoRoutes = [
+      "/", "/screener", "/scanner", "/option-chain", "/us-markets",
+      "/strategy-builder", "/greeks-calculator", "/risk-calculator",
+      "/heatmap", "/fii-dii", "/deals", "/news", "/pricing", "/blog", "/signals", "/landing"
+    ];
+
+    if (seoRoutes.includes(normalizedPath)) {
+      try {
+        const indexRes = await env.ASSETS.fetch(new Request(new URL('/index.html', url.origin)));
+        return injectSEO(indexRes, normalizedPath);
+      } catch (err) {
+        // If SEO injection fails, fall through to standard asset serving
+      }
     }
 
     // ── Static Assets + SPA fallback ───────────────────────────
+    // Implements SPA routing fallback: if a static asset isn't found,
+    // we serve index.html so the client-side router can take over.
     try {
       const assetRes = await env.ASSETS.fetch(request.clone());
-      if (assetRes.status !== 404) return assetRes;
-    } catch (err) {}
 
-    // Fallback to index.html for SPA client-side routing
-    return env.ASSETS.fetch(new Request(new URL('/index.html', url.origin)));
+      // If the asset is not found (404), we fallback to index.html
+      if (assetRes.status === 404) {
+        const fallbackRequest = new Request(new URL('/index.html', url.origin), request);
+        return await env.ASSETS.fetch(fallbackRequest);
+      }
+
+      return assetRes;
+    } catch (err) {
+      // In case of error (equivalent to getAssetFromKV failing), fallback to index.html
+      const fallbackRequest = new Request(new URL('/index.html', url.origin), request);
+      return await env.ASSETS.fetch(fallbackRequest);
+    }
   },
 };
 
