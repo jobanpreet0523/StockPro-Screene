@@ -9,153 +9,26 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // ── Static Routing (Sitemap & Robots) ──────────────────────
-    if (path === "/robots.txt") {
-      return new Response("User-agent: *\nAllow: /\nSitemap: https://stockpro1.qzz.io/sitemap.xml", {
-        headers: { "Content-Type": "text/plain" }
-      });
-    }
-
-    if (path === "/sitemap.xml") {
-      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://stockpro1.qzz.io/</loc><priority>1.0</priority></url>
-  <url><loc>https://stockpro1.qzz.io/screener</loc><priority>0.9</priority></url>
-  <url><loc>https://stockpro1.qzz.io/option-chain</loc><priority>0.9</priority></url>
-  <url><loc>https://stockpro1.qzz.io/news</loc><priority>0.7</priority></url>
-  <url><loc>https://stockpro1.qzz.io/strategy-builder</loc><priority>0.8</priority></url>
-</urlset>`;
-      return new Response(sitemap, {
-        headers: { "Content-Type": "application/xml" }
-      });
-    }
-
     // ── API Routes ─────────────────────────────────────────────
     if (path.startsWith('/api/')) {
       // CORS preflight
       if (request.method === 'OPTIONS') {
         return new Response(null, { status: 204, headers: corsHeaders() });
       }
-
-      // Normalize path: trim trailing slash if not root /api/
-      const cleanPath = (path.length > 5 && path.endsWith('/')) ? path.slice(0, -1) : path;
-      return handleAPI(cleanPath, url, request, env);
-    }
-
-    // ── Edge SEO & HTMLRewriter Prerendering ───────────────────
-    // Path normalization for SPA routes (handles trailing slashes)
-    const normalizedPath = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
-    const seoRoutes = [
-      "/", "/screener", "/scanner", "/option-chain", "/us-markets",
-      "/strategy-builder", "/greeks-calculator", "/risk-calculator",
-      "/heatmap", "/fii-dii", "/deals", "/news", "/pricing", "/blog", "/signals", "/landing"
-    ];
-
-    if (seoRoutes.includes(normalizedPath)) {
-      try {
-        const indexRes = await env.ASSETS.fetch(new Request(new URL('/index.html', url.origin)));
-        return injectSEO(indexRes, normalizedPath);
-      } catch (err) {
-        // If SEO injection fails, fall through to standard asset serving
-      }
+      return handleAPI(path, url, request, env);
     }
 
     // ── Static Assets + SPA fallback ───────────────────────────
-    // Implements SPA routing fallback: if a static asset isn't found,
-    // we serve index.html so the client-side router can take over.
     try {
       const assetRes = await env.ASSETS.fetch(request.clone());
+      if (assetRes.status !== 404) return assetRes;
+    } catch (err) {}
 
-      // If the asset is not found (404), we fallback to index.html
-      if (assetRes.status === 404) {
-        const fallbackRequest = new Request(new URL('/index.html', url.origin), request);
-        return await env.ASSETS.fetch(fallbackRequest);
-      }
-
-      return assetRes;
-    } catch (err) {
-      // In case of error (equivalent to getAssetFromKV failing), fallback to index.html
-      const fallbackRequest = new Request(new URL('/index.html', url.origin), request);
-      return await env.ASSETS.fetch(fallbackRequest);
-    }
+    // Fallback to index.html for SPA client-side routing
+    // Only if not an API route (redundant check but safe)
+    return env.ASSETS.fetch(new Request(new URL('/index.html', url.origin)));
   },
 };
-
-// ── HTMLRewriter for SEO ────────────────────────────────────────
-function injectSEO(response, path) {
-  const meta = {
-    "/": {
-      title: "StockPro | Advanced Stock Screener & Market Analytics",
-      description: "Real-time NSE/BSE analytics, advanced option chain, and professional-grade stock screening for Indian markets."
-    },
-    "/landing": {
-      title: "Welcome to StockPro | Professional Financial Dashboard",
-      description: "Experience the next generation of market data visualization and professional trading tools."
-    },
-    "/screener": {
-      title: "Advanced Stock Screener | StockPro Financial",
-      description: "Filter and analyze Indian stocks with 50+ technical and fundamental parameters in real-time."
-    },
-    "/option-chain": {
-      title: "Live Option Chain Analysis | NIFTY & BANKNIFTY",
-      description: "Dynamic Greek calculations, Max Pain, and Multi-strike OI analysis for NSE indices and equities."
-    },
-    "/news": {
-      title: "Latest Stock Market News | StockPro Real-time Feed",
-      description: "Stay ahead with live market updates, corporate announcements, and economic trends from top sources."
-    },
-    "/strategy-builder": {
-      title: "Options Strategy Builder | Payoff Visualization",
-      description: "Design, backtest, and visualize complex option strategies with real-time Greek sensitivities."
-    }
-  };
-
-  const current = meta[path] || meta["/"];
-
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "StockPro Screener",
-    "url": "https://stockpro1.qzz.io",
-    "description": current.description,
-    "applicationCategory": "FinancialApplication",
-    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
-    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "154" }
-  };
-
-  return new HTMLRewriter()
-    .on("title", {
-      element(e) { e.setInnerContent(current.title); }
-    })
-    .on("meta[name='description']", {
-      element(e) { e.setAttribute("content", current.description); }
-    })
-    .on("head", {
-      element(e) {
-        e.append(`<link rel="canonical" href="https://stockpro1.qzz.io${path}" />`, { html: true });
-        e.append(`<script type="application/ld+json">${JSON.stringify(schema)}</script>`, { html: true });
-      }
-    })
-    .on("div#root", {
-      element(e) {
-        e.setInnerContent(`
-          <div class="fallback-prerender" style="padding: 20px; font-family: sans-serif;">
-            <h1>${current.title}</h1>
-            <p>${current.description}</p>
-            <ul>
-              <li>Real-time NSE India Data Proxy</li>
-              <li>Advanced Option Chain with Greek Analytics</li>
-              <li>Professional Stock Screener with Technical Filters</li>
-              <li>Live Market News & Economic Feeds</li>
-              <li>Options Strategy Builder & Payoff Diagrams</li>
-            </ul>
-            <p>Loading StockPro dynamic interface...</p>
-          </div>
-        `, { html: true });
-      }
-    })
-    .transform(response);
-}
 
 // ── CORS ────────────────────────────────────────────────────────
 function corsHeaders() {
@@ -341,55 +214,6 @@ async function handleAPI(path, url, request, env) {
       }
     }
 
-    // ── /api/indices (simplified for header bar) ─────────────
-    if (path === '/api/indices') {
-      try {
-        const syms = '^NSEI,^NSEBANK,^BSESN,^CNXIT,^VIX';
-        const quotes = await yahooQuotes(syms);
-        if (!quotes || quotes.length === 0) throw new Error('Indices quotes failed');
-        const idxMap = { '^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY', '^BSESN': 'SENSEX', '^CNXIT': 'NIFTY IT', '^VIX': 'INDIA VIX' };
-        const indices = quotes.map(q => ({
-          symbol: q.symbol, name: idxMap[q.symbol] || q.shortName || q.symbol,
-          price: q.regularMarketPrice || 0, change: q.regularMarketChange || 0,
-          changePercent: q.regularMarketChangePercent || 0,
-          sparkline: [(q.regularMarketPrice || 0) * 0.997, (q.regularMarketPrice || 0) * 1.003, q.regularMarketPrice || 0],
-          isPositive: (q.regularMarketChangePercent || 0) >= 0,
-        }));
-        return new Response(JSON.stringify({ status: 'ok', source: 'live', data: indices }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
-      } catch (err) {
-        // Safe fallback for indices
-        const fallback = [
-          { symbol: '^NSEI', name: 'NIFTY 50', price: 24892.50, change: 145.30, changePercent: 0.58, isPositive: true },
-          { symbol: '^NSEBANK', name: 'BANK NIFTY', price: 52341.20, change: -62.80, changePercent: -0.12, isPositive: false }
-        ];
-        return new Response(JSON.stringify({ status: 'ok', source: 'fallback', data: fallback, error: err.message }), { headers: jsonHeaders() });
-      }
-    }
-
-    // ── /api/stocks ──────────────────────────────────────────
-    if (path === '/api/stocks') {
-      try {
-        const syms = 'RELIANCE.NS,TCS.NS,INFY.NS,HDFCBANK.NS,ICICIBANK.NS,BHARTIARTL.NS,ITC.NS,LT.NS,KOTAKBANK.NS,AXISBANK.NS,WIPRO.NS,MARUTI.NS,SUNPHARMA.NS,BAJFINANCE.NS,TITAN.NS,TECHM.NS,DRREDDY.NS,ONGC.NS,SBIN.NS,NESTLEIND.NS,HINDUNILVR.NS,BAJAJFINSV.NS,ASIANPAINT.NS,ULTRACEMCO.NS,TATAMOTORS.NS,JSWSTEEL.NS,NTPC.NS,POWERGRID.NS,COALINDIA.NS,TATASTEEL.NS';
-        const quotes = await yahooQuotes(syms);
-        if (!quotes || quotes.length === 0) throw new Error('Stocks quotes failed');
-        const sectorMap = { 'RELIANCE.NS': 'Energy', 'TCS.NS': 'Technology', 'INFY.NS': 'Technology', 'HDFCBANK.NS': 'Banking', 'ICICIBANK.NS': 'Banking', 'BHARTIARTL.NS': 'Telecom', 'ITC.NS': 'Consumer Goods', 'LT.NS': 'Capital Goods', 'KOTAKBANK.NS': 'Banking', 'AXISBANK.NS': 'Banking', 'WIPRO.NS': 'Technology', 'MARUTI.NS': 'Auto', 'SUNPHARMA.NS': 'Pharma', 'BAJFINANCE.NS': 'Finance', 'SBIN.NS': 'Banking', 'TITAN.NS': 'Consumer Goods', 'TECHM.NS': 'Technology', 'DRREDDY.NS': 'Pharma', 'ONGC.NS': 'Energy', 'NESTLEIND.NS': 'Consumer Goods', 'HINDUNILVR.NS': 'Consumer Goods', 'BAJAJFINSV.NS': 'Finance', 'ASIANPAINT.NS': 'Consumer Goods', 'ULTRACEMCO.NS': 'Cement', 'TATAMOTORS.NS': 'Auto', 'JSWSTEEL.NS': 'Metals', 'NTPC.NS': 'Power', 'POWERGRID.NS': 'Power', 'COALINDIA.NS': 'Mining', 'TATASTEEL.NS': 'Metals' };
-        const data = quotes.map(q => ({
-          symbol: q.symbol, name: q.shortName || q.longName || q.symbol.replace('.NS', ''),
-          price: q.regularMarketPrice || 0, change: q.regularMarketChange || 0,
-          changePercent: q.regularMarketChangePercent || 0, volume: q.regularMarketVolume || 0,
-          marketCap: q.marketCap || 0, peRatio: q.trailingPE || 0,
-          sector: sectorMap[q.symbol] || q.symbol.replace('.NS', ''),
-          open: q.regularMarketOpen || 0, high: q.regularMarketDayHigh || 0,
-          low: q.regularMarketDayLow || 0, close: q.regularMarketPreviousClose || 0,
-          exchange: 'NSE', isFoEnabled: true,
-          buildup: (q.regularMarketChangePercent || 0) >= 0 ? 'Long Build-up' : 'Short Build-up',
-        }));
-        return new Response(JSON.stringify({ status: 'ok', source: 'live', count: data.length, data }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
-      } catch (err) {
-        return new Response(JSON.stringify({ status: 'error', message: err.message }), { status: 500, headers: jsonHeaders() });
-      }
-    }
-
     // ── /api/yahoo-finance/:symbol (CORS Proxy) ──────────────
     if (path.startsWith('/api/yahoo-finance/')) {
       const parts = path.split('/');
@@ -490,6 +314,41 @@ async function handleAPI(path, url, request, env) {
       return new Response(JSON.stringify({ status: 'ok', source: 'yahoo', data: indices }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
     }
 
+    // ── /api/indices (simplified for header bar) ─────────────
+    if (path === '/api/indices') {
+      const syms = '^NSEI,^NSEBANK,^BSESN,^CNXIT,^VIX';
+      const quotes = await yahooQuotes(syms);
+      if (!quotes || quotes.length === 0) throw new Error('Indices quotes failed');
+      const idxMap = { '^NSEI': 'NIFTY 50', '^NSEBANK': 'BANK NIFTY', '^BSESN': 'SENSEX', '^CNXIT': 'NIFTY IT', '^VIX': 'INDIA VIX' };
+      const indices = quotes.map(q => ({
+        symbol: q.symbol, name: idxMap[q.symbol] || q.shortName || q.symbol,
+        price: q.regularMarketPrice || 0, change: q.regularMarketChange || 0,
+        changePercent: q.regularMarketChangePercent || 0,
+        sparkline: [(q.regularMarketPrice || 0) * 0.997, (q.regularMarketPrice || 0) * 1.003, q.regularMarketPrice || 0],
+        isPositive: (q.regularMarketChangePercent || 0) >= 0,
+      }));
+      return new Response(JSON.stringify({ status: 'ok', source: 'live', data: indices }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
+    }
+
+    // ── /api/stocks ──────────────────────────────────────────
+    if (path === '/api/stocks') {
+      const syms = 'RELIANCE.NS,TCS.NS,INFY.NS,HDFCBANK.NS,ICICIBANK.NS,BHARTIARTL.NS,ITC.NS,LT.NS,KOTAKBANK.NS,AXISBANK.NS,WIPRO.NS,MARUTI.NS,SUNPHARMA.NS,BAJFINANCE.NS,TITAN.NS,TECHM.NS,DRREDDY.NS,ONGC.NS,SBIN.NS,NESTLEIND.NS,HINDUNILVR.NS,BAJAJFINSV.NS,ASIANPAINT.NS,ULTRACEMCO.NS,TATAMOTORS.NS,JSWSTEEL.NS,NTPC.NS,POWERGRID.NS,COALINDIA.NS,TATASTEEL.NS';
+      const quotes = await yahooQuotes(syms);
+      if (!quotes || quotes.length === 0) throw new Error('Stocks quotes failed');
+      const sectorMap = { 'RELIANCE.NS': 'Energy', 'TCS.NS': 'Technology', 'INFY.NS': 'Technology', 'HDFCBANK.NS': 'Banking', 'ICICIBANK.NS': 'Banking', 'BHARTIARTL.NS': 'Telecom', 'ITC.NS': 'Consumer Goods', 'LT.NS': 'Capital Goods', 'KOTAKBANK.NS': 'Banking', 'AXISBANK.NS': 'Banking', 'WIPRO.NS': 'Technology', 'MARUTI.NS': 'Auto', 'SUNPHARMA.NS': 'Pharma', 'BAJFINANCE.NS': 'Finance', 'SBIN.NS': 'Banking', 'TITAN.NS': 'Consumer Goods', 'TECHM.NS': 'Technology', 'DRREDDY.NS': 'Pharma', 'ONGC.NS': 'Energy', 'NESTLEIND.NS': 'Consumer Goods', 'HINDUNILVR.NS': 'Consumer Goods', 'BAJAJFINSV.NS': 'Finance', 'ASIANPAINT.NS': 'Consumer Goods', 'ULTRACEMCO.NS': 'Cement', 'TATAMOTORS.NS': 'Auto', 'JSWSTEEL.NS': 'Metals', 'NTPC.NS': 'Power', 'POWERGRID.NS': 'Power', 'COALINDIA.NS': 'Mining', 'TATASTEEL.NS': 'Metals' };
+      const data = quotes.map(q => ({
+        symbol: q.symbol, name: q.shortName || q.longName || q.symbol.replace('.NS', ''),
+        price: q.regularMarketPrice || 0, change: q.regularMarketChange || 0,
+        changePercent: q.regularMarketChangePercent || 0, volume: q.regularMarketVolume || 0,
+        marketCap: q.marketCap || 0, peRatio: q.trailingPE || 0,
+        sector: sectorMap[q.symbol] || q.symbol.replace('.NS', ''),
+        open: q.regularMarketOpen || 0, high: q.regularMarketDayHigh || 0,
+        low: q.regularMarketDayLow || 0, close: q.regularMarketPreviousClose || 0,
+        exchange: 'NSE', isFoEnabled: true,
+        buildup: (q.regularMarketChangePercent || 0) >= 0 ? 'Long Build-up' : 'Short Build-up',
+      }));
+      return new Response(JSON.stringify({ status: 'ok', source: 'live', count: data.length, data }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
+    }
 
     // ── /api/news ────────────────────────────────────────────
     if (path === '/api/news' || path === '/api/market-news') {

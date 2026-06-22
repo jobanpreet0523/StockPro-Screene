@@ -161,7 +161,7 @@ export default function FiiDiiTracker() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
           {/* Top Cards */}
-          <div className="lg:col-span-4 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 rounded-xl p-4 shadow-sm">
+          <div className="lg:col-span-4 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
              <div className="flex items-center gap-3">
                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
                   <Activity size={18} className="text-indigo-400" />
@@ -178,26 +178,26 @@ export default function FiiDiiTracker() {
           </div>
 
           <div className="lg:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/20 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-xl p-4 shadow-sm relative overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-3 opacity-10"><TrendingUp size={40} className="text-emerald-500" /></div>
               <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold">FII Buy Value</span>
               <div className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">₹{todayData.fiiBuy.toLocaleString()} Cr</div>
             </div>
 
-            <div className="bg-white/20 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-xl p-4 shadow-sm relative overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-3 opacity-10"><TrendingDown size={40} className="text-rose-500" /></div>
               <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold">FII Sell Value</span>
               <div className="text-lg font-black font-mono text-rose-600 dark:text-rose-400 mt-1">₹{todayData.fiiSell.toLocaleString()} Cr</div>
             </div>
 
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 rounded-xl p-4 shadow-sm relative overflow-hidden">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
               <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">FII Net Cash</span>
               <div className={`text-2xl font-black font-mono mt-1 ${todayData.fiiNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {todayData.fiiNet >= 0 ? '+' : ''}{todayData.fiiNet.toLocaleString()} Cr
               </div>
             </div>
 
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 rounded-xl p-4 shadow-sm relative overflow-hidden">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
               <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">DII Net Cash</span>
               <div className={`text-2xl font-black font-mono mt-1 ${todayData.diiNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {todayData.diiNet >= 0 ? '+' : ''}{todayData.diiNet.toLocaleString()} Cr
@@ -206,7 +206,7 @@ export default function FiiDiiTracker() {
           </div>
 
           {/* Chart Section */}
-          <div className="lg:col-span-3 bg-white/20 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-xl p-4 shadow-sm h-[400px]">
+          <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm h-[400px]">
             <h3 className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-4 font-mono">30-Day FII Net Activity (₹ Cr)</h3>
             <div className="w-full h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -245,7 +245,7 @@ export default function FiiDiiTracker() {
 
           {/* Side Info Panel */}
           <div className="lg:col-span-1 flex flex-col gap-4">
-             <div className="bg-sky-50/20 dark:bg-sky-900/10 border border-sky-100/30 dark:border-sky-800/50 backdrop-blur-xl rounded-xl p-4 h-full flex flex-col">
+             <div className="bg-sky-50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-800/50 rounded-xl p-4 h-full flex flex-col">
                <h3 className="text-xs font-bold uppercase text-sky-800 dark:text-sky-400 mb-3 flex items-center gap-1.5 flex-wrap">
                  <Info size={14} /> Impact on NIFTY
                </h3>

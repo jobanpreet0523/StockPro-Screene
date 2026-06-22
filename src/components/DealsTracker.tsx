@@ -267,7 +267,7 @@ export default function DealsTracker() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         
         {/* Card 1: Today's Date Context */}
-        <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl p-4 rounded-xl border border-slate-150/50 dark:border-slate-850/50 shadow-sm">
+        <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-150 dark:border-slate-850 shadow-sm">
           <span className="text-[10px] font-black tracking-widest text-slate-400 font-mono uppercase block">Active Tracking Session</span>
           <div className="flex items-center gap-2.5 mt-2">
             <Calendar className="text-blue-500 shrink-0" size={18} />
@@ -281,7 +281,7 @@ export default function DealsTracker() {
         </div>
 
         {/* Card 2: Cumulative BUYs */}
-        <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl p-4 rounded-xl border border-slate-150/50 dark:border-slate-850/50 shadow-sm border-l-4 border-l-emerald-500">
+        <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-150 dark:border-slate-850 shadow-sm border-l-4 border-l-emerald-500">
           <span className="text-[10px] font-black tracking-widest text-emerald-600 dark:text-emerald-400 font-mono uppercase block">Total BUY Actions (Today)</span>
           <div className="flex items-center gap-2.5 mt-2">
             <TrendingUp className="text-emerald-500 shrink-0" size={18} />
@@ -295,7 +295,7 @@ export default function DealsTracker() {
         </div>
 
         {/* Card 3: Cumulative SELLs */}
-        <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl p-4 rounded-xl border border-slate-150/50 dark:border-slate-850/50 shadow-sm border-l-4 border-l-rose-500">
+        <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-150 dark:border-slate-850 shadow-sm border-l-4 border-l-rose-500">
           <span className="text-[10px] font-black tracking-widest text-rose-600 dark:text-rose-400 font-mono uppercase block">Total SELL Actions (Today)</span>
           <div className="flex items-center gap-2.5 mt-2">
             <TrendingDown className="text-rose-500 shrink-0" size={18} />
@@ -309,7 +309,7 @@ export default function DealsTracker() {
         </div>
 
         {/* Card 4: Most Active Stock */}
-        <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl p-4 rounded-xl border border-slate-150/50 dark:border-slate-850/50 shadow-sm border-l-4 border-l-amber-500">
+        <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-150 dark:border-slate-850 shadow-sm border-l-4 border-l-amber-500">
           <span className="text-[10px] font-black tracking-widest text-amber-500 font-mono uppercase block">Most Active Stock This Week</span>
           <div className="flex items-center gap-2.5 mt-2">
             <Sparkles className="text-amber-500 shrink-0" size={18} />
@@ -330,7 +330,7 @@ export default function DealsTracker() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Top 10 Stocks volume block visual graph (Recharts) */}
-        <div className="lg:col-span-7 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl p-5 rounded-2xl border border-slate-200/50 dark:border-slate-850/50 shadow-sm flex flex-col justify-between min-h-[360px]">
+        <div className="lg:col-span-7 bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200 dark:border-slate-850 shadow-sm flex flex-col justify-between min-h-[360px]">
           <div>
             <div className="flex items-center justify-between mb-1">
               <div>
@@ -384,7 +384,7 @@ export default function DealsTracker() {
         </div>
 
         {/* Dynamic Multi-Parameter Interactive Filters Desk */}
-        <div className="lg:col-span-5 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl p-5 rounded-2xl border border-slate-200/50 dark:border-slate-850/50 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200 dark:border-slate-850 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <Filter size={15} className="text-emerald-555" />
@@ -508,7 +508,7 @@ export default function DealsTracker() {
       </div>
 
       {/* Main Deals Table Panel */}
-      <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-slate-850/50 shadow-sm overflow-hidden" id="deals_datatable">
+      <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-850 shadow-sm overflow-hidden" id="deals_datatable">
         
         {/* Table header indicators */}
         <div className="bg-slate-50 dark:bg-slate-900/60 px-5 py-4 border-b border-slate-150 dark:border-slate-850 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-2.5">

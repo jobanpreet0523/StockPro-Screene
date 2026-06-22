@@ -148,7 +148,7 @@ export default function GreeksCalculator() {
   };
 
   return (
-    <div id="greeks-calculator" className="bg-white/20 dark:bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm mt-6">
+    <div id="greeks-calculator" className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mt-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-5">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">

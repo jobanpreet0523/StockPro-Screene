@@ -104,19 +104,9 @@ export default function Layout() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50/20 dark:bg-slate-900/40 backdrop-blur-[24px] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-all duration-300 relative overflow-hidden"
+      className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300"
       id="core_app_layer"
     >
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="fixed inset-0 w-full h-full object-cover pointer-events-none opacity-[0.35] -z-10"
-      >
-        <source src="/video/bg-3d.mp4" type="video/mp4" />
-      </video>
-
       <Header
         indices={indices}
         stocks={stocks}
@@ -129,7 +119,7 @@ export default function Layout() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
         {/* Bulk Stock Data Status */}
-        <div className="flex items-center gap-3 mb-6 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl px-4 py-3 rounded-xl border border-slate-200/50 dark:border-slate-850 shadow-sm">
+        <div className="flex items-center gap-3 mb-6 bg-white dark:bg-slate-950 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-850 shadow-sm">
           {isLoadingStocks ? (
             <>
               <span className="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin shrink-0" />
@@ -174,7 +164,7 @@ export default function Layout() {
 
         {/* Indian Market Closed Weekend Alert */}
         {isWeekend && (
-          <div className="mb-6 bg-amber-500/5 dark:bg-slate-950/40 backdrop-blur-xl border border-amber-500/20 dark:border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm" id="weekend_market_indicator">
+          <div className="mb-6 bg-amber-500/5 dark:bg-slate-950/80 border border-amber-500/20 dark:border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm" id="weekend_market_indicator">
             <div className="flex items-center gap-3">
               <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-2.5 rounded-lg shrink-0">
                 <HelpCircle size={18} className="text-amber-400" />

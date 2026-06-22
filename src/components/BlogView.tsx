@@ -480,7 +480,7 @@ export default function BlogView() {
               <div 
                 key={article.id}
                 onClick={() => setSelectedArticleId(article.id)}
-                className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-205/50 dark:border-slate-850/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-emerald-500/30 transition-all duration-300 flex flex-col justify-between group cursor-pointer"
+                className="bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-emerald-500/30 transition-all duration-300 flex flex-col justify-between group cursor-pointer"
               >
                 <div className="space-y-3.5">
                   <div className="flex items-center justify-between text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500">
@@ -509,7 +509,7 @@ export default function BlogView() {
             ))}
           </div>
 
-          <div className="bg-white/10 dark:bg-slate-950/20 backdrop-blur-md border border-slate-200/30 dark:border-slate-850/40 rounded-xl p-5 max-w-xl mx-auto text-center space-y-3">
+          <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-850 rounded-xl p-5 max-w-xl mx-auto text-center space-y-3">
             <h4 className="text-xs font-mono font-black uppercase text-slate-500 dark:text-slate-400">Target Keywords Tracked</h4>
             <div className="flex flex-wrap gap-1.5 justify-center">
               {articles.flatMap(a => a.keywords).filter((v, i, self) => self.indexOf(v) === i).map(kw => (

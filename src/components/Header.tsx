@@ -114,9 +114,9 @@ export default function Header({
   };
 
   return (
-    <header className="bg-white/20 dark:bg-slate-900/40 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 text-slate-800 dark:text-white sticky top-0 z-50 shadow-md transition-all duration-300" id="app_header">
+    <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white sticky top-0 z-50 shadow-md transition-all duration-300" id="app_header">
       {/* Ticker Marquee Bar */}
-      <div className="bg-white/10 dark:bg-black/20 border-b border-slate-150/30 dark:border-slate-850/30 py-1.5 px-4 overflow-x-auto sm:overflow-hidden text-[11px] sm:text-xs transition-all duration-300">
+      <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-x-auto sm:overflow-hidden text-[11px] sm:text-xs transition-all duration-300">
         <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4 sm:flex-row sm:items-center sm:gap-1.5 whitespace-nowrap">
           <div className="flex items-center gap-2" title="Live data fetched from Yahoo Finance">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]" style={{ color: marketStatus.color }}>
@@ -241,7 +241,7 @@ export default function Header({
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
           <nav className="flex bg-slate-100 dark:bg-slate-950 p-1.5 rounded-lg border border-slate-200 dark:border-slate-850" id="main_navigation">
             <button
-              onClick={() => navigate('/screener')}
+              onClick={() => setActiveTab('screener')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
                 activeTab === 'screener'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -252,7 +252,7 @@ export default function Header({
               Screener
             </button>
             <button
-              onClick={() => navigate('/scanner')}
+              onClick={() => setActiveTab('chartink')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
                 activeTab === 'chartink'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -263,7 +263,7 @@ export default function Header({
               Chartink Scanner
             </button>
             <button
-              onClick={() => navigate('/option-chain')}
+              onClick={() => setActiveTab('fo')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'fo'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -274,7 +274,7 @@ export default function Header({
               F&O Analytics
             </button>
             <button
-              onClick={() => navigate('/us-markets')}
+              onClick={() => setActiveTab('us')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'us'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -285,7 +285,7 @@ export default function Header({
               US Markets
             </button>
             <button
-              onClick={() => navigate('/strategy-builder')}
+              onClick={() => setActiveTab('strategy-builder')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'strategy-builder'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -296,7 +296,7 @@ export default function Header({
               Strategy Builder
             </button>
             <button
-              onClick={() => navigate('/greeks-calculator')}
+              onClick={() => setActiveTab('greeks-calculator')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'greeks-calculator'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -307,7 +307,7 @@ export default function Header({
               Options Greeks
             </button>
             <button
-              onClick={() => navigate('/risk-calculator')}
+              onClick={() => setActiveTab('risk-calculator')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'risk-calculator'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -318,7 +318,7 @@ export default function Header({
               Risk Calc
             </button>
             <button
-              onClick={() => navigate('/heatmap')}
+              onClick={() => setActiveTab('heatmap')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'heatmap'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -329,7 +329,7 @@ export default function Header({
               Heatmap
             </button>
             <button
-              onClick={() => navigate('/fii-dii')}
+              onClick={() => setActiveTab('fii-dii')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'fii-dii'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -340,7 +340,7 @@ export default function Header({
               FII/DII Data
             </button>
             <button
-              onClick={() => navigate('/signals')}
+              onClick={() => setActiveTab('signals')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'signals'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -351,7 +351,7 @@ export default function Header({
               Signals
             </button>
             <button
-              onClick={() => navigate('/deals')}
+              onClick={() => setActiveTab('deals')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'deals'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -362,7 +362,7 @@ export default function Header({
               Bulk & Block Deals
             </button>
             <button
-              onClick={() => navigate('/news')}
+              onClick={() => setActiveTab('news')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'news'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -373,7 +373,7 @@ export default function Header({
               STOCK MARKET DAILY NEWS
             </button>
             <button
-              onClick={() => navigate('/pricing')}
+              onClick={() => setActiveTab('pricing')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'pricing'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -383,7 +383,7 @@ export default function Header({
               Pricing
             </button>
             <button
-              onClick={() => navigate('/blog')}
+              onClick={() => setActiveTab('blog')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
                 activeTab === 'blog'
                   ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
@@ -491,7 +491,7 @@ export default function Header({
                 </span>
               ) : (
                 <button 
-                  onClick={() => navigate('/pricing')}
+                  onClick={() => setActiveTab('pricing')}
                   className="bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-[9px] font-black tracking-wider uppercase px-2 py-0.5 rounded transition cursor-pointer"
                   title="Upgrade to Pro"
                 >
