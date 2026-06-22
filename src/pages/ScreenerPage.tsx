@@ -1,10 +1,15 @@
 import React from 'react';
 import { ShieldCheck } from 'lucide-react';
+import { useSeoTags } from '../hooks/useSeoTags';
 import StockScreener from '../components/StockScreener';
 import StockChart from '../components/StockChart';
 import { useDashboard } from '../components/Layout';
 
 export default function ScreenerPage() {
+  useSeoTags({
+    title: "Advanced Stock Screener | StockPro Financial",
+    description: "Filter and analyze Indian stocks with 50+ technical and fundamental parameters in real-time."
+  });
   const { stocks, activeStock, handleSelectStock, handleSelectFoStock } = useDashboard();
 
   return (
