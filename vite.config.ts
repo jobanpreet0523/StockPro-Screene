@@ -1,26 +1,30 @@
-import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { cloudflareVitePlugin } from '@cloudflare/vite-plugin';
+import path from 'path';
 
-export default defineConfig({
-  plugins: [
-    react(),
-    cloudflareVitePlugin({
-      platformProxy: {
-        enabled: true,
-      },
-    }),
-  ],
-  base: '/',  // Critical: Ensures assets load from root
+export default {
+  base: '/',
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+    },
+  },
   build: {
-    outDir: 'dist',
-    sourcemap: true,  // Helps with debugging
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+      }
+    }
   },
   server: {
-    port: 3000,
-    hmr: true,
+    hmr: process.env.DISABLE_HMR !== 'true',
+    watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8788',
+        changeOrigin: true,
+      }
+    }
   },
-  worker: {
-    format: 'es',
-  },
-});
+};
