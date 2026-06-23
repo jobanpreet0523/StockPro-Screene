@@ -78,9 +78,8 @@ async function getNSECookies() {
   }
 }
 
-async function nseFetch(apiPath, env) {
+async function nseFetch(apiPath, env, ttl = 30) {
   const cacheKey = `nse:${apiPath}`;
-  const CACHE_TTL = 30; // 30 seconds for live data
 
   // 1. Check KV cache
   if (env.STOCKPRO_KV) {
@@ -88,7 +87,7 @@ async function nseFetch(apiPath, env) {
       const cached = await env.STOCKPRO_KV.get(cacheKey, { type: 'text' });
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Date.now() - parsed.ts < CACHE_TTL * 1000) {
+        if (Date.now() - parsed.ts < ttl * 1000) {
           return { ...parsed.data, _cached: true };
         }
       }
@@ -97,7 +96,7 @@ async function nseFetch(apiPath, env) {
 
   // 2. Fetch from NSE
   let lastErr = null;
-  for (let i = 0; i < 2; i++) { // Retry once
+  for (let i = 0; i < 3; i++) { // Try 3 times
     try {
       const cookies = await getNSECookies();
       const fullUrl = `${NSE_HOME}${apiPath}`;
@@ -105,17 +104,18 @@ async function nseFetch(apiPath, env) {
         headers: {
           'User-Agent': NSE_UA,
           'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Referer': NSE_HOME + '/',
+          'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+          'Referer': 'https://www.nseindia.com/option-chain',
           'Cookie': cookies,
           'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
         },
         signal: AbortSignal.timeout(10000)
       });
 
       if (res.status === 401 || res.status === 403) {
         nseCookieExpiry = 0; // force refresh on next try
-        throw new Error('Auth failure');
+        throw new Error('Auth failure (401/403)');
       }
 
       if (!res.ok) throw new Error(`NSE returned ${res.status}`);
@@ -127,14 +127,14 @@ async function nseFetch(apiPath, env) {
       // 3. Write to KV cache
       if (env.STOCKPRO_KV) {
         try {
-          await env.STOCKPRO_KV.put(cacheKey, JSON.stringify({ data, ts: Date.now() }), { expirationTtl: 300 }); // KV persists longer
+          await env.STOCKPRO_KV.put(cacheKey, JSON.stringify({ data, ts: Date.now() }), { expirationTtl: Math.max(60, ttl * 2) });
         } catch {}
       }
 
       return { ...data, _cached: false };
     } catch (e) {
       lastErr = e;
-      if (i === 0) await new Promise(r => setTimeout(r, 500));
+      if (i < 2) await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
   }
   throw lastErr;
@@ -242,33 +242,37 @@ async function handleAPI(path, url, request, env) {
       return new Response(res.body, { status: res.status, headers: jsonHeaders({ 'Content-Type': 'application/json' }) });
     }
 
-    // ── /api/option-chain/:symbol ────────────────────────────
-    if (path.startsWith('/api/option-chain/')) {
-      const raw = path.split('/')[3] || 'NIFTY';
+    // ── /api/option-chain?symbol=NIFTY ───────────────────────
+    if (path === '/api/option-chain' || path.startsWith('/api/option-chain/')) {
+      const symParam = url.searchParams.get('symbol');
+      const pathParam = path.split('/')[3];
+      const raw = symParam || pathParam || 'NIFTY';
+
       const symMap = { NIFTY: 'NIFTY', '^NSEI': 'NIFTY', BANKNIFTY: 'BANKNIFTY', '^NSEBANK': 'BANKNIFTY', FINNIFTY: 'FINNIFTY', '^NSEFN': 'FINNIFTY' };
       const nseSymbol = symMap[raw.toUpperCase()] || raw.toUpperCase();
+      const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'].includes(nseSymbol);
 
       // Try NSE API
       let nseData = null;
       try {
-        const apiPath = `/api/option-chain-indices?symbol=${encodeURIComponent(nseSymbol)}`;
-        nseData = await nseFetch(apiPath, env);
-      } catch {}
-      if (nseData?.records?.data?.length) {
-        return new Response(JSON.stringify({ status: 'ok', source: 'nse', symbol: nseSymbol, data: nseData }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
+        const apiPath = isIndex
+          ? `/api/option-chain-indices?symbol=${encodeURIComponent(nseSymbol)}`
+          : `/api/option-chain-equities?symbol=${encodeURIComponent(nseSymbol)}`;
+
+        nseData = await nseFetch(apiPath, env, 15); // 15s cache as requested
+      } catch (err) {
+        console.error("NSE fetch failed:", err);
       }
-      // Try equity endpoint for stock options
-      try {
-        const eqPath = `/api/option-chain-equities?symbol=${encodeURIComponent(nseSymbol)}`;
-        const eqData = await nseFetch(eqPath, env);
-        if (eqData?.records?.data?.length) {
-          return new Response(JSON.stringify({ status: 'ok', source: 'nse_equity', symbol: nseSymbol, data: eqData }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
-        }
-      } catch {}
+
+      if (nseData?.records?.data?.length) {
+        return new Response(JSON.stringify({ status: 'ok', source: 'nse', symbol: nseSymbol, data: nseData }), {
+          headers: jsonHeaders({ 'Cache-Control': 'public, max-age=15' })
+        });
+      }
 
       // Yahoo fallback: real spot + computed chain
       const yMap = { NIFTY: '^NSEI', BANKNIFTY: '^NSEBANK', FINNIFTY: '^NSEFN' };
-      const ySym = yMap[nseSymbol] || nseSymbol;
+      const ySym = yMap[nseSymbol] || nseSymbol + (nseSymbol.includes('.') ? '' : '.NS');
       try {
         const chart = await yahooChart(ySym);
         const meta = chart?.chart?.result?.[0]?.meta;
@@ -280,15 +284,35 @@ async function handleAPI(path, url, request, env) {
               timestamp: new Date().toISOString(),
               data: chain.options.map(o => ({
                 strikePrice: o.strikePrice,
-                CE: { lastPrice: o.callLtp, change: o.callChange, totalTradedVolume: o.callVol, openInterest: o.callOi, changeinOpenInterest: o.callOiChg, impliedVolatility: o.callIv },
-                PE: { lastPrice: o.putLtp, change: o.putChange, totalTradedVolume: o.putVol, openInterest: o.putOi, changeinOpenInterest: o.putOiChg, impliedVolatility: o.putIv },
+                CE: {
+                  lastPrice: o.callLtp,
+                  change: o.callChange,
+                  pchange: o.callChange,
+                  totalTradedVolume: o.callVol,
+                  openInterest: o.callOi,
+                  changeinOpenInterest: o.callOiChg,
+                  impliedVolatility: o.callIv,
+                  bidQty: 0, bidprice: 0, askQty: 0, askPrice: 0
+                },
+                PE: {
+                  lastPrice: o.putLtp,
+                  change: o.putChange,
+                  pchange: o.putChange,
+                  totalTradedVolume: o.putVol,
+                  openInterest: o.putOi,
+                  changeinOpenInterest: o.putOiChg,
+                  impliedVolatility: o.putIv,
+                  bidQty: 0, bidprice: 0, askQty: 0, askPrice: 0
+                },
               })),
               expiryDates: [chain.expiryDate],
             },
           };
           return new Response(JSON.stringify({ status: 'ok', source: 'yahoo_fallback', symbol: nseSymbol, data: fallbackData }), { headers: jsonHeaders() });
         }
-      } catch {}
+      } catch (err) {
+        console.error("Yahoo fallback failed:", err);
+      }
       return new Response(JSON.stringify({ status: 'error', message: 'All data sources failed' }), { status: 502, headers: jsonHeaders() });
     }
 

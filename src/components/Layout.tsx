@@ -104,20 +104,31 @@ export default function Layout() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300"
+      className="min-h-screen bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300 relative overflow-hidden"
       id="core_app_layer"
     >
-      <Header
-        indices={indices}
-        stocks={stocks}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        onSelectStock={handleSelectStock}
-      />
+      {/* Global Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="fixed top-0 left-0 w-full h-full object-cover z-0 opacity-40 pointer-events-none"
+      >
+        <source src="/video/bg-3d.mp4" type="video/mp4" />
+      </video>
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Header
+          indices={indices}
+          stocks={stocks}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onSelectStock={handleSelectStock}
+        />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
         {/* Bulk Stock Data Status */}
         <div className="flex items-center gap-3 mb-6 bg-white dark:bg-slate-950 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-850 shadow-sm">
           {isLoadingStocks ? (
@@ -208,8 +219,9 @@ export default function Layout() {
             <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Privacy Policy</span>
           </div>
         </div>
-      </footer>
-      <EmailCapturePopup />
+        </footer>
+        <EmailCapturePopup />
+      </div>
     </div>
   );
 }
