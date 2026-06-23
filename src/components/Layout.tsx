@@ -104,7 +104,7 @@ export default function Layout() {
 
   return (
     <div
-      className="min-h-screen bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300 relative overflow-hidden"
+      className="min-h-screen bg-[#030407] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300 relative overflow-hidden"
       id="core_app_layer"
     >
       {/* Global Background Video */}
