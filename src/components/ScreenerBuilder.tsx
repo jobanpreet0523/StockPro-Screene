@@ -1008,7 +1008,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`${isBuilderDismissed ? 'hidden' : 'flex'} lg:col-span-12 xl:col-span-5 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-205/50 dark:border-slate-850 rounded-2xl shadow-sm p-4 sm:p-5 flex-col gap-5`}
+          className={`${isBuilderDismissed ? 'hidden xl:hidden' : 'flex'} lg:col-span-12 xl:col-span-5 bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-850 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col gap-5`}
         >
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-3">
             <div className="flex items-center gap-2">
@@ -1253,7 +1253,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
         </div>
 
         {/* ================= RIGHT SECTION: SCAN RESULTS PANEL ================= */}
-        <div className={`${isBuilderDismissed ? 'lg:col-span-12 xl:col-span-12' : 'lg:col-span-12 xl:col-span-7'} bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-205/50 dark:border-slate-855 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col gap-4`}>
+        <div className={`${isBuilderDismissed ? 'lg:col-span-12 xl:col-span-12' : 'lg:col-span-12 xl:col-span-7'} bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-855 rounded-2xl shadow-sm p-4 sm:p-5 flex flex-col gap-4`}>
           {isBuilderDismissed && (
             <div 
               onClick={() => setIsBuilderDismissed(false)}

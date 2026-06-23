@@ -30,6 +30,10 @@ export interface OptionData {
   callOiChg: number;
   callIv: number;
   callDelta: number;
+  callBidQty?: number;
+  callBidPrice?: number;
+  callAskPrice?: number;
+  callAskQty?: number;
   putLtp: number;
   putChange: number;
   putVol: number;
@@ -37,6 +41,10 @@ export interface OptionData {
   putOiChg: number;
   putIv: number;
   putDelta: number;
+  putBidQty?: number;
+  putBidPrice?: number;
+  putAskPrice?: number;
+  putAskQty?: number;
 }
 
 export interface OptionChain {

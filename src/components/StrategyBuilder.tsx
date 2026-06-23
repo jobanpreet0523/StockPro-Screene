@@ -242,7 +242,7 @@ export default function StrategyBuilder() {
         <div className="lg:col-span-7 flex flex-col gap-6">
           
           {/* Strategy Templates */}
-          <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-xl p-4 shadow-sm">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl p-4 shadow-sm">
             <h3 className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-3 font-mono">Pre-Built Strategies</h3>
             <div className="flex flex-wrap gap-2">
               {STRATEGIES.map(strat => (
@@ -258,7 +258,7 @@ export default function StrategyBuilder() {
           </div>
 
           {/* Leg Builder */}
-          <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-xl p-4 shadow-sm">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 font-mono">Custom Legs ({legs.length}/4)</h3>
               <button
@@ -361,7 +361,7 @@ export default function StrategyBuilder() {
 
         {/* Right Column - Results & Chart */}
         <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/50 dark:border-slate-800/50 rounded-xl p-5 shadow-lg text-white">
+          <div className="bg-slate-900 border border-slate-800 dark:border-slate-800 rounded-xl p-5 shadow-lg text-white">
              <h3 className="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wider flex items-center gap-2">
                 <Activity size={14} className="text-sky-400" />
                 Strategy Analysis
@@ -408,7 +408,7 @@ export default function StrategyBuilder() {
 
           {/* Chart Wrapper */}
           {legs.length > 0 && (
-            <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-xl p-4 shadow-sm w-full" style={{ height: 350 }}>
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl p-4 shadow-sm w-full" style={{ height: 350 }}>
               <h3 className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider mb-2 font-mono flex items-center justify-between">
                 <span>Payoff Chart at Expiry</span>
                 <span className="text-[9px] bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 px-2 py-0.5 rounded">Spot: {spotPrice}</span>

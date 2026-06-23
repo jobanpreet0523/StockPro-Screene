@@ -192,7 +192,7 @@ export default function UsMarketsView() {
             return (
               <div 
                 key={idx.symbol}
-                className="p-3 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-205/50 dark:border-slate-855/50 rounded-xl shadow-xs transition hover:scale-[1.01] duration-150 relative overflow-hidden"
+                className="p-3 bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-855 rounded-xl shadow-xs transition hover:scale-[1.01] duration-150 relative overflow-hidden"
               >
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-slate-800" />
                 <span className="text-[10px] font-bold text-slate-400 uppercase font-mono tracking-wide">{idx.name}</span>
@@ -216,7 +216,7 @@ export default function UsMarketsView() {
         )}
 
         {/* Currency cross rate ticker widget */}
-        <div className="p-3 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-205/50 dark:border-slate-855/50 rounded-xl shadow-xs transition hover:scale-[1.01] duration-150 relative">
+        <div className="p-3 bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-855 rounded-xl shadow-xs transition hover:scale-[1.01] duration-150 relative">
           <span className="text-[10px] font-bold text-slate-400 uppercase font-mono tracking-wide">Live FX Rate (USD/INR)</span>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-sm font-extrabold text-[#38bdf8] font-mono">
@@ -228,7 +228,7 @@ export default function UsMarketsView() {
       </div>
 
       {/* Main Filter & Action header toolbar */}
-      <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-205/50 dark:border-slate-855/50 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-855 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
         <div className="flex flex-col md:flex-row items-center w-full md:w-auto gap-3">
           {/* Search bar input container */}
           <div className="relative w-full md:w-72">
@@ -276,7 +276,7 @@ export default function UsMarketsView() {
       </div>
 
       {/* Primary Screener Grid Board Table */}
-      <div className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-205/50 dark:border-slate-855/50 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-855 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>

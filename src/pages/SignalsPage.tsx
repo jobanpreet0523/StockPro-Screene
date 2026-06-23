@@ -104,21 +104,21 @@ export default function SignalsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <button
           onClick={() => setFilter('ALL')}
-          className={`p-4 rounded-xl border backdrop-blur-xl text-left transition shadow-sm ${filter === 'ALL' ? 'border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/40' : 'border-slate-200/50 dark:border-slate-850/50 bg-white/20 dark:bg-slate-950/40'}`}
+          className={`p-4 rounded-xl border text-left transition shadow-sm ${filter === 'ALL' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950'}`}
         >
           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider"><Activity size={12} /> Total Signals</div>
           <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">{signals.length}</div>
         </button>
         <button
           onClick={() => setFilter('BUY')}
-          className={`p-4 rounded-xl border backdrop-blur-xl text-left transition shadow-sm ${filter === 'BUY' ? 'border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/40' : 'border-slate-200/50 dark:border-slate-850/50 bg-white/20 dark:bg-slate-950/40'}`}
+          className={`p-4 rounded-xl border text-left transition shadow-sm ${filter === 'BUY' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950'}`}
         >
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider"><TrendingUp size={12} /> Buy</div>
           <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{buyCount}</div>
         </button>
         <button
           onClick={() => setFilter('SELL')}
-          className={`p-4 rounded-xl border backdrop-blur-xl text-left transition shadow-sm ${filter === 'SELL' ? 'border-rose-500 bg-rose-50/20 dark:bg-rose-950/40' : 'border-slate-200/50 dark:border-slate-850/50 bg-white/20 dark:bg-slate-950/40'}`}
+          className={`p-4 rounded-xl border text-left transition shadow-sm ${filter === 'SELL' ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/20' : 'border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950'}`}
         >
           <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 text-[10px] font-bold uppercase tracking-wider"><TrendingDown size={12} /> Sell</div>
           <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{sellCount}</div>
@@ -126,9 +126,9 @@ export default function SignalsPage() {
       </div>
 
       {isLoadingStocks ? (
-        <div className="text-center py-16 text-slate-400 text-sm font-mono bg-white/10 backdrop-blur-md rounded-xl">Generating signals from live data…</div>
+        <div className="text-center py-16 text-slate-400 text-sm font-mono">Generating signals from live data…</div>
       ) : visible.length === 0 ? (
-        <div className="text-center py-16 px-6 bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+        <div className="text-center py-16 px-6 bg-white dark:bg-slate-950 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
           <Activity size={28} className="text-slate-300 dark:text-slate-700 mx-auto mb-3" />
           <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">No actionable signals right now</h3>
           <p className="text-xs text-slate-500 mt-1">Signals appear when stocks show a strong move (±1.5%) on meaningful volume.</p>
@@ -138,7 +138,7 @@ export default function SignalsPage() {
           {visible.map((s) => {
             const isBuy = s.type === 'BUY';
             return (
-              <div key={s.symbol} className="bg-white/20 dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-850/50 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+              <div key={s.symbol} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl p-4 shadow-sm flex flex-col gap-3">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-black text-slate-900 dark:text-white font-mono">{s.symbol}</div>

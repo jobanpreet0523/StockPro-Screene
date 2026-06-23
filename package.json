@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npx esbuild src/_worker.js --bundle --format=esm --outfile=dist/_worker.js --platform=browser --minify --conditions=worker",
-    "preview": "vite preview",
-    "deploy": "wrangler deploy"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

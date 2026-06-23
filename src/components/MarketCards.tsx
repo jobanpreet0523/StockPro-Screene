@@ -62,7 +62,7 @@ export default function MarketCards({ indices, onSelectIndex }: MarketCardsProps
             key={idx.symbol}
             onClick={() => onSelectIndex(idx.symbol)}
             id={`index-card-${idx.symbol.toLowerCase().replace('^', '')}`}
-            className="bg-white/30 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700 p-4 rounded-xl cursor-pointer shadow-sm dark:shadow hover:shadow-md dark:hover:shadow-lg transition-all duration-300 flex items-center justify-between group"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700/80 p-4 rounded-xl cursor-pointer shadow-sm dark:shadow hover:shadow-md dark:hover:shadow-lg transition-all duration-300 flex items-center justify-between group"
           >
             <div className="flex-1">
               <span className="text-slate-500 dark:text-slate-400 font-semibold text-[10px] block uppercase tracking-wider">
