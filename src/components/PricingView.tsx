@@ -21,7 +21,7 @@ export default function PricingView() {
     setLoading(true);
 
     const options = {
-      key: process.env.VITE_RAZORPAY_TEST_KEY || "rzp_test_YourTestKeyHere", // Use your test key if VITE_ key is not set
+      key: import.meta.env.VITE_RAZORPAY_TEST_KEY || "rzp_test_YourTestKeyHere", // Use your test key if VITE_ key is not set
       amount: "99900", // ₹999.00 in paise
       currency: "INR",
       name: "StockPro Screener",
