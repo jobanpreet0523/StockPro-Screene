@@ -25,7 +25,8 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPro, setIsPro] = useState(false);
+  // Temporarily force Pro status for all users to test features
+  const [isPro, setIsPro] = useState(true);
 
   useEffect(() => {
     // Check localStorage for pro status
@@ -36,8 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setProStatus = (status: boolean) => {
-    setIsPro(status);
-    localStorage.setItem('isPro', status.toString());
+    setIsPro(true); // Forced true
+    localStorage.setItem('isPro', 'true');
   };
 
   useEffect(() => {

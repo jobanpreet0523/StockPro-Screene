@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import StockScreener from '../components/StockScreener';
 import StockChart from '../components/StockChart';
 import { useDashboard } from '../components/Layout';
@@ -29,7 +29,7 @@ export default function ScreenerPage() {
               Select any asset in the Stock Table Left to load its instant technical overlays. StockPro integrates with public indexes in full-fidelity.
             </p>
             <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-850 pt-2.5 mt-1 text-[11px] font-mono text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1"><ShieldCheck size={12} className="text-emerald-555 dark:text-emerald-400" /> Secure Nodes</span>
+              <span className="flex items-center gap-1"><Activity size={12} className="text-emerald-555 dark:text-emerald-400" /> Secure Nodes</span>
               <span>Tick latency: ~1.5s</span>
             </div>
           </div>

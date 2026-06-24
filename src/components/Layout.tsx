@@ -9,7 +9,7 @@ import { useMarketIndices } from '../hooks/useMarketIndices';
 import { Stock, IndexData } from '../types';
 
 export type DashboardTab =
-  | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'
+  | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'blog'
   | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator'
   | 'heatmap' | 'fii-dii' | 'signals';
 
@@ -19,13 +19,12 @@ export const TAB_TO_PATH: Record<DashboardTab, string> = {
   fo: '/option-chain',
   us: '/us-markets',
   'strategy-builder': '/strategy-builder',
-  'greeks-calculator': '/greeks-calculator',
-  'risk-calculator': '/risk-calculator',
+  'greeks-calculator': '/options-greeks',
+  'risk-calculator': '/risk-calc',
   heatmap: '/heatmap',
   'fii-dii': '/fii-dii',
   deals: '/deals',
   news: '/news',
-  pricing: '/pricing',
   blog: '/blog',
   signals: '/signals',
 };
