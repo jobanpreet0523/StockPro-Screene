@@ -14,7 +14,6 @@ import HeatmapPage from './pages/HeatmapPage';
 import FiiDiiPage from './pages/FiiDiiPage';
 import DealsPage from './pages/DealsPage';
 import NewsPage from './pages/NewsPage';
-import PricingPage from './pages/PricingPage';
 import BlogPage from './pages/BlogPage';
 import SignalsPage from './pages/SignalsPage';
 
@@ -74,13 +73,12 @@ export default function App() {
             <Route path="/option-chain" element={<OptionChainPage />} />
             <Route path="/us-markets" element={<UsMarketsPage />} />
             <Route path="/strategy-builder" element={<StrategyPage />} />
-            <Route path="/greeks-calculator" element={<GreeksPage />} />
-            <Route path="/risk-calculator" element={<RiskPage />} />
+            <Route path="/options-greeks" element={<GreeksPage />} />
+            <Route path="/risk-calc" element={<RiskPage />} />
             <Route path="/heatmap" element={<HeatmapPage />} />
             <Route path="/fii-dii" element={<FiiDiiPage />} />
             <Route path="/deals" element={<DealsPage />} />
             <Route path="/news" element={<NewsPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/signals" element={<SignalsPage />} />
           </Route>

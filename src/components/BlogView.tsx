@@ -18,7 +18,6 @@ interface Article {
 export default function BlogView() {
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const { isPro } = useAuth();
 
   const articles: Article[] = [
     {
@@ -432,16 +431,9 @@ export default function BlogView() {
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
-                  onClick={() => {
-                    const priceTab = document.getElementById('pricing-section');
-                    if (priceTab) {
-                      priceTab.scrollIntoView({ behavior: 'smooth' });
-                    }
-                    window.location.hash = 'pricing-section';
-                  }}
                   className="bg-slate-900 hover:bg-slate-950 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs px-5 py-3 rounded-lg shadow-md hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
                 >
-                  Upgrade to F&O Pro now (₹999/mo)
+                  Explore Premium Features
                 </button>
               </div>
             </div>

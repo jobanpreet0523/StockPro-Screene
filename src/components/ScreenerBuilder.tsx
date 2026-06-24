@@ -18,7 +18,7 @@ import {
   Calendar,
   Layers, 
   TrendingUp, 
-  ShieldCheck, 
+
   ArrowRight,
   Eye,
   Star,
@@ -170,7 +170,7 @@ const PREBUILT_SCANNERS: PrebuiltScanner[] = [
 ];
 
 export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSelectFoStock }: ScreenerBuilderProps) {
-  const { user, loginWithGoogle, isPro } = useAuth();
+  const { user, loginWithGoogle, } = useAuth();
   const { theme } = useTheme();
   
   // Logic toggle (AND / OR)
@@ -772,11 +772,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
       return;
     }
 
-    const currentCount = Object.keys(savedScannersMap).length;
-    if (!isPro && currentCount >= 3) {
-      setLimitError(true);
-      return;
-    }
+    // Limit removed for public testing
 
     setSaveStatus('saving');
     
@@ -1540,16 +1536,6 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
               Designate a name for your technical query condition profile to quickly call it from your personal templates dashboard anytime.
             </p>
 
-            {limitError && (
-              <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl p-3 text-center space-y-1 animate-fadeIn">
-                <p className="text-[11px] font-bold text-rose-600 dark:text-rose-450">
-                  Saved Scanners Limit Reached (3 Max)
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Free accounts are limited to 3 saved scanners. <strong className="text-emerald-500">Upgrade to Pro for unlimited!</strong>
-                </p>
-              </div>
-            )}
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase font-mono tracking-wider">

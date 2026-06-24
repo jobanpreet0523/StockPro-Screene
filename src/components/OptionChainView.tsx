@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download, Presentation, Lock, ChevronDown } from 'lucide-react';
+import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight,  PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download, Presentation,  ChevronDown } from 'lucide-react';
 import { OptionChain, OptionData, Position } from '../types';
 import { generateOptionChain } from '../data';
 import { useTheme } from './ThemeContext';
@@ -15,7 +15,6 @@ interface OptionChainViewProps {
 
 export default function OptionChainView({ symbol, currentPrice, stockName: propStockName, onOrderAdded }: OptionChainViewProps) {
   const { theme } = useTheme();
-  const { isPro } = useAuth();
   const [chain, setChain] = useState<OptionChain | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [expiryDates, setExpiryDates] = useState<string[]>([]);
