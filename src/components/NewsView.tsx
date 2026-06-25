@@ -32,7 +32,7 @@ export default function NewsView() {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-950/40 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col p-6 w-full min-h-[600px]" id="news-matrix">
+    <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col p-6 w-full" id="news-matrix">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-850 pb-5 mb-5">
         <div className="flex items-center gap-3">
           <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-lg shrink-0 border border-emerald-500/20">
@@ -73,20 +73,11 @@ export default function NewsView() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-slate-50/50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-850 p-4 rounded-xl flex flex-col gap-4 animate-pulse">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
-                  <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800/50 rounded"></div>
-                </div>
-                <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded"></div>
-                <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded"></div>
-              </div>
-              <div className="h-3 w-24 bg-slate-100 dark:bg-slate-800/50 rounded mt-auto"></div>
-            </div>
-          ))}
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <RefreshCw className="text-emerald-500 animate-spin" size={32} />
+          <p className="text-xs text-slate-500 font-mono tracking-wider animate-pulse">
+            Connecting security nodes to live satellite financial pipelines...
+          </p>
         </div>
       ) : error ? (
         <div className="bg-rose-500/5 border border-rose-500/10 p-5 rounded-xl text-center py-8">

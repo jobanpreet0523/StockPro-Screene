@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUpDown, Play, Sparkles, Filter, CheckCircle2, ChevronRight, Calculator, Download,  Star } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, Play, Sparkles, Filter, CheckCircle2, ChevronRight, Calculator, Download, Lock, Star } from 'lucide-react';
 import { Stock } from '../types';
 import OptionsCalculator from './OptionsCalculator';
 import IVRankTool from './IVRankTool';
@@ -178,7 +178,7 @@ type SortOrder = 'asc' | 'desc';
 
 export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }: StockScreenerProps) {
   const [activePreset, setActivePreset] = useState<string>('all');
-  const { user, loginWithGoogle, } = useAuth();
+  const { user, loginWithGoogle, isPro } = useAuth();
 
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
@@ -222,7 +222,11 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
     if (isAlreadyAdded) {
       updatedSymbols = updatedSymbols.filter(s => s !== symbol);
     } else {
-      // Limit check removed for public testing
+      if (!isPro && watchlist.length >= 10) {
+        setLimitWarning("Watchlist limit reached! Free accounts can save up to 10 stocks. Upgrade to PRO for unlimited.");
+        setTimeout(() => setLimitWarning(null), 5000);
+        return;
+      }
       updatedSymbols.push(symbol);
     }
     
@@ -609,7 +613,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
       {limitWarning && (
         <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 text-xs font-bold animate-fadeIn flex items-center justify-between">
           <div className="flex items-center gap-2">
-
+            <Lock size={14} className="text-amber-500" />
             <span>{limitWarning}</span>
           </div>
           <button onClick={() => setLimitWarning(null)} className="text-[10px] uppercase font-mono tracking-wider text-amber-600 hover:text-amber-700 cursor-pointer">
@@ -688,10 +692,10 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
             ) : activePreset === 'watchlist' && !user ? (
               <tr>
                 <td colSpan={9} className="py-12 px-4 text-center">
-                  <Star size={32} className="mx-auto text-slate-400 dark:text-slate-505 mb-3" />
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Your Personal Watchlist</h4>
+                  <Lock size={32} className="mx-auto text-slate-400 dark:text-slate-505 mb-3" />
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Watchlist is Locked</h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-4">
-                    Sign in to sync your preferred stocks across devices. and track your preferred Indian equities by signing in first.
+                    Get real-time market sync and track your preferred Indian equities by signing in first.
                   </p>
                   <button 
                     onClick={loginWithGoogle}
@@ -718,12 +722,29 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
           <Sparkles size={20} className="text-purple-500" />
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Pro Tools <span className="text-xs font-mono font-medium text-slate-500 ml-2">ADVANCED ANALYSIS</span></h2>
         </div>
-        <>
-          <GreeksCalculator />
-          <OptionsCalculator />
-          <IVRankTool />
-          <RiskCalculator />
-        </>
+        {user ? (
+          <>
+            <GreeksCalculator />
+            <OptionsCalculator />
+            <IVRankTool />
+            <RiskCalculator />
+          </>
+        ) : (
+          <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500"></div>
+            <Lock size={40} className="mx-auto text-slate-400 dark:text-slate-500 mb-4" />
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Pro Features Locked</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+              Sign in with your Google account to unlock advanced F&O modeling tools including the Black-Scholes Options Greeks Engine, Options P&L Calculator, IV Rank Indicator, and Risk Sizing Engine. Always 100% free.
+            </p>
+            <button
+              onClick={loginWithGoogle}
+              className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 shadow-sm px-6 py-2.5 rounded-lg text-sm font-bold transition"
+            >
+              Sign In to Access Pro Tools
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Recommended Brokers Section */}

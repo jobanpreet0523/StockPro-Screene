@@ -338,7 +338,7 @@ export default function LandingPage() {
             <!-- Actions matching image layout perfectly with strong contrasting layout -->
             <div class="flex flex-wrap items-center gap-3.5 pt-3">
               <a 
-                href="/screener"
+                href="#pricing-section"
                 class="bg-transparent hover:bg-white/5 border border-slate-600 text-slate-300 font-extrabold text-xs px-6 py-3.5 rounded transition-all duration-300 hover:scale-105 hover:brightness-110 font-mono tracking-wider text-center backdrop-blur-sm"
               >
                 VIEW PRICING
@@ -2780,6 +2780,104 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 14: TIRED SUBSCRIPTION PRICING CARDS -->
+    <section id="pricing-section" class="bg-gray-50 border-b border-gray-200 py-16">
+      <div class="max-w-7xl mx-auto px-6">
+
+        <!-- Header -->
+        <div class="border-b border-gray-200 pb-5 mb-12 text-center mx-auto max-w-xl">
+          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Precision Licensing</span>
+          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
+            Select Your Analytical Edge
+          </h2>
+          <p class="text-xs text-gray-500 mt-2 font-sans">
+            Clear structural pricing models adapted for independent retail participants up to full high-frequency institutional trading desks.
+          </p>
+        </div>
+
+        <!-- 3-Column Plan Cards Layout -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
+
+          <!-- Card 1: Basic -->
+          <div class="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div>
+              <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+                <div>
+                  <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Level 01</span>
+                  <h3 class="text-sm font-black text-[#111827] uppercase tracking-wide mt-0.5">Basic</h3>
+                </div>
+                <span class="text-[10px] font-black font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Starter</span>
+              </div>
+              <div class="mb-5">
+                <span class="text-2xl font-black text-[#111827] font-mono leading-none">Free Forever</span>
+                <p class="text-[10px] text-gray-450 font-normal mt-1 leading-normal">Perfect for personal indices observation and general structural screeners.</p>
+              </div>
+              <ul class="space-y-2.5 text-xs text-slate-650 border-t border-gray-100 pt-4 mb-8">
+                <li class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2500/svg" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Basic Option Chains (Delayed)</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Underlying Equities Analytics</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Delayed Interactive Heatmaps</span>
+                </li>
+                <li class="flex items-center gap-2 text-slate-400 line-through">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Live FII / DII Desk Ledgers</span>
+                </li>
+              </ul>
+            </div>
+            <button class="w-full py-2.5 px-4 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow-sm">
+              Activate Basic Account
+            </button>
+          </div>
+
+          <!-- Card 2: Pro Trader (Most Popular highlight) -->
+          <div class="bg-white border-2 border-blue-600 rounded-2xl p-6 flex flex-col justify-between shadow-lg relative transform scale-[1.02] md:scale-105 z-10 transition hover:shadow-xl w-full">
+            <!-- Popular Badge -->
+            <span class="absolute -top-3.5 inset-x-0 mx-auto w-max bg-blue-600 text-white text-[8px] font-black font-mono tracking-widest uppercase py-1 px-3.5 rounded-full select-none shadow">
+              MOST POPULAR
+            </span>
+
+            <div>
+              <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+                <div>
+                  <span class="text-[9px] font-black uppercase text-blue-650 font-mono tracking-wider">Level 02</span>
+                  <h3 class="text-sm font-black text-[#111827] uppercase tracking-wide mt-0.5 font-sans">Pro Trader</h3>
+                </div>
+                <span class="text-[10px] font-black font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">Popular</span>
+              </div>
+              <div class="mb-5">
+                <div class="flex items-baseline gap-1">
+                  <span class="text-3xl font-black text-[#111827] font-mono leading-none">₹999</span>
+                  <span class="text-[10px] text-gray-500 font-mono">/ month</span>
+                </div>
+                <p class="text-[10px] text-gray-450 font-normal mt-1 leading-normal">Equips active retail derivatives traders with high frequency tools.</p>
+              </div>
+              <ul class="space-y-2.5 text-xs text-slate-650 border-t border-gray-100 pt-4 mb-8">
+                <li class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Live Option Greek Terminals (0.1ms)</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Live FII / DII Block Ledgers</span>
+                </li>
                 <li class="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />

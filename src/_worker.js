@@ -19,23 +19,22 @@ export default {
     }
 
     // ── Static Assets + SPA fallback ───────────────────────────
-    // We attempt to fetch the static asset first.
-    // If it fails (404), we fallback to index.html to support SPA routing.
+    // We attempt to fetch the asset. If it fails (404), we fallback to index.html
+    // to support SPA client-side routing.
     try {
-      const response = await env.ASSETS.fetch(request.clone());
+      const assetRes = await env.ASSETS.fetch(request.clone());
 
-      // If the asset is found, return it.
-      // If it's a 404 and not an API route, serve index.html as fallback.
-      if (response.status !== 404) {
-        return response;
+      // If the asset is found, or it's a non-404 error (like 500), return it
+      if (assetRes.status !== 404) {
+        return assetRes;
       }
     } catch (err) {
-      console.error("Asset fetch error:", err);
+      // If fetch itself fails, we still want to try the fallback
     }
 
-    // SPA Fallback: Serve index.html for any non-API 404s
-    const indexRequest = new Request(new URL('/index.html', url.origin), request);
-    return env.ASSETS.fetch(indexRequest);
+    // Rewrite path to /index.html and serve it from the ASSETS binding
+    const indexUrl = new URL('/index.html', url.origin);
+    return env.ASSETS.fetch(new Request(indexUrl, request));
   },
 };
 
@@ -87,8 +86,9 @@ async function getNSECookies() {
   }
 }
 
-async function nseFetch(apiPath, env, ttl = 30) {
+async function nseFetch(apiPath, env) {
   const cacheKey = `nse:${apiPath}`;
+  const CACHE_TTL = 30; // 30 seconds for live data
 
   // 1. Check KV cache
   if (env.STOCKPRO_KV) {
@@ -96,7 +96,7 @@ async function nseFetch(apiPath, env, ttl = 30) {
       const cached = await env.STOCKPRO_KV.get(cacheKey, { type: 'text' });
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Date.now() - parsed.ts < ttl * 1000) {
+        if (Date.now() - parsed.ts < CACHE_TTL * 1000) {
           return { ...parsed.data, _cached: true };
         }
       }
@@ -105,7 +105,7 @@ async function nseFetch(apiPath, env, ttl = 30) {
 
   // 2. Fetch from NSE
   let lastErr = null;
-  for (let i = 0; i < 3; i++) { // Try 3 times
+  for (let i = 0; i < 2; i++) { // Retry once
     try {
       const cookies = await getNSECookies();
       const fullUrl = `${NSE_HOME}${apiPath}`;
@@ -113,18 +113,17 @@ async function nseFetch(apiPath, env, ttl = 30) {
         headers: {
           'User-Agent': NSE_UA,
           'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
-          'Referer': 'https://www.nseindia.com/option-chain',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': NSE_HOME + '/',
           'Cookie': cookies,
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
         },
         signal: AbortSignal.timeout(10000)
       });
 
       if (res.status === 401 || res.status === 403) {
         nseCookieExpiry = 0; // force refresh on next try
-        throw new Error('Auth failure (401/403)');
+        throw new Error('Auth failure');
       }
 
       if (!res.ok) throw new Error(`NSE returned ${res.status}`);
@@ -136,14 +135,14 @@ async function nseFetch(apiPath, env, ttl = 30) {
       // 3. Write to KV cache
       if (env.STOCKPRO_KV) {
         try {
-          await env.STOCKPRO_KV.put(cacheKey, JSON.stringify({ data, ts: Date.now() }), { expirationTtl: Math.max(60, ttl * 2) });
+          await env.STOCKPRO_KV.put(cacheKey, JSON.stringify({ data, ts: Date.now() }), { expirationTtl: 300 }); // KV persists longer
         } catch {}
       }
 
       return { ...data, _cached: false };
     } catch (e) {
       lastErr = e;
-      if (i < 2) await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+      if (i === 0) await new Promise(r => setTimeout(r, 500));
     }
   }
   throw lastErr;
@@ -251,37 +250,33 @@ async function handleAPI(path, url, request, env) {
       return new Response(res.body, { status: res.status, headers: jsonHeaders({ 'Content-Type': 'application/json' }) });
     }
 
-    // ── /api/option-chain?symbol=NIFTY ───────────────────────
-    if (path === '/api/option-chain' || path.startsWith('/api/option-chain/')) {
-      const symParam = url.searchParams.get('symbol');
-      const pathParam = path.split('/')[3];
-      const raw = symParam || pathParam || 'NIFTY';
-
+    // ── /api/option-chain/:symbol ────────────────────────────
+    if (path.startsWith('/api/option-chain/')) {
+      const raw = path.split('/')[3] || 'NIFTY';
       const symMap = { NIFTY: 'NIFTY', '^NSEI': 'NIFTY', BANKNIFTY: 'BANKNIFTY', '^NSEBANK': 'BANKNIFTY', FINNIFTY: 'FINNIFTY', '^NSEFN': 'FINNIFTY' };
       const nseSymbol = symMap[raw.toUpperCase()] || raw.toUpperCase();
-      const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'].includes(nseSymbol);
 
       // Try NSE API
       let nseData = null;
       try {
-        const apiPath = isIndex
-          ? `/api/option-chain-indices?symbol=${encodeURIComponent(nseSymbol)}`
-          : `/api/option-chain-equities?symbol=${encodeURIComponent(nseSymbol)}`;
-
-        nseData = await nseFetch(apiPath, env, 15); // 15s cache as requested
-      } catch (err) {
-        console.error("NSE fetch failed:", err);
-      }
-
+        const apiPath = `/api/option-chain-indices?symbol=${encodeURIComponent(nseSymbol)}`;
+        nseData = await nseFetch(apiPath, env);
+      } catch {}
       if (nseData?.records?.data?.length) {
-        return new Response(JSON.stringify({ status: 'ok', source: 'nse', symbol: nseSymbol, data: nseData }), {
-          headers: jsonHeaders({ 'Cache-Control': 'public, max-age=15' })
-        });
+        return new Response(JSON.stringify({ status: 'ok', source: 'nse', symbol: nseSymbol, data: nseData }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
       }
+      // Try equity endpoint for stock options
+      try {
+        const eqPath = `/api/option-chain-equities?symbol=${encodeURIComponent(nseSymbol)}`;
+        const eqData = await nseFetch(eqPath, env);
+        if (eqData?.records?.data?.length) {
+          return new Response(JSON.stringify({ status: 'ok', source: 'nse_equity', symbol: nseSymbol, data: eqData }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=30' }) });
+        }
+      } catch {}
 
       // Yahoo fallback: real spot + computed chain
       const yMap = { NIFTY: '^NSEI', BANKNIFTY: '^NSEBANK', FINNIFTY: '^NSEFN' };
-      const ySym = yMap[nseSymbol] || nseSymbol + (nseSymbol.includes('.') ? '' : '.NS');
+      const ySym = yMap[nseSymbol] || nseSymbol;
       try {
         const chart = await yahooChart(ySym);
         const meta = chart?.chart?.result?.[0]?.meta;
@@ -293,35 +288,15 @@ async function handleAPI(path, url, request, env) {
               timestamp: new Date().toISOString(),
               data: chain.options.map(o => ({
                 strikePrice: o.strikePrice,
-                CE: {
-                  lastPrice: o.callLtp,
-                  change: o.callChange,
-                  pchange: o.callChange,
-                  totalTradedVolume: o.callVol,
-                  openInterest: o.callOi,
-                  changeinOpenInterest: o.callOiChg,
-                  impliedVolatility: o.callIv,
-                  bidQty: 0, bidprice: 0, askQty: 0, askPrice: 0
-                },
-                PE: {
-                  lastPrice: o.putLtp,
-                  change: o.putChange,
-                  pchange: o.putChange,
-                  totalTradedVolume: o.putVol,
-                  openInterest: o.putOi,
-                  changeinOpenInterest: o.putOiChg,
-                  impliedVolatility: o.putIv,
-                  bidQty: 0, bidprice: 0, askQty: 0, askPrice: 0
-                },
+                CE: { lastPrice: o.callLtp, change: o.callChange, totalTradedVolume: o.callVol, openInterest: o.callOi, changeinOpenInterest: o.callOiChg, impliedVolatility: o.callIv },
+                PE: { lastPrice: o.putLtp, change: o.putChange, totalTradedVolume: o.putVol, openInterest: o.putOi, changeinOpenInterest: o.putOiChg, impliedVolatility: o.putIv },
               })),
               expiryDates: [chain.expiryDate],
             },
           };
           return new Response(JSON.stringify({ status: 'ok', source: 'yahoo_fallback', symbol: nseSymbol, data: fallbackData }), { headers: jsonHeaders() });
         }
-      } catch (err) {
-        console.error("Yahoo fallback failed:", err);
-      }
+      } catch {}
       return new Response(JSON.stringify({ status: 'error', message: 'All data sources failed' }), { status: 502, headers: jsonHeaders() });
     }
 
@@ -389,7 +364,6 @@ async function handleAPI(path, url, request, env) {
         'https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms',
         'https://www.moneycontrol.com/rss/latestnews.xml',
       ];
-      let allArticles = [];
       for (const feedUrl of feeds) {
         try {
           const res = await fetch(feedUrl, { headers: { 'User-Agent': NSE_UA, Accept: 'application/rss+xml,application/xml,text/xml' }, signal: AbortSignal.timeout(8000) });
@@ -397,23 +371,11 @@ async function handleAPI(path, url, request, env) {
           const xml = await res.text();
           const articles = parseRSS(xml, new URL(feedUrl).hostname.includes('economictimes') ? 'Economic Times' : 'Moneycontrol');
           if (articles.length) {
-            allArticles = [...allArticles, ...articles];
+            return new Response(JSON.stringify({ status: 'ok', source: 'rss', data: articles.slice(0, 20) }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=120' }) });
           }
         } catch { continue; }
       }
-
-      if (allArticles.length === 0) {
-        // Mock data fallback if RSS fails
-        allArticles = [
-          { title: "Nifty 50 breaks key resistance level; analysts eye 25,000 target", link: "https://www.nseindia.com", pubDate: new Date().toISOString(), source: "Market Pulse" },
-          { title: "Tech stocks lead rally as global inflation concerns ease", link: "https://www.nseindia.com", pubDate: new Date().toISOString(), source: "Global Finance" },
-          { title: "Banking sector outlook positive after Q4 earnings surprise", link: "https://www.nseindia.com", pubDate: new Date(Date.now() - 3600000).toISOString(), source: "Equity Insights" },
-          { title: "Crude oil prices stabilize amid Middle East geopolitical shifts", link: "https://www.nseindia.com", pubDate: new Date(Date.now() - 7200000).toISOString(), source: "Commodity Watch" },
-          { title: "US Fed signaling potential rate cuts in second half of 2026", link: "https://www.nseindia.com", pubDate: new Date(Date.now() - 10800000).toISOString(), source: "Central Bank Monitor" }
-        ];
-      }
-
-      return new Response(JSON.stringify({ status: 'ok', source: allArticles.length > 5 ? 'rss' : 'fallback', data: allArticles.slice(0, 20) }), { headers: jsonHeaders({ 'Cache-Control': 'public, max-age=120' }) });
+      return new Response(JSON.stringify({ status: 'ok', source: 'empty', data: [] }), { headers: jsonHeaders() });
     }
 
     // ── /api/market-status ───────────────────────────────────
