@@ -1,7 +1,6 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 
-// @ts-ignore
-const API_BASE = import.meta.env.VITE_WORKER_URL || '';
+const API_BASE = '';
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { ...init, signal: init?.signal });

@@ -1,2 +1,0 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Cloudinary Error Page</title><style>.cld-logo{width:100%;max-width:300px;height:auto}body{font-family:Arial,sans-serif;display:flex;color:#333}</style></head><body><div class="container"><img class="cld-logo" src="https://res.cloudinary.com/cloudinary/image/upload/v1/logo/for_white_bg/cloudinary_logo_for_white_bg.svg"><h2>Error 404</h2><p><b>Message:</b> Resource not found</p><p><b>Request ID:</b> 579d6582ef3d428586e8097e980df63d883ea0633871e28bcef582a1e82ff4a2</p></div></body></html>
-

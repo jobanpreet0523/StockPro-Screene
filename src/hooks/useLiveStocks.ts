@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Stock } from '../types';
 import { INITIAL_STOCKS } from '../data';
 
-const API_BASE = import.meta.env.VITE_WORKER_URL || ''; // Same origin — Cloudflare Worker Functions handle /api/*
+const API_BASE = ''; // Same origin — Cloudflare Worker Functions handle /api/*
 
 export function useLiveStocks() {
   const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);

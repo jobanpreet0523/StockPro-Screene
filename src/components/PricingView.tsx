@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { Check, ShieldCheck, Zap,  Crown, Loader2 } from "lucide-react";
+import { Check, ShieldCheck, Zap, Lock, Crown, Loader2 } from "lucide-react";
 
 declare global {
   interface Window {
@@ -21,7 +21,7 @@ export default function PricingView() {
     setLoading(true);
 
     const options = {
-      key: import.meta.env.VITE_RAZORPAY_TEST_KEY || "rzp_test_YourTestKeyHere", // Use your test key if VITE_ key is not set
+      key: process.env.VITE_RAZORPAY_TEST_KEY || "rzp_test_YourTestKeyHere", // Use your test key if VITE_ key is not set
       amount: "99900", // ₹999.00 in paise
       currency: "INR",
       name: "StockPro Screener",
@@ -96,21 +96,23 @@ export default function PricingView() {
             <div className="flex items-start gap-3">
               <Check size={18} className="text-emerald-500 shrink-0 mt-0.5" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Unlimited Watchlist
+                10 Watchlist Items Limit
               </span>
             </div>
             <div className="flex items-start gap-3">
               <Check size={18} className="text-emerald-500 shrink-0 mt-0.5" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Real-time Option Chain
+                Delayed Option Chain (15m delay)
               </span>
             </div>
             <div className="flex items-start gap-3 opacity-50">
+              <Lock size={18} className="text-slate-400 shrink-0 mt-0.5" />
               <span className="text-sm font-medium text-slate-500 dark:text-slate-500 line-through">
                 Real-time Options & IV Calculator
               </span>
             </div>
             <div className="flex items-start gap-3 opacity-50">
+              <Lock size={18} className="text-slate-400 shrink-0 mt-0.5" />
               <span className="text-sm font-medium text-slate-500 dark:text-slate-500 line-through">
                 Block Trades & Real-time Alerts
               </span>

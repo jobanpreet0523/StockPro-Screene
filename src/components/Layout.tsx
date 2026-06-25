@@ -9,7 +9,7 @@ import { useMarketIndices } from '../hooks/useMarketIndices';
 import { Stock, IndexData } from '../types';
 
 export type DashboardTab =
-  | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'blog'
+  | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'
   | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator'
   | 'heatmap' | 'fii-dii' | 'signals';
 
@@ -19,12 +19,13 @@ export const TAB_TO_PATH: Record<DashboardTab, string> = {
   fo: '/option-chain',
   us: '/us-markets',
   'strategy-builder': '/strategy-builder',
-  'greeks-calculator': '/options-greeks',
-  'risk-calculator': '/risk-calc',
+  'greeks-calculator': '/greeks-calculator',
+  'risk-calculator': '/risk-calculator',
   heatmap: '/heatmap',
   'fii-dii': '/fii-dii',
   deals: '/deals',
   news: '/news',
+  pricing: '/pricing',
   blog: '/blog',
   signals: '/signals',
 };
@@ -103,31 +104,20 @@ export default function Layout() {
 
   return (
     <div
-      className="min-h-screen bg-[#030407] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300 relative overflow-hidden"
+      className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300"
       id="core_app_layer"
     >
-      {/* Global Background Video */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="fixed top-0 left-0 w-full h-full object-cover z-0 opacity-40 pointer-events-none"
-      >
-        <source src="/video/bg-3d.mp4" type="video/mp4" />
-      </video>
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <Header
-          indices={indices}
-          stocks={stocks}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          onSelectStock={handleSelectStock}
-        />
+      <Header
+        indices={indices}
+        stocks={stocks}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onSelectStock={handleSelectStock}
+      />
 
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
         {/* Bulk Stock Data Status */}
         <div className="flex items-center gap-3 mb-6 bg-white dark:bg-slate-950 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-850 shadow-sm">
           {isLoadingStocks ? (
@@ -218,9 +208,8 @@ export default function Layout() {
             <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Privacy Policy</span>
           </div>
         </div>
-        </footer>
-        <EmailCapturePopup />
-      </div>
+      </footer>
+      <EmailCapturePopup />
     </div>
   );
 }

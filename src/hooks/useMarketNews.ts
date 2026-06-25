@@ -8,7 +8,7 @@ export interface MarketNewsItem {
   pubDate: string;
 }
 
-const API_BASE = import.meta.env.VITE_WORKER_URL || ''; // Same origin — Cloudflare Worker Functions handle /api/*
+const API_BASE = ''; // Same origin — Cloudflare Worker Functions handle /api/*
 
 export function useMarketNews() {
   const [articles, setArticles] = useState<MarketNewsItem[]>([]);

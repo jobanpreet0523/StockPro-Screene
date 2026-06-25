@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Activity, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
+import { ShieldCheck, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
 
 export default function RiskCalculator() {
   const [accountSize, setAccountSize] = useState<number>(500000);
@@ -83,7 +83,7 @@ export default function RiskCalculator() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-850 pb-4">
         <div>
           <h1 className="text-xl font-sans font-black flex items-center gap-2 text-slate-900 dark:text-white">
-            <Activity size={20} className="text-emerald-555 dark:text-emerald-400" />
+            <ShieldCheck size={20} className="text-emerald-555 dark:text-emerald-400" />
             Position Sizing / Risk Calculator
           </h1>
           <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">
@@ -206,7 +206,7 @@ export default function RiskCalculator() {
              
             {/* Background pattern */}
             <div className="absolute -right-6 -top-6 text-slate-800/30 pointer-events-none">
-               <Activity size={180} />
+               <ShieldCheck size={180} />
             </div>
 
             <h3 className="text-xs font-bold uppercase text-slate-400 mb-6 tracking-wider font-mono">
