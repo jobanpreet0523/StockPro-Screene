@@ -3,6 +3,7 @@ compatibility_date = "2024-12-01"
 main = "src/_worker.js"
 
 [assets]
+not_found_handling = "single-page-application"
 directory = "./dist"
 binding = "ASSETS"
 
