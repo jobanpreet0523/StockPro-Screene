@@ -7,7 +7,11 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname;
+    // Normalize path: trim trailing slash for routing consistency
+    let path = url.pathname;
+    if (path.length > 1 && path.endsWith('/')) {
+      path = path.slice(0, -1);
+    }
 
     // ── API Routes ─────────────────────────────────────────────
     if (path.startsWith('/api/')) {
@@ -198,8 +202,8 @@ const PUBLIC_PATHS = [
   "/api/block-deals",
   "/api/bulk-deals",
   "/api/nse/fiidii",
-  "/api/yahoo-finance/",
-  "/api/option-chain/",
+  "/api/yahoo-finance",
+  "/api/option-chain",
   "/api/pro-data",
   "/api/chart",
   "/api/data"
