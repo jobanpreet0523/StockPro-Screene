@@ -1,1 +1,195 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --premium-bg: #f8fafc;
+  --premium-ink: #0f172a;
+  --premium-grid: rgba(15, 23, 42, 0.08);
+  --premium-glow-a: rgba(16, 185, 129, 0.22);
+  --premium-glow-b: rgba(99, 102, 241, 0.18);
+}
+
+.dark {
+  color-scheme: dark;
+  --premium-bg: #020617;
+  --premium-ink: #f8fafc;
+  --premium-grid: rgba(148, 163, 184, 0.13);
+  --premium-glow-a: rgba(16, 185, 129, 0.26);
+  --premium-glow-b: rgba(59, 130, 246, 0.18);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 18%, var(--premium-glow-a), transparent 28rem),
+    radial-gradient(circle at 86% 8%, var(--premium-glow-b), transparent 30rem),
+    var(--premium-bg);
+  color: var(--premium-ink);
+}
+
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(16, 185, 129, 0.22);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.75), rgba(99, 102, 241, 0.65));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.premium-grid {
+  background-image:
+    linear-gradient(to right, var(--premium-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--premium-grid) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, black, transparent 78%);
+}
+
+.premium-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent 36%, rgba(16, 185, 129, 0.07));
+}
+
+.shimmer-line {
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.9), rgba(56, 189, 248, 0.85), transparent);
+  animation: shimmer 3.4s ease-in-out infinite;
+}
+
+.glass-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.glass-button::before {
+  content: "";
+  position: absolute;
+  inset: -120% -40%;
+  z-index: -1;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35), transparent 70%);
+  transform: translateX(-45%);
+  animation: button-shine 4.5s ease-in-out infinite;
+}
+
+.ticker-mask::before,
+.ticker-mask::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 70px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ticker-mask::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(248, 250, 252, 0.98), transparent);
+}
+
+.ticker-mask::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(248, 250, 252, 0.98), transparent);
+}
+
+.dark .ticker-mask::before {
+  background: linear-gradient(90deg, rgba(2, 6, 23, 0.95), transparent);
+}
+
+.dark .ticker-mask::after {
+  background: linear-gradient(270deg, rgba(2, 6, 23, 0.95), transparent);
+}
+
+.stock-row-lift {
+  transform-origin: center;
+}
+
+.stock-row-lift:hover {
+  transform: translateY(-1px) scale(1.002);
+  box-shadow: inset 3px 0 0 rgba(16, 185, 129, 0.72);
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.22; transform: translateX(-35%); }
+  50% { opacity: 1; transform: translateX(35%); }
+}
+
+@keyframes button-shine {
+  0%, 58% { transform: translateX(-55%) rotate(12deg); }
+  75%, 100% { transform: translateX(55%) rotate(12deg); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(14px, -18px, 0) scale(1.06); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.52; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+.animate-marquee {
+  animation: marquee 34s linear infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.28s ease-out both;
+}
+
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.2s ease-in-out infinite;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
