@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { Activity, HelpCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import Header from './Header';
+import MarketPulseHero from './MarketPulseHero';
+import FloatingMotionDock from './FloatingMotionDock';
 import MarketCards from './MarketCards';
 import EmailCapturePopup from './EmailCapturePopup';
 import { useLiveStocks } from '../hooks/useLiveStocks';
@@ -104,7 +107,7 @@ export default function Layout() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300"
+      className="min-h-screen relative isolate overflow-hidden bg-slate-50/80 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300"
       id="core_app_layer"
     >
       <Header
@@ -117,9 +120,21 @@ export default function Layout() {
         onSelectStock={handleSelectStock}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
+        <MarketPulseHero
+          indices={indices}
+          stocks={stocks}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isLoadingStocks={isLoadingStocks}
+        />
+
         {/* Bulk Stock Data Status */}
-        <div className="flex items-center gap-3 mb-6 bg-white dark:bg-slate-950 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-850 shadow-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.35 }}
+          className="flex items-center gap-3 mb-6 bg-white/80 dark:bg-slate-950/75 backdrop-blur-xl px-4 py-3 rounded-xl border border-slate-200/80 dark:border-slate-850 shadow-sm">
           {isLoadingStocks ? (
             <>
               <span className="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin shrink-0" />
@@ -149,7 +164,7 @@ export default function Layout() {
               <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Yahoo Finance API Bulk Live Synced</span>
             </>
           )}
-        </div>
+        </motion.div>
 
         {/* Indices benchmark line */}
         {indices.length > 0 && (
@@ -181,12 +196,24 @@ export default function Layout() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="workspace_grid">
-          <Outlet context={context} />
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 16, filter: 'blur(5px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+            id="workspace_grid"
+          >
+            <Outlet context={context} />
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      <footer className="bg-slate-100/90 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-850/60 text-slate-500 font-mono text-[10px] mt-16 py-10 transition-all duration-300">
+      <FloatingMotionDock activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      <footer className="relative z-10 bg-slate-100/90 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-850/60 text-slate-500 font-mono text-[10px] mt-16 py-10 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">StockPro Screener</h4>
