@@ -198,195 +198,134 @@ select {
 #app_header div:has(> #main_navigation) {
   width: 100% !important;
   max-width: 100% !important;
-  min-width: 0 !important;
-  justify-content: flex-start !important;
-  overflow: visible !important;
 }
 
-#main_navigation {
-  width: 100% !important;
-  max-width: calc(100vw - 2rem) !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: flex-start !important;
-  align-content: center !important;
-  gap: 0.35rem !important;
-  overflow: visible !important;
+/* Premium option-chain matrix polish. Kept as global CSS so the existing React table logic remains untouched. */
+#option-matrix {
+  isolation: isolate;
+}
+
+#option-matrix .overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.45) rgba(226, 232, 240, 0.7);
+}
+
+#option-matrix .overflow-x-auto::-webkit-scrollbar {
+  height: 10px;
+}
+
+#option-matrix .overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.7);
+  border-radius: 999px;
+}
+
+#option-matrix .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, rgba(244, 63, 94, 0.45), rgba(59, 130, 246, 0.5), rgba(16, 185, 129, 0.45));
+  border-radius: 999px;
+}
+
+#option-matrix table {
+  min-width: 1180px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#option-matrix thead {
+  position: sticky;
+  top: 0;
+  z-index: 18;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+#option-matrix thead th {
+  backdrop-filter: blur(14px);
   white-space: nowrap;
 }
 
-#main_navigation > button,
-#main_navigation > a,
-#main_navigation > div {
-  flex: 0 0 auto !important;
+#option-matrix tbody td:nth-child(-n+6) {
+  background-image: linear-gradient(90deg, rgba(255, 241, 242, 0.72), rgba(255, 255, 255, 0.3));
 }
 
-@media (min-width: 768px) {
-  #app_header > .max-w-7xl.mx-auto.px-4.py-4 {
-    flex-direction: column !important;
-  }
+#option-matrix tbody td:nth-child(n+8) {
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(236, 253, 245, 0.74));
 }
 
-@media (max-width: 767px) {
-  #main_navigation {
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    padding-bottom: 0.35rem !important;
-    scroll-snap-type: x proximity;
-  }
-
-  #main_navigation > button,
-  #main_navigation > a,
-  #main_navigation > div {
-    scroll-snap-align: start;
-  }
+.dark #option-matrix tbody td:nth-child(-n+6) {
+  background-image: linear-gradient(90deg, rgba(76, 5, 25, 0.18), rgba(2, 6, 23, 0.18));
 }
 
-#screener_viewport {
-  position: relative;
-  overflow: hidden;
-  border-radius: 1.25rem !important;
-  background: rgba(255, 255, 255, 0.88) !important;
-  backdrop-filter: blur(18px) saturate(145%);
-  animation: fadeIn 0.38s ease-out both;
+.dark #option-matrix tbody td:nth-child(n+8) {
+  background-image: linear-gradient(90deg, rgba(2, 6, 23, 0.18), rgba(6, 78, 59, 0.15));
 }
 
-.dark #screener_viewport {
-  background: rgba(2, 6, 23, 0.82) !important;
-}
-
-#screener_viewport::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #34d399, #22d3ee, #8b5cf6);
-}
-
-#screener_viewport::after {
-  content: "";
-  position: absolute;
-  top: 4rem;
-  right: -4rem;
-  width: 12rem;
-  height: 12rem;
-  border-radius: 999px;
-  background: rgba(16, 185, 129, 0.1);
-  filter: blur(42px);
-  pointer-events: none;
-}
-
-#advanced_filters_panel {
-  animation: filter-panel-in 0.28s ease-out both;
-}
-
-#screener_table_container {
-  border-radius: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-}
-
-.dark #screener_table_container {
-  background: rgba(2, 6, 23, 0.45);
-}
-
-#screener_table_container thead {
+#option-matrix thead tr:first-child th:nth-child(2),
+#option-matrix thead tr:nth-child(2) th:nth-child(7),
+#option-matrix tbody td:nth-child(7) {
   position: sticky;
-  top: 0;
-  z-index: 10;
-  backdrop-filter: blur(16px);
+  left: 0;
+  z-index: 12;
+  background: rgba(248, 250, 252, 0.96) !important;
+  box-shadow: 12px 0 24px rgba(15, 23, 42, 0.08), -12px 0 24px rgba(15, 23, 42, 0.05);
+  color: rgb(15, 23, 42);
+  font-weight: 950;
 }
 
-.class_stock_row {
-  transform-origin: center;
-  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+.dark #option-matrix thead tr:first-child th:nth-child(2),
+.dark #option-matrix thead tr:nth-child(2) th:nth-child(7),
+.dark #option-matrix tbody td:nth-child(7) {
+  background: rgba(15, 23, 42, 0.97) !important;
+  color: rgb(248, 250, 252);
 }
 
-.class_stock_row:hover {
-  transform: translateY(-1px) scale(1.002);
-  box-shadow: inset 3px 0 0 rgba(16, 185, 129, 0.72);
+#option-matrix tbody tr:nth-child(even):not(:hover) {
+  background-image: linear-gradient(90deg, rgba(248, 250, 252, 0.82), rgba(255, 255, 255, 0.4));
 }
 
-canvas[style*="z-index: 9999"] {
-  z-index: 0 !important;
-  opacity: 0.35 !important;
+.dark #option-matrix tbody tr:nth-child(even):not(:hover) {
+  background-image: linear-gradient(90deg, rgba(15, 23, 42, 0.55), rgba(2, 6, 23, 0.25));
 }
 
-#app_header span.bg-gradient-to-r.from-emerald-500.to-teal-500 {
-  font-size: 0 !important;
+#option-matrix tbody tr {
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
-#app_header span.bg-gradient-to-r.from-emerald-500.to-teal-500::after {
-  content: "FREE";
+#option-matrix tbody tr:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 3px 0 0 rgba(244, 63, 94, 0.5), inset -3px 0 0 rgba(16, 185, 129, 0.5), 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+#option-matrix tbody tr[class*="border-yellow"] {
+  box-shadow: inset 0 2px 0 rgba(234, 179, 8, 0.78), inset 0 -2px 0 rgba(234, 179, 8, 0.78), 0 14px 32px rgba(234, 179, 8, 0.16);
+}
+
+#option-matrix tbody tr[class*="border-yellow"] td:nth-child(7) {
+  background: linear-gradient(135deg, rgba(254, 240, 138, 0.98), rgba(255, 255, 255, 0.96)) !important;
+  color: rgb(113, 63, 18);
+  letter-spacing: 0.025em;
+}
+
+.dark #option-matrix tbody tr[class*="border-yellow"] td:nth-child(7) {
+  background: linear-gradient(135deg, rgba(113, 63, 18, 0.92), rgba(15, 23, 42, 0.98)) !important;
+  color: rgb(254, 240, 138);
+}
+
+#option-matrix tbody tr[class*="border-yellow"] td:nth-child(7)::after {
+  content: "ATM";
+  margin-left: 6px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.2);
+  padding: 2px 5px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 9px;
-  letter-spacing: 0.14em;
+  font-weight: 950;
 }
 
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
+@media (max-width: 768px) {
+  #option-matrix table {
+    min-width: 1080px;
+  }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
-  to { opacity: 1; transform: translateY(0); filter: blur(0); }
-}
-
-@keyframes shimmer {
-  0%, 100% { opacity: 0.22; transform: translateX(-35%); }
-  50% { opacity: 1; transform: translateX(35%); }
-}
-
-@keyframes button-shine {
-  0%, 58% { transform: translateX(-55%) rotate(12deg); }
-  75%, 100% { transform: translateX(55%) rotate(12deg); }
-}
-
-@keyframes float-slow {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(14px, -18px, 0) scale(1.06); }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 0.52; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.06); }
-}
-
-@keyframes filter-panel-in {
-  from { opacity: 0; transform: translateY(-8px); max-height: 0; }
-  to { opacity: 1; transform: translateY(0); max-height: 420px; }
-}
-
-.animate-marquee {
-  animation: marquee 34s linear infinite;
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.28s ease-out both;
-}
-
-.animate-float-slow {
-  animation: float-slow 8s ease-in-out infinite;
-}
-
-.animate-pulse-soft {
-  animation: pulse-soft 2.2s ease-in-out infinite;
-}
-
-.animation-delay-1000 {
-  animation-delay: 1s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+  #option-matrix tbody td:nth-child(7) {
+    min-width: 86px;
   }
 }
