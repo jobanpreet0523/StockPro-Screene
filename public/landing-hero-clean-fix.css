@@ -1,0 +1,62 @@
+/* Final landing clean-up: only first hero keeps the dark 3D look. Lower landing sections stay clean white. */
+
+/* Remove the odd injected quick-button strip from the first hero. */
+#hero-header .sp-hero-glass-panel {
+  display: none !important;
+}
+
+/* Keep the 3D animation limited to the first hero only. */
+#hero-header #stockpro-landing-canvas,
+#hero-header #stockpro-3d-layer {
+  position: absolute !important;
+}
+
+body:has(#hero-header) {
+  background: #ffffff !important;
+}
+
+/* All long landing sections after the hero should look clean and white. */
+body:has(#hero-header) section:not(#hero-header),
+body:has(#hero-header) main section:not(#hero-header),
+body:has(#hero-header) footer {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #0f172a !important;
+  backdrop-filter: none !important;
+  box-shadow: none;
+}
+
+/* Remove accidental dark overlays/glow from non-hero sections. */
+body:has(#hero-header) section:not(#hero-header)::before,
+body:has(#hero-header) section:not(#hero-header)::after,
+body:has(#hero-header) main section:not(#hero-header)::before,
+body:has(#hero-header) main section:not(#hero-header)::after {
+  background: none !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Keep cards in lower sections premium but light. */
+body:has(#hero-header) section:not(#hero-header) [class*="bg-white"],
+body:has(#hero-header) section:not(#hero-header) [class*="rounded"],
+body:has(#hero-header) section:not(#hero-header) article {
+  background-color: #ffffff !important;
+}
+
+body:has(#hero-header) section:not(#hero-header) [class*="text-white"] {
+  color: #0f172a !important;
+}
+
+body:has(#hero-header) section:not(#hero-header) [class*="text-slate-300"],
+body:has(#hero-header) section:not(#hero-header) [class*="text-slate-400"],
+body:has(#hero-header) section:not(#hero-header) [class*="text-gray"] {
+  color: #475569 !important;
+}
+
+/* Make lower-section cards feel clean and professional on white. */
+body:has(#hero-header) section:not(#hero-header) .shadow,
+body:has(#hero-header) section:not(#hero-header) [class*="shadow"] {
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08) !important;
+}
