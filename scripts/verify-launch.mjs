@@ -9,6 +9,8 @@ const requiredFiles = [
   'public/robots.txt',
   'public/sitemap.xml',
   'public/_redirects',
+  'src/components/RouteSeo.tsx',
+  'src/components/AnalyticsManager.tsx',
   'src/pages/PrivacyPage.tsx',
   'src/pages/TermsPage.tsx',
   'src/pages/RiskDisclosurePage.tsx',
@@ -50,6 +52,10 @@ for (const route of requiredRoutes) {
   if (!app.includes(`path="${route}"`)) errors.push(`Missing React route: ${route}`);
 }
 
+for (const component of ['<RouteSeo />', '<AnalyticsManager />']) {
+  if (!app.includes(component)) errors.push(`App is missing ${component}`);
+}
+
 const redirects = read('public/_redirects');
 for (const route of requiredRoutes.filter((route) => route !== '/')) {
   if (!redirects.includes(route)) errors.push(`Missing SPA redirect: ${route}`);
@@ -64,6 +70,18 @@ for (const route of requiredRoutes) {
 const robots = read('public/robots.txt');
 if (!robots.includes('Sitemap: https://stockpro1.qzz.io/sitemap.xml')) {
   errors.push('robots.txt is missing the production sitemap reference');
+}
+
+const routeSeo = read('src/components/RouteSeo.tsx');
+for (const route of requiredRoutes) {
+  if (!routeSeo.includes(`'${route}'`)) errors.push(`RouteSeo is missing metadata config: ${route}`);
+}
+if (!routeSeo.includes('link[rel="canonical"]')) errors.push('RouteSeo is missing canonical link management');
+if (!routeSeo.includes('og:title')) errors.push('RouteSeo is missing Open Graph title management');
+
+const analytics = read('src/components/AnalyticsManager.tsx');
+if (!analytics.includes('VITE_GA_MEASUREMENT_ID')) {
+  errors.push('AnalyticsManager is missing VITE_GA_MEASUREMENT_ID support');
 }
 
 const layout = read('src/components/Layout.tsx');
@@ -82,4 +100,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Launch verification passed: routes, redirects, sitemap, legal pages, footer links, and risk disclosure are present.');
+console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, legal pages, footer links, and risk disclosure are present.');
