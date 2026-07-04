@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "verify:launch": "node scripts/verify-launch.mjs",
     "build": "vite build && npx esbuild src/_worker.js --bundle --format=esm --outfile=dist/_worker.js --platform=browser --minify --conditions=worker",
+    "ci": "npm run typecheck && npm run build && npm run verify:launch",
     "preview": "vite preview"
   },
   "dependencies": {
