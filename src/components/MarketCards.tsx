@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { IndexData } from '../types';
 
@@ -54,16 +55,28 @@ export default function MarketCards({ indices, onSelectIndex }: MarketCardsProps
   };
 
   return (
-    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="indices_grid">
-      {indices.map(idx => {
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15, duration: 0.4 }}
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+      id="indices_grid"
+    >
+      {indices.map((idx, i) => {
         const isPositive = idx.change >= 0;
         return (
-          <div
+          <motion.div
             key={idx.symbol}
             onClick={() => onSelectIndex(idx.symbol)}
             id={`index-card-${idx.symbol.toLowerCase().replace('^', '')}`}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700/80 p-4 rounded-xl cursor-pointer shadow-sm dark:shadow hover:shadow-md dark:hover:shadow-lg transition-all duration-300 flex items-center justify-between group"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 * Math.min(i, 8), duration: 0.35 }}
+            whileHover={{ y: -5, scale: 1.012 }}
+            whileTap={{ scale: 0.985 }}
+            className="relative overflow-hidden bg-white/85 dark:bg-slate-950/75 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/40 p-4 rounded-2xl cursor-pointer shadow-sm dark:shadow hover:shadow-xl hover:shadow-emerald-500/10 dark:hover:shadow-emerald-950/20 transition-colors duration-300 flex items-center justify-between group"
           >
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="flex-1">
               <span className="text-slate-500 dark:text-slate-400 font-semibold text-[10px] block uppercase tracking-wider">
                 {idx.name}
@@ -86,9 +99,9 @@ export default function MarketCards({ indices, onSelectIndex }: MarketCardsProps
             <div className="ml-4 pl-2 opacity-85 group-hover:opacity-100 transition-opacity">
               {renderSparkline(idx.sparkline, isPositive)}
             </div>
-          </div>
+          </motion.div>
         );
       })}
-    </section>
+    </motion.section>
   );
 }
