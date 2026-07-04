@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Activity } from 'lucide-react';
 import OptionChainCommandPanel from '../components/OptionChainCommandPanel';
+import OptionChainAnalyticsCards from '../components/OptionChainAnalyticsCards';
 import OptionChainView from '../components/OptionChainView';
 import SectionErrorBoundary from '../components/SectionErrorBoundary';
 import { useDashboard } from '../components/Layout';
@@ -73,6 +74,13 @@ export default function OptionChainPage() {
           selectedValue={selectValue}
           currentPrice={optionPrice}
           onSelectSymbol={handleSelectStock}
+        />
+      )}
+
+      {optionSymbol && optionPrice && (
+        <OptionChainAnalyticsCards
+          selectedValue={selectValue}
+          currentPrice={optionPrice}
         />
       )}
 
