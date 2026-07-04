@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { Activity, HelpCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Header from './Header';
@@ -104,6 +104,7 @@ export default function Layout() {
   };
 
   const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+  const footerLinkClass = 'hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer';
 
   return (
     <div
@@ -129,7 +130,6 @@ export default function Layout() {
           isLoadingStocks={isLoadingStocks}
         />
 
-        {/* Bulk Stock Data Status */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -166,7 +166,6 @@ export default function Layout() {
           )}
         </motion.div>
 
-        {/* Indices benchmark line */}
         {indices.length > 0 && (
           <MarketCards
             indices={indices}
@@ -177,7 +176,6 @@ export default function Layout() {
           />
         )}
 
-        {/* Indian Market Closed Weekend Alert */}
         {isWeekend && (
           <div className="mb-6 bg-amber-500/5 dark:bg-slate-950/80 border border-amber-500/20 dark:border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm" id="weekend_market_indicator">
             <div className="flex items-center gap-3">
@@ -222,17 +220,20 @@ export default function Layout() {
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Protocol</h4>
-            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Security v4.1</span>
-            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Status: Active</span>
+            <Link to="/privacy" className={footerLinkClass}>Privacy Policy</Link>
+            <Link to="/terms" className={footerLinkClass}>Terms of Use</Link>
+            <Link to="/risk-disclosure" className={footerLinkClass}>Risk Disclosure</Link>
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Disclaimer</h4>
             <p className="leading-relaxed">Financial data provided for educational purposes only. Not investment advice. Analyze with caution.</p>
+            <Link to="/risk-disclosure" className={footerLinkClass}>Read full risk disclosure</Link>
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Support</h4>
-            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Contact Us</span>
-            <span className="hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer">Privacy Policy</span>
+            <Link to="/contact" className={footerLinkClass}>Contact Us</Link>
+            <Link to="/privacy" className={footerLinkClass}>Privacy Policy</Link>
+            <Link to="/terms" className={footerLinkClass}>Terms</Link>
           </div>
         </div>
       </footer>
