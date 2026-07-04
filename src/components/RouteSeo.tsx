@@ -68,6 +68,10 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     title: 'StockPro Signals — NSE Market Signals',
     description: 'Explore NSE market signals, scanner alerts, momentum observations, and market intelligence for educational analysis.',
   },
+  '/connect-broker': {
+    title: 'Connect Broker for Live NSE Data — StockPro',
+    description: 'Connect Upstox or Zerodha broker live mode for real-time NSE/F&O data, option-chain ticks, bid/ask, OI, Greeks, scanner updates, and watchlist streaming.',
+  },
   '/privacy': {
     title: 'Privacy Policy — StockPro',
     description: 'Read how StockPro handles account data, analytics, cookies, local storage, support messages, and third-party services.',
