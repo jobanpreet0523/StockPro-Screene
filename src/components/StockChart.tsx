@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useTheme } from './ThemeContext';
 import { Clock } from 'lucide-react';
 import { getTVSymbol } from '../utils/tradingView';
@@ -87,7 +88,15 @@ export default function StockChart({ symbol, name }: StockChartProps) {
   }, [mappedSymbol, interval, theme]);
 
   return (
-    <div className="bg-white dark:bg-slate-950 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl mb-6 flex flex-col transition-all duration-300" id="chart_section">
+    <motion.div
+      initial={{ opacity: 0, x: 18, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -3 }}
+      className="relative overflow-hidden bg-white/85 dark:bg-slate-950/80 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm dark:shadow-xl mb-6 flex flex-col transition-colors duration-300"
+      id="chart_section"
+    >
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400" />
       {/* Chart Headers and controls */}
       <div className="flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-100 dark:border-slate-850">
         <div>
@@ -97,6 +106,9 @@ export default function StockChart({ symbol, name }: StockChartProps) {
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold truncate max-w-[180px] sm:max-w-[220px]" title={name}>
               {name}
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-soft" /> Live chart
             </span>
           </div>
         </div>
@@ -126,6 +138,6 @@ export default function StockChart({ symbol, name }: StockChartProps) {
         className="tradingview-widget-container w-full h-[500px] rounded-lg overflow-hidden border border-slate-250 dark:border-slate-850 bg-slate-50 dark:bg-slate-900"
         id="tradingview-widget-container"
       />
-    </div>
+    </motion.div>
   );
 }
