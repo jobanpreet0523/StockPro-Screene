@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Activity } from 'lucide-react';
+import OptionChainCommandPanel from '../components/OptionChainCommandPanel';
 import OptionChainView from '../components/OptionChainView';
 import SectionErrorBoundary from '../components/SectionErrorBoundary';
 import { useDashboard } from '../components/Layout';
@@ -44,7 +45,7 @@ export default function OptionChainPage() {
             F&O Analytics derivatives command
           </h1>
           <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">
-            NSE-style option chain workspace with index filters, expiry controls, strike analytics, PCR, max pain, and strategy simulation.
+            Exchange-style option chain workspace with index filters, expiry controls, strike analytics, PCR, max pain, and strategy simulation.
           </p>
         </div>
 
@@ -65,6 +66,15 @@ export default function OptionChainPage() {
           </select>
         </div>
       </div>
+
+      {optionSymbol && optionPrice && (
+        <OptionChainCommandPanel
+          stocks={stocks}
+          selectedValue={selectValue}
+          currentPrice={optionPrice}
+          onSelectSymbol={handleSelectStock}
+        />
+      )}
 
       {optionSymbol && optionPrice && (
         <SectionErrorBoundary>
