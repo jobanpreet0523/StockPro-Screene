@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import Layout from './components/Layout';
 import ParticleBackground from './components/ParticleBackground';
+import RouteSeo from './components/RouteSeo';
+import AnalyticsManager from './components/AnalyticsManager';
 import ScreenerPage from './pages/ScreenerPage';
 import ScannerPage from './pages/ScannerPage';
 import OptionChainPage from './pages/OptionChainPage';
@@ -56,6 +58,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        <RouteSeo />
+        <AnalyticsManager />
         <ParticleBackground />
         <Routes>
           <Route path="/" element={<LandingPage />} />
