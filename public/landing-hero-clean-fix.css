@@ -1,4 +1,4 @@
-/* Final landing clean-up: only first hero keeps the dark 3D look. Lower landing sections stay clean white. */
+/* Final landing clean-up: first hero has the dark 3D look; lower landing keeps original UI with a clean light page background. */
 
 /* Remove the odd injected quick-button strip from the first hero. */
 #hero-header .sp-hero-glass-panel {
@@ -15,48 +15,56 @@ body:has(#hero-header) {
   background: #ffffff !important;
 }
 
-/* All long landing sections after the hero should look clean and white. */
+/* Move Overview / Products / Terminal / Challenges / Insights to the bottom of the first homepage hero. */
+#hero-header {
+  padding-bottom: 64px !important;
+}
+
+#hero-header > .sticky.top-\[57px\],
+#hero-header > div.sticky.top-\[57px\] {
+  position: absolute !important;
+  top: auto !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 12 !important;
+  margin: 0 !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(16px) saturate(150%) !important;
+  box-shadow: 0 -14px 42px rgba(15, 23, 42, 0.14) !important;
+}
+
+#hero-header > .sticky.top-\[57px\] > div,
+#hero-header > div.sticky.top-\[57px\] > div {
+  justify-content: center !important;
+}
+
+/* Only change the lower page background. Do NOT force all cards/text to white. */
 body:has(#hero-header) section:not(#hero-header),
-body:has(#hero-header) main section:not(#hero-header),
+body:has(#hero-header) main section:not(#hero-header) {
+  background-color: #ffffff !important;
+}
+
 body:has(#hero-header) footer {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  background-image: none !important;
-  color: #0f172a !important;
-  backdrop-filter: none !important;
-  box-shadow: none;
-}
-
-/* Remove accidental dark overlays/glow from non-hero sections. */
-body:has(#hero-header) section:not(#hero-header)::before,
-body:has(#hero-header) section:not(#hero-header)::after,
-body:has(#hero-header) main section:not(#hero-header)::before,
-body:has(#hero-header) main section:not(#hero-header)::after {
-  background: none !important;
-  background-image: none !important;
-  box-shadow: none !important;
-  filter: none !important;
-}
-
-/* Keep cards in lower sections premium but light. */
-body:has(#hero-header) section:not(#hero-header) [class*="bg-white"],
-body:has(#hero-header) section:not(#hero-header) [class*="rounded"],
-body:has(#hero-header) section:not(#hero-header) article {
   background-color: #ffffff !important;
 }
 
-body:has(#hero-header) section:not(#hero-header) [class*="text-white"] {
-  color: #0f172a !important;
+/* Prevent old global 3D/body overlays from leaking below the hero. */
+body > #stockpro-landing-canvas,
+body > #stockpro-3d-layer,
+body > .sp3d-scanline,
+body > #stockpro-scroll-progress,
+body > #stockpro-premium-cursor {
+  display: none !important;
 }
 
-body:has(#hero-header) section:not(#hero-header) [class*="text-slate-300"],
-body:has(#hero-header) section:not(#hero-header) [class*="text-slate-400"],
-body:has(#hero-header) section:not(#hero-header) [class*="text-gray"] {
-  color: #475569 !important;
-}
+@media (max-width: 768px) {
+  #hero-header {
+    padding-bottom: 58px !important;
+  }
 
-/* Make lower-section cards feel clean and professional on white. */
-body:has(#hero-header) section:not(#hero-header) .shadow,
-body:has(#hero-header) section:not(#hero-header) [class*="shadow"] {
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08) !important;
+  #hero-header > .sticky.top-\[57px\],
+  #hero-header > div.sticky.top-\[57px\] {
+    overflow-x: auto !important;
+  }
 }
