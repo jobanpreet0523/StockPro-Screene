@@ -75,4 +75,24 @@
     <changefreq>daily</changefreq>
     <priority>0.75</priority>
   </url>
+  <url>
+    <loc>https://stockpro1.qzz.io/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://stockpro1.qzz.io/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://stockpro1.qzz.io/risk-disclosure</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://stockpro1.qzz.io/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
 </urlset>
