@@ -118,13 +118,13 @@ export default function Header({
       {/* Ticker Marquee Bar */}
       <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-x-auto sm:overflow-hidden text-[11px] sm:text-xs transition-all duration-300">
         <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4 sm:flex-row sm:items-center sm:gap-1.5 whitespace-nowrap">
-          <div className="flex items-center gap-2" title="Live data fetched from Yahoo Finance">
+          <div className="flex items-center gap-2" title="Free public mode uses delayed/cached snapshots. Connect broker for real-time ticks.">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]" style={{ color: marketStatus.color }}>
               <span className={`w-2 h-2 rounded-full ${marketStatus.isOpen ? 'animate-pulse' : ''}`} style={{ backgroundColor: marketStatus.color }} />
               {marketStatus.label}
             </div>
             <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono" style={{ color: marketStatus.color, borderColor: `${marketStatus.color}40`, backgroundColor: `${marketStatus.color}15` }}>
-              YAHOO
+              FREE SNAPSHOT
             </span>
           </div>
           <div className="flex-1 overflow-hidden ml-6 relative">
@@ -240,106 +240,30 @@ export default function Header({
         {/* Dashboard Tabs, Theme Switcher & Status */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
           <nav className="flex bg-slate-100 dark:bg-slate-950 p-1.5 rounded-lg border border-slate-200 dark:border-slate-850" id="main_navigation">
-            <button
-              onClick={() => setActiveTab('screener')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
-                activeTab === 'screener'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <LayoutDashboard size={14} />
-              Screener
-            </button>
-            <button
-              onClick={() => setActiveTab('chartink')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
-                activeTab === 'chartink'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <SlidersHorizontal size={14} />
-              Doji Scanner
-            </button>
-            <button
-              onClick={() => setActiveTab('fo')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
-                activeTab === 'fo'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Cpu size={14} />
-              F&O Analytics
-            </button>
-            <button
-              onClick={() => setActiveTab('us')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
-                activeTab === 'us'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Globe size={14} className="text-blue-500" />
-              US Markets
-            </button>
-            <button
-              onClick={() => setActiveTab('strategy-builder')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
-                activeTab === 'strategy-builder'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Settings2 size={14} className="text-emerald-500" />
-              Strategy Builder
-            </button>
-            <button
-              onClick={() => setActiveTab('greeks-calculator')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
-                activeTab === 'greeks-calculator'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Calculator size={14} className="text-purple-500" />
-              Options Greeks
-            </button>
-            <button
-              onClick={() => setActiveTab('risk-calculator')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
-                activeTab === 'risk-calculator'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <ShieldCheck size={14} className="text-indigo-500" />
-              Risk Calc
-            </button>
-            <button
-              onClick={() => setActiveTab('heatmap')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${
-                activeTab === 'heatmap'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <LayoutDashboard size={14} className="text-emerald-500" />
-              Heatmap
-            </button>
+            <button onClick={() => setActiveTab('screener')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${activeTab === 'screener' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><LayoutDashboard size={14} />Screener</button>
+            <button onClick={() => setActiveTab('chartink')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${activeTab === 'chartink' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><SlidersHorizontal size={14} />Doji Scanner</button>
+            <button onClick={() => setActiveTab('fo')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'fo' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Cpu size={14} />F&O Analytics</button>
+            <button onClick={() => setActiveTab('us')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'us' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Globe size={14} className="text-blue-500" />US Markets</button>
+            <button onClick={() => setActiveTab('strategy-builder')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'strategy-builder' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Settings2 size={14} className="text-emerald-500" />Strategy Builder</button>
+            <button onClick={() => setActiveTab('greeks-calculator')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'greeks-calculator' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Calculator size={14} className="text-purple-500" />Options Greeks</button>
+            <button onClick={() => setActiveTab('risk-calculator')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'risk-calculator' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><ShieldCheck size={14} className="text-indigo-500" />Risk Calc</button>
+            <button onClick={() => setActiveTab('heatmap')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'heatmap' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><LayoutDashboard size={14} className="text-emerald-500" />Heatmap</button>
             <button onClick={() => setActiveTab('fii-dii')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'fii-dii' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Globe size={14} className="text-indigo-500" /> FII/DII Data</button>
             <button onClick={() => setActiveTab('signals')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'signals' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Zap size={14} className="text-emerald-500" /> Signals</button>
             <button onClick={() => setActiveTab('deals')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'deals' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Landmark size={14} className="text-emerald-500" /> Bulk & Block Deals</button>
             <button onClick={() => setActiveTab('news')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'news' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Newspaper size={14} className="text-slate-500" /> STOCK MARKET DAILY NEWS</button>
             <button onClick={() => setActiveTab('pricing')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'pricing' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>Pricing</button>
             <button onClick={() => setActiveTab('blog')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'blog' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><BookOpen size={14} className="text-slate-500" /> F&O Strategic Blog</button>
-            <div className="relative">
-              <button onClick={() => setShowScannersDropdown(!showScannersDropdown)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-                <FolderHeart size={14} className="text-emerald-500" /> My Scanners <ChevronDown size={12} />
-              </button>
-            </div>
+            <div className="relative"><button onClick={() => setShowScannersDropdown(!showScannersDropdown)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"><FolderHeart size={14} className="text-emerald-500" /> My Scanners <ChevronDown size={12} /></button></div>
           </nav>
+
+          <button
+            onClick={() => navigate('/connect-broker')}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            title="Connect a broker for real-time market data"
+          >
+            <LogIn size={13} /> Broker Live
+          </button>
 
           <button
             onClick={toggleTheme}
@@ -358,22 +282,36 @@ export default function Header({
 
           <button
             onClick={() => setShowApiModal(true)}
-            className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            className="bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 px-4 py-2 rounded-lg text-xs font-bold transition hover:opacity-90 flex items-center gap-1.5 shadow-sm"
           >
-            <ShieldCheck size={14} /> Secure API
+            <LogIn size={13} />
+            API
           </button>
 
           {user ? (
-            <button onClick={logout} className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Logout">
-              <LogOut size={16} />
+            <button onClick={logout} className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5">
+              <LogOut size={13} /> Logout
             </button>
           ) : (
-            <button onClick={loginWithGoogle} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Login with Google">
-              <LogIn size={16} />
+            <button onClick={loginWithGoogle} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <LogIn size={13} /> Login
             </button>
           )}
         </div>
       </div>
+
+      {showApiModal && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">API Access</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Your current account is {isPro ? 'Pro' : 'Free'}. Connect broker live mode separately from API access.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowApiModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-bold">Close</button>
+              <button onClick={() => navigate('/connect-broker')} className="px-4 py-2 rounded-lg bg-emerald-500 text-slate-950 text-sm font-black">Broker Live</button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
