@@ -11,6 +11,9 @@ const requiredFiles = [
   'public/_redirects',
   'src/components/RouteSeo.tsx',
   'src/components/AnalyticsManager.tsx',
+  'src/components/DataSourceBadge.tsx',
+  'src/core/marketData.ts',
+  'src/pages/ConnectBrokerPage.tsx',
   'src/pages/PrivacyPage.tsx',
   'src/pages/TermsPage.tsx',
   'src/pages/RiskDisclosurePage.tsx',
@@ -34,6 +37,7 @@ const requiredRoutes = [
   '/pricing',
   '/blog',
   '/signals',
+  '/connect-broker',
   '/privacy',
   '/terms',
   '/risk-disclosure',
@@ -85,8 +89,14 @@ if (!analytics.includes('VITE_GA_MEASUREMENT_ID')) {
 }
 
 const layout = read('src/components/Layout.tsx');
-for (const label of ['Privacy Policy', 'Terms of Use', 'Risk Disclosure', 'Contact Us']) {
+for (const label of ['Privacy Policy', 'Terms of Use', 'Connect Broker Live Mode', 'Contact Us']) {
   if (!layout.includes(label)) errors.push(`Footer is missing launch trust link: ${label}`);
+}
+if (!layout.includes('<DataSourceBadge')) errors.push('Layout is missing the data-source badge');
+
+const marketData = read('src/core/marketData.ts');
+for (const token of ['broker_live', 'delayed', 'fallback', 'MarketQuote', 'MarketDataStatus']) {
+  if (!marketData.includes(token)) errors.push(`Market data model is missing: ${token}`);
 }
 
 const risk = read('src/pages/RiskDisclosurePage.tsx');
@@ -100,4 +110,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, legal pages, footer links, and risk disclosure are present.');
+console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, broker data-source foundation, legal pages, footer links, and risk disclosure are present.');
