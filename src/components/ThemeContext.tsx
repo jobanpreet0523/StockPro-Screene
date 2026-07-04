@@ -11,39 +11,44 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const GUEST_USER_ID = 'stockpro-free-guest';
+
+const isRealFirebaseUser = (user: ReturnType<typeof useAuth>['user']) => {
+  return Boolean(user && user.uid && user.uid !== GUEST_USER_ID && !user.email?.endsWith('@stockpro.local'));
+};
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const canSyncTheme = isRealFirebaseUser(user);
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage or default to dark theme
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light' || savedTheme === 'dark') {
       return savedTheme;
     }
-    return 'dark'; // High-fidelity dark mode by default
+    return 'dark';
   });
 
-  // Hydrate from Firestore if user logs in
   useEffect(() => {
-    if (user) {
-      const fetchTheme = async () => {
-        try {
-          const docRef = doc(db, 'userProfile', user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists() && docSnap.data().theme) {
-            const remoteTheme = docSnap.data().theme;
-            if (remoteTheme === 'light' || remoteTheme === 'dark') {
-              setTheme(remoteTheme);
-              localStorage.setItem('theme', remoteTheme);
-            }
+    if (!canSyncTheme || !user) return;
+
+    const fetchTheme = async () => {
+      try {
+        const docRef = doc(db, 'userProfile', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().theme) {
+          const remoteTheme = docSnap.data().theme;
+          if (remoteTheme === 'light' || remoteTheme === 'dark') {
+            setTheme(remoteTheme);
+            localStorage.setItem('theme', remoteTheme);
           }
-        } catch(e) {
-          console.error("Failed to fetch user theme", e);
         }
+      } catch(e) {
+        if (import.meta.env.DEV) console.warn('Theme sync skipped', e);
       }
-      fetchTheme();
-    }
-  }, [user]);
+    };
+
+    fetchTheme();
+  }, [canSyncTheme, user]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -54,11 +59,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     localStorage.setItem('theme', theme);
 
-    // Sync back up to Firestore
-    if (user) {
-      setDoc(doc(db, 'userProfile', user.uid), { theme }, { merge: true }).catch(console.error);
+    if (canSyncTheme && user) {
+      setDoc(doc(db, 'userProfile', user.uid), { theme }, { merge: true }).catch((e) => {
+        if (import.meta.env.DEV) console.warn('Theme save skipped', e);
+      });
     }
-  }, [theme, user]);
+  }, [theme, user, canSyncTheme]);
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
