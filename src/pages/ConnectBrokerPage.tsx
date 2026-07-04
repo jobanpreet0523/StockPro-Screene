@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { Activity, AlertTriangle, CheckCircle2, KeyRound, Link2, Radio, ShieldCheck, Wifi } from 'lucide-react';
 import DataSourceBadge from '../components/DataSourceBadge';
 import { clearBrokerConnectionPreview, getMarketDataStatus, saveBrokerConnectionPreview, type BrokerProvider } from '../core/marketData';
@@ -135,7 +136,7 @@ export default function ConnectBrokerPage() {
   );
 }
 
-function MiniStat({ icon: Icon, label, value }: { icon: typeof Wifi; label: string; value: string }) {
+function MiniStat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/50">
       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
