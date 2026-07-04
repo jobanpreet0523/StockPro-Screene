@@ -1,5 +1,5 @@
 import React from 'react';
-import ScreenerBuilder from '../components/ScreenerBuilder';
+import ChartinkStyleScanner from '../components/ChartinkStyleScanner';
 import { useDashboard } from '../components/Layout';
 
 export default function ScannerPage() {
@@ -7,7 +7,7 @@ export default function ScannerPage() {
 
   return (
     <div className="lg:col-span-12 flex flex-col gap-6" id="chartink_screener_view">
-      <ScreenerBuilder
+      <ChartinkStyleScanner
         stocks={stocks}
         stockData={stockData}
         onSelectStock={handleSelectStock}
