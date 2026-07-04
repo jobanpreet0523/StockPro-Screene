@@ -18,7 +18,7 @@ const cardVariants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { delay: 0.08 * index, duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+    transition: { delay: 0.08 * index, duration: 0.45, ease: 'easeOut' },
   }),
 };
 
@@ -65,7 +65,7 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
     <motion.section
       initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.55, ease: 'easeOut' }}
       className="premium-surface relative overflow-hidden rounded-[1.75rem] border border-white/70 dark:border-slate-800/80 bg-white/85 dark:bg-slate-950/80 p-5 sm:p-6 shadow-2xl shadow-slate-200/70 dark:shadow-emerald-950/20 mb-6"
       id="premium_market_command_center"
     >
@@ -79,7 +79,7 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
           <motion.div
             initial={{ opacity: 0, x: -12 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15, duration: 0.4 }}
+            transition={{ delay: 0.15, duration: 0.4, ease: 'easeOut' }}
             className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50/90 dark:bg-emerald-950/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-300"
           >
             <span className="relative flex h-2 w-2">
