@@ -1,0 +1,45 @@
+/* Keeps the existing header UI intact while making every tab reachable on smaller widths. */
+#app_header div:has(> #main_navigation) {
+  min-width: 0 !important;
+}
+
+#main_navigation {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  flex-wrap: nowrap !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.45) rgba(226, 232, 240, 0.7);
+}
+
+#main_navigation::-webkit-scrollbar {
+  height: 6px;
+}
+
+#main_navigation::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.7);
+  border-radius: 999px;
+}
+
+#main_navigation::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.55);
+  border-radius: 999px;
+}
+
+#main_navigation > button,
+#main_navigation > .relative {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+#main_navigation > button {
+  min-width: max-content;
+}
+
+@media (max-width: 1280px) {
+  #app_header > .max-w-7xl.mx-auto.px-4.py-4 {
+    max-width: 100% !important;
+  }
+}
