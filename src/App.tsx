@@ -17,15 +17,13 @@ import NewsPage from './pages/NewsPage';
 import PricingPage from './pages/PricingPage';
 import BlogPage from './pages/BlogPage';
 import SignalsPage from './pages/SignalsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import RiskDisclosurePage from './pages/RiskDisclosurePage';
+import ContactPage from './pages/ContactPage';
 
-interface ErrorBoundaryProps {
-  children: ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-}
+interface ErrorBoundaryProps { children: ReactNode; }
+interface ErrorBoundaryState { hasError: boolean; error: Error | null; }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
@@ -45,14 +43,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '40px', color: 'white', background: '#0f172a', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>⚠️ Something went wrong</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>Something went wrong</h2>
           <p style={{ color: '#94a3b8', marginBottom: '24px' }}>{this.state.error?.message}</p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{ background: '#10b981', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', outline: 'none' }}
-          >
-            Reload Page
-          </button>
         </div>
       );
     }
@@ -83,6 +75,10 @@ export default function App() {
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/signals" element={<SignalsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/risk-disclosure" element={<RiskDisclosurePage />} />
+            <Route path="/contact" element={<ContactPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>
