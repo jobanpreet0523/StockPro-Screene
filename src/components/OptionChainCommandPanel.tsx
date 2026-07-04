@@ -51,12 +51,45 @@ const compact = (value: number) => {
   return formatIndian(value);
 };
 
+const readStorage = (key: string, fallback = '') => {
+  if (typeof window === 'undefined') return fallback;
+
+  try {
+    return window.localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writeStorage = (key: string, value: string) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage can be unavailable in private/embedded browser contexts.
+  }
+};
+
+const readStoredArray = (key: string): Array<Record<string, unknown>> => {
+  const raw = readStorage(key, '[]');
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 export default function OptionChainCommandPanel({ stocks, selectedValue, currentPrice, onSelectSymbol }: Props) {
-  const [expiry, setExpiry] = useState(localStorage.getItem('stockpro_oc_expiry') || 'Nearest Weekly');
-  const [range, setRange] = useState(localStorage.getItem('stockpro_oc_range') || 'ATM ± 5');
-  const [streaming, setStreaming] = useState(localStorage.getItem('stockpro_oc_streaming') === 'on');
+  const [expiry, setExpiry] = useState(() => readStorage('stockpro_oc_expiry', 'Nearest Weekly'));
+  const [range, setRange] = useState(() => readStorage('stockpro_oc_range', 'ATM ± 5'));
+  const [streaming, setStreaming] = useState(() => readStorage('stockpro_oc_streaming') === 'on');
   const [strike, setStrike] = useState('');
-  const [fullView, setFullView] = useState(document.body.classList.contains('stockpro-oc-full-view'));
+  const [fullView, setFullView] = useState(() => (
+    typeof document !== 'undefined' ? document.body.classList.contains('stockpro-oc-full-view') : false
+  ));
   const [toast, setToast] = useState<{ message: string; tone: ToastTone } | null>(null);
 
   const analytics = useMemo(() => {
@@ -90,32 +123,52 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
 
   const notify = (message: string, tone: ToastTone = 'info') => {
     setToast({ message, tone });
-    window.setTimeout(() => setToast(null), 2200);
+
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => setToast(null), 2200);
+    } else {
+      setTimeout(() => setToast(null), 2200);
+    }
   };
 
   const scrollToMatrix = () => {
+    if (typeof document === 'undefined') return;
     document.getElementById('option-matrix')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const jumpStrike = (value: string, label?: string) => {
     setStrike(value);
-    const input = document.querySelector<HTMLInputElement>('#option-matrix input[placeholder*="Strike"], input[placeholder*="strike"]');
-    if (input) {
-      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-      nativeInputValueSetter?.call(input, value);
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      scrollToMatrix();
+
+    if (typeof document !== 'undefined') {
+      const input = document.querySelector<HTMLInputElement>('#option-matrix input[placeholder*="Strike"], input[placeholder*="strike"]');
+
+      if (input) {
+        if (typeof window !== 'undefined') {
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          if (nativeInputValueSetter) nativeInputValueSetter.call(input, value);
+          else input.value = value;
+          input.dispatchEvent(new window.Event('input', { bubbles: true }));
+        } else {
+          input.value = value;
+        }
+
+        scrollToMatrix();
+      }
     }
+
     notify(label ? `${label} strike ${value} focused` : `Strike ${value} focused`, 'success');
   };
 
   const downloadCsv = () => {
-    (document.getElementById('download-csv-btn') as HTMLButtonElement | null)?.click();
+    if (typeof document !== 'undefined') {
+      (document.getElementById('download-csv-btn') as HTMLButtonElement | null)?.click();
+    }
+
     notify('CSV export triggered for current option-chain view', 'success');
   };
 
   const saveView = () => {
-    localStorage.setItem(
+    writeStorage(
       'stockpro_oc_saved_view',
       JSON.stringify({
         selectedValue,
@@ -132,7 +185,7 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
   };
 
   const createAlert = () => {
-    const alerts = JSON.parse(localStorage.getItem('stockpro_oc_alerts') || '[]');
+    const alerts = readStoredArray('stockpro_oc_alerts');
     alerts.unshift({
       selectedValue,
       expiry,
@@ -141,11 +194,16 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
       resistance: analytics.resistance,
       createdAt: new Date().toISOString(),
     });
-    localStorage.setItem('stockpro_oc_alerts', JSON.stringify(alerts.slice(0, 25)));
+    writeStorage('stockpro_oc_alerts', JSON.stringify(alerts.slice(0, 25)));
     notify('PCR / OI alert created locally', 'success');
   };
 
   const toggleFullView = () => {
+    if (typeof document === 'undefined') {
+      notify('Full view is available after the browser page loads', 'warning');
+      return;
+    }
+
     const next = !document.body.classList.contains('stockpro-oc-full-view');
     document.body.classList.toggle('stockpro-oc-full-view', next);
     setFullView(next);
@@ -153,22 +211,28 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
   };
 
   const bestView = () => {
-    document.body.classList.remove('stockpro-oc-full-view');
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('stockpro-oc-full-view');
+      document.getElementById('stockpro_option_chain_command_panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     setFullView(false);
-    document.getElementById('stockpro_option_chain_command_panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     notify('Best view restored with command center on top', 'info');
   };
 
   const toggleStreaming = () => {
     const next = !streaming;
     setStreaming(next);
-    localStorage.setItem('stockpro_oc_streaming', next ? 'on' : 'off');
+    writeStorage('stockpro_oc_streaming', next ? 'on' : 'off');
     notify(`Streaming ${next ? 'enabled' : 'disabled'} for local dashboard controls`, next ? 'success' : 'warning');
   };
 
   const refresh = () => {
     notify('Refreshing option chain workspace', 'info');
-    window.setTimeout(() => window.location.reload(), 350);
+
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => window.location.reload(), 350);
+    }
   };
 
   const symbolLabel = selectedValue.replace('^NSEI', 'NIFTY').replace('^NSEBANK', 'BANKNIFTY').replace('.NS', '');
@@ -181,7 +245,7 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
 
   return (
     <section
-      className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/92 p-4 shadow-[0_26px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/70 backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-950/95 dark:ring-slate-800"
+      className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white p-4 shadow-[0_26px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/70 backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-950/95 dark:ring-slate-800"
       id="stockpro_option_chain_command_panel"
     >
       <style>{`
@@ -285,7 +349,7 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
             Expiry Date
             <select
               value={expiry}
-              onChange={(e) => { setExpiry(e.target.value); localStorage.setItem('stockpro_oc_expiry', e.target.value); notify(`Expiry set to ${e.target.value}`, 'info'); }}
+              onChange={(e) => { setExpiry(e.target.value); writeStorage('stockpro_oc_expiry', e.target.value); notify(`Expiry set to ${e.target.value}`, 'info'); }}
               className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-900 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
             >
               <option>Nearest Weekly</option>
@@ -299,7 +363,7 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
             Strike Range
             <select
               value={range}
-              onChange={(e) => { setRange(e.target.value); localStorage.setItem('stockpro_oc_range', e.target.value); notify(`Range set to ${e.target.value}`, 'info'); }}
+              onChange={(e) => { setRange(e.target.value); writeStorage('stockpro_oc_range', e.target.value); notify(`Range set to ${e.target.value}`, 'info'); }}
               className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-900 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:ring-blue-950"
             >
               <option>ATM ± 5</option>
