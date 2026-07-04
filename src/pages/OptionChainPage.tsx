@@ -5,21 +5,35 @@ import OptionChainView from '../components/OptionChainView';
 import SectionErrorBoundary from '../components/SectionErrorBoundary';
 import { useDashboard } from '../components/Layout';
 
+const indexMeta: Record<string, { name: string; fallback: number }> = {
+  '^NSEI': { name: 'NIFTY 50 Index', fallback: 24270.85 },
+  '^NSEBANK': { name: 'BANK NIFTY Index', fallback: 57938.5 },
+  'FINNIFTY': { name: 'FINNIFTY Index', fallback: 23550.0 },
+  'MIDCPNIFTY': { name: 'MIDCPNIFTY Index', fallback: 12550.0 },
+};
+
 export default function OptionChainPage() {
-  const { stocks, selectedStockSymbol, setSelectedStockSymbol, activeStock, handleSelectStock } = useDashboard();
+  const { stocks, indices, selectedStockSymbol, setSelectedStockSymbol, activeStock, handleSelectStock } = useDashboard();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const symbolParam = searchParams.get('symbol');
     if (symbolParam) {
-      const match = stocks.find(s => s.symbol.replace('.NS', '') === symbolParam.toUpperCase());
-      setSelectedStockSymbol(match ? match.symbol : symbolParam);
+      const normalized = symbolParam.toUpperCase();
+      const indexAlias = normalized === 'NIFTY' ? '^NSEI' : normalized === 'BANKNIFTY' ? '^NSEBANK' : normalized;
+      const match = stocks.find(s => s.symbol.replace('.NS', '') === normalized);
+      setSelectedStockSymbol(match ? match.symbol : indexAlias);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, stocks.length]);
 
-  const isIndex = selectedStockSymbol === '^NSEI' || selectedStockSymbol === '^NSEBANK';
+  const isIndex = selectedStockSymbol === '^NSEI' || selectedStockSymbol === '^NSEBANK' || selectedStockSymbol === 'FINNIFTY' || selectedStockSymbol === 'MIDCPNIFTY';
   const selectValue = isIndex ? selectedStockSymbol : activeStock ? activeStock.symbol : selectedStockSymbol;
+  const indexInfo = indexMeta[selectedStockSymbol];
+  const indexMarket = indices.find(i => i.symbol === selectedStockSymbol || i.name.toUpperCase().includes(indexInfo?.name.split(' ')[0] || ''));
+  const optionSymbol = isIndex ? selectedStockSymbol : activeStock?.symbol;
+  const optionPrice = isIndex ? (indexMarket?.price || indexInfo?.fallback || 24270.85) : activeStock?.price;
+  const optionName = isIndex ? (indexMarket?.name || indexInfo?.name || selectedStockSymbol) : activeStock?.name;
 
   return (
     <div className="lg:col-span-12 flex flex-col gap-6">
@@ -30,7 +44,7 @@ export default function OptionChainPage() {
             F&O Analytics derivatives command
           </h1>
           <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">
-            Analyzing active instrument option chains centered around the current spot index values
+            NSE-style option chain workspace with index filters, expiry controls, strike analytics, PCR, max pain, and strategy simulation.
           </p>
         </div>
 
@@ -43,6 +57,8 @@ export default function OptionChainPage() {
           >
             <option value="^NSEI">NIFTY 50 Index</option>
             <option value="^NSEBANK">BANK NIFTY Index</option>
+            <option value="FINNIFTY">FINNIFTY Index</option>
+            <option value="MIDCPNIFTY">MIDCPNIFTY Index</option>
             {stocks.filter(s => s.isFoEnabled).map(s => (
               <option key={s.symbol} value={s.symbol}>{s.symbol.replace('.NS', '')}</option>
             ))}
@@ -50,12 +66,12 @@ export default function OptionChainPage() {
         </div>
       </div>
 
-      {activeStock && (
+      {optionSymbol && optionPrice && (
         <SectionErrorBoundary>
           <OptionChainView
-            symbol={activeStock.symbol}
-            currentPrice={activeStock.price}
-            stockName={activeStock.name}
+            symbol={optionSymbol}
+            currentPrice={optionPrice}
+            stockName={optionName}
           />
         </SectionErrorBoundary>
       )}
