@@ -7,8 +7,10 @@ import MarketPulseHero from './MarketPulseHero';
 import FloatingMotionDock from './FloatingMotionDock';
 import MarketCards from './MarketCards';
 import EmailCapturePopup from './EmailCapturePopup';
+import DataSourceBadge from './DataSourceBadge';
 import { useLiveStocks } from '../hooks/useLiveStocks';
 import { useMarketIndices } from '../hooks/useMarketIndices';
+import { getMarketDataStatus, type MarketDataStatus } from '../core/marketData';
 import { Stock, IndexData } from '../types';
 
 export type DashboardTab =
@@ -53,6 +55,7 @@ export interface DashboardContext {
   activeStock: Stock | undefined;
   handleSelectStock: (symbol: string) => void;
   handleSelectFoStock: (symbol: string) => void;
+  marketDataStatus: MarketDataStatus;
 }
 
 export function useDashboard() {
@@ -71,6 +74,7 @@ export default function Layout() {
 
   const activeTab: DashboardTab = PATH_TO_TAB[location.pathname] || 'screener';
   const setActiveTab = (tab: DashboardTab) => navigate(TAB_TO_PATH[tab] || '/screener');
+  const marketDataStatus = useMemo(() => getMarketDataStatus(Boolean(stocksError)), [stocksError, location.pathname]);
 
   const activeStock = useMemo(() => {
     return (
@@ -101,6 +105,7 @@ export default function Layout() {
     activeStock,
     handleSelectStock,
     handleSelectFoStock,
+    marketDataStatus,
   };
 
   const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
@@ -134,7 +139,7 @@ export default function Layout() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.35 }}
-          className="flex items-center gap-3 mb-6 bg-white/80 dark:bg-slate-950/75 backdrop-blur-xl px-4 py-3 rounded-xl border border-slate-200/80 dark:border-slate-850 shadow-sm">
+          className="flex flex-wrap items-center gap-3 mb-6 bg-white/80 dark:bg-slate-950/75 backdrop-blur-xl px-4 py-3 rounded-xl border border-slate-200/80 dark:border-slate-850 shadow-sm">
           {isLoadingStocks ? (
             <>
               <span className="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin shrink-0" />
@@ -142,14 +147,15 @@ export default function Layout() {
                 <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-full"></div>
                 <div className="h-2 bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse w-2/3"></div>
               </div>
-              <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Fetching Yahoo Finance...</span>
+              <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Fetching market snapshot...</span>
             </>
           ) : stocksError ? (
             <>
               <div className="w-4 h-4 shrink-0 rounded-full bg-rose-500/20 items-center justify-center flex">
                 <div className="w-2 h-2 bg-rose-500 rounded-full"></div>
               </div>
-              <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Failed to sync live data</span>
+              <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Failed to sync market snapshot</span>
+              <DataSourceBadge status={marketDataStatus} compact />
               <button
                 onClick={retryStocks}
                 className="ml-auto bg-slate-900 border border-transparent dark:border-slate-700 dark:bg-slate-800 text-white text-xs px-3 py-1 rounded hover:opacity-90 active:scale-95 transition-all outline-none"
@@ -161,7 +167,8 @@ export default function Layout() {
             <>
               <Activity size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Loaded {stocks.length} stocks</span>
-              <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Yahoo Finance API Bulk Live Synced</span>
+              <DataSourceBadge status={marketDataStatus} compact />
+              <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Free mode uses delayed/cached snapshots</span>
             </>
           )}
         </motion.div>
@@ -200,7 +207,7 @@ export default function Layout() {
             initial={{ opacity: 0, y: 16, filter: 'blur(5px)' }}
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
             className="grid grid-cols-1 lg:grid-cols-12 gap-6"
             id="workspace_grid"
           >
@@ -225,9 +232,9 @@ export default function Layout() {
             <Link to="/risk-disclosure" className={footerLinkClass}>Risk Disclosure</Link>
           </div>
           <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Disclaimer</h4>
-            <p className="leading-relaxed">Financial data provided for educational purposes only. Not investment advice. Analyze with caution.</p>
-            <Link to="/risk-disclosure" className={footerLinkClass}>Read full risk disclosure</Link>
+            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Data Source</h4>
+            <Link to="/connect-broker" className={footerLinkClass}>Connect Broker Live Mode</Link>
+            <p className="leading-relaxed">Free public mode uses delayed/cached data. Broker mode is required for real-time ticks.</p>
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Support</h4>
