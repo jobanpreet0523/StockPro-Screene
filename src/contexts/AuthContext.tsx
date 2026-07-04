@@ -14,7 +14,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  isPro: false,
+  isPro: true,
   setProStatus: () => {},
   loginWithGoogle: async () => {},
   logout: async () => {}
@@ -25,19 +25,18 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(true);
 
   useEffect(() => {
-    // Check localStorage for pro status
-    const savedProStatus = localStorage.getItem('isPro');
-    if (savedProStatus === 'true') {
-      setIsPro(true);
-    }
+    // StockPro is now fully free: unlock every former PRO feature by default.
+    localStorage.setItem('isPro', 'true');
+    setIsPro(true);
   }, []);
 
-  const setProStatus = (status: boolean) => {
-    setIsPro(status);
-    localStorage.setItem('isPro', status.toString());
+  const setProStatus = (_status: boolean) => {
+    // Keep backward compatibility with old pricing code, but never lock features again.
+    setIsPro(true);
+    localStorage.setItem('isPro', 'true');
   };
 
   useEffect(() => {
