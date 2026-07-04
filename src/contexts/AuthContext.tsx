@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 
@@ -26,6 +26,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(true);
+
+  const freeGuestUser = useMemo(() => ({
+    uid: 'stockpro-free-guest',
+    displayName: 'Free User',
+    email: 'free@stockpro.local',
+    photoURL: 'https://ui-avatars.com/api/?name=Free+User&color=10b981&background=ecfdf5',
+  } as unknown as User), []);
 
   useEffect(() => {
     // StockPro is now fully free: unlock every former PRO feature by default.
@@ -58,13 +65,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await auth.signOut();
+      setUser(null);
     } catch (error) {
       console.error("Failed to sign out", error);
     }
   };
 
+  const effectiveUser = user || freeGuestUser;
+
   return (
-    <AuthContext.Provider value={{ user, loading, isPro, setProStatus, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user: effectiveUser, loading, isPro, setProStatus, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
