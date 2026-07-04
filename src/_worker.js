@@ -191,7 +191,7 @@ async function yahooQuotes(symbols) {
 // ═══════════════════════════════════════════════════════════════════
 //  API Route Handler
 // ═══════════════════════════════════════════════════════════════════
-const AUTH_TOKEN = "Bearer StockProSecureToken2026!";
+const PRIVATE_API_TOKEN_ENV = 'STOCKPRO_API_TOKEN';
 const PUBLIC_PATHS = [
   "/api/indices",
   "/api/stocks",
@@ -213,12 +213,25 @@ function isPublic(path) {
   return PUBLIC_PATHS.some(p => path === p || path.startsWith(p));
 }
 
+function getConfiguredAuthToken(env) {
+  const raw = env?.[PRIVATE_API_TOKEN_ENV];
+  if (!raw || typeof raw !== 'string') return null;
+  return raw.startsWith('Bearer ') ? raw : `Bearer ${raw}`;
+}
+
 async function handleAPI(path, url, request, env) {
   try {
-    // 1. Authentication Layer
+    // 1. Authentication Layer for future/private API routes.
     if (!isPublic(path)) {
       const authHeader = request.headers.get("Authorization");
-      if (authHeader !== AUTH_TOKEN) {
+      const configuredToken = getConfiguredAuthToken(env);
+      if (!configuredToken) {
+        return new Response(JSON.stringify({ error: "Private API token is not configured." }), {
+          status: 503,
+          headers: jsonHeaders()
+        });
+      }
+      if (authHeader !== configuredToken) {
         return new Response(JSON.stringify({ error: "Unauthorized access to financial data feeds." }), {
           status: 401,
           headers: jsonHeaders()
@@ -495,11 +508,11 @@ function parseRSS(xml, source) {
   return articles;
 }
 function extractCDATA(block, tag) {
-  const m = block.match(new RegExp(`<${tag}[^>]*>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>`, 'i'));
+  const m = block.match(new RegExp(`<${tag}[^>]*>\s*<!\[CDATA\[([\s\S]*?)\]\]>`, 'i'));
   return m ? m[1] : extractTag(block, tag);
 }
 function extractTag(block, tag) {
-  const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i'));
+  const m = block.match(new RegExp(`<${tag}[^>]*>([\s\S]*?)</${tag}>`, 'i'));
   return m ? m[1].trim() : '';
 }
 
