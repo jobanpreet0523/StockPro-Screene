@@ -263,6 +263,16 @@ canvas[style*="z-index: 9999"] {
   opacity: 0.35 !important;
 }
 
+#app_header span.bg-gradient-to-r.from-emerald-500.to-teal-500 {
+  font-size: 0 !important;
+}
+
+#app_header span.bg-gradient-to-r.from-emerald-500.to-teal-500::after {
+  content: "FREE";
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
