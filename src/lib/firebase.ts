@@ -51,6 +51,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+
+  // Do not throw from UI-side Firestore listeners. A guest/free deployment can have
+  // restrictive Firestore rules, and throwing here turns a recoverable permission
+  // miss into an uncaught runtime error in production.
+  if (import.meta.env.DEV) {
+    console.warn('Firestore operation skipped:', errInfo);
+  }
+
+  return errInfo;
 }
