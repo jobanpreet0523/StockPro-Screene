@@ -1,3051 +1,502 @@
-
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  Cpu,
+  Database,
+  Gauge,
+  Globe,
+  Layers,
+  LineChart,
+  PlayCircle,
+  Radar,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Zap,
+} from 'lucide-react';
 import { getMarketStatus } from '../utils/marketStatus';
 
 interface LiveIndex {
   symbol: string;
   name: string;
   price: number;
-  change: number;
+  change?: number;
   changePercent: number;
-  isPositive: boolean;
 }
+
+const fallbackIndices: LiveIndex[] = [
+  { symbol: '^NSEI', name: 'NIFTY 50', price: 24270.85, change: 325.45, changePercent: 1.35 },
+  { symbol: '^NSEBANK', name: 'BANK NIFTY', price: 57038.50, change: 621.2, changePercent: 1.10 },
+  { symbol: '^BSESN', name: 'SENSEX', price: 77763.91, change: 1039.6, changePercent: 1.34 },
+  { symbol: '^CNXIT', name: 'NIFTY IT', price: 27439.40, change: 399.2, changePercent: 1.48 },
+];
+
+const features = [
+  {
+    icon: Radar,
+    title: 'Live F&O Intelligence',
+    body: 'Option chain, PCR, max pain, OI shift, IV zones, and active strike pressure in one visual cockpit.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Advanced Screener',
+    body: 'Filter market movers, liquidity, delivery, F&O enabled stocks, and technical momentum faster.',
+  },
+  {
+    icon: Gauge,
+    title: 'Risk + Greeks Engine',
+    body: 'Estimate payoff, IV sensitivity, Greeks exposure, risk bands, and scenario outcomes before entry.',
+  },
+  {
+    icon: Layers,
+    title: 'Heatmap + Flow',
+    body: 'Track sector heat, institutional activity, FII/DII data, block deals, and signal clusters.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Signal Workspace',
+    body: 'Clean bullish, bearish, volatility, and breakout signals with fewer distractions and better hierarchy.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Free Full Access',
+    body: 'Every tool is unlocked for users. No paid lock, no hidden Pro tab, and no upgrade friction.',
+  },
+];
+
+const workflow = [
+  { label: 'Scan', detail: 'Find momentum, OI, volume, and volatility opportunities.', icon: LineChart },
+  { label: 'Validate', detail: 'Cross-check chart, chain, heatmap, news, and institutional flow.', icon: Cpu },
+  { label: 'Execute', detail: 'Use payoff, Greeks, and risk tools before taking a position.', icon: Zap },
+];
+
+const optionRows = [
+  { strike: 24150, ce: '42.1L', pe: '19.4L', tone: 'down' },
+  { strike: 24200, ce: '55.8L', pe: '33.8L', tone: 'neutral' },
+  { strike: 24250, ce: '31.6L', pe: '64.2L', tone: 'up' },
+  { strike: 24300, ce: '22.4L', pe: '78.9L', tone: 'up' },
+];
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [market, setMarket] = useState(() => getMarketStatus());
-  const [liveIndices, setLiveIndices] = useState<LiveIndex[]>([]);
-  const [liveChain, setLiveChain] = useState<any>(null);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [indices, setIndices] = useState<LiveIndex[]>(fallbackIndices);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => setMarket(getMarketStatus()), 30000);
     return () => clearInterval(id);
   }, []);
 
-  // Fetch live data from our API
-  const fetchLiveData = useCallback(async () => {
-    try {
-      // Landing page now relies on global indices if possible,
-      // but for pure landing experience we can keep a local fetch OR
-      // just rely on the public/live-data.js patcher.
-      // To resolve ticker sync red banner issues on other pages,
-      // we'll keep this but ensure it doesn't interfere.
-      const [indicesRes, chainRes] = await Promise.allSettled([
-        fetch('/api/indices', { signal: AbortSignal.timeout(10000) }),
-        fetch('/api/option-chain/NIFTY', { signal: AbortSignal.timeout(10000) }),
-      ]);
-
-      if (indicesRes.status === 'fulfilled' && indicesRes.value.ok) {
-        const indicesJson = await indicesRes.value.json();
-        if (indicesJson.data) setLiveIndices(indicesJson.data);
+  useEffect(() => {
+    let mounted = true;
+    async function loadLandingData() {
+      try {
+        const res = await fetch('/api/indices', { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error('indices fetch failed');
+        const json = await res.json();
+        const next = Array.isArray(json?.data) ? json.data : [];
+        if (mounted && next.length) {
+          setIndices(next.slice(0, 6));
+        }
+      } catch (error) {
+        console.warn('Landing live data fallback active:', error);
+      } finally {
+        if (mounted) setLoaded(true);
       }
-
-      if (chainRes.status === 'fulfilled' && chainRes.value.ok) {
-        const chainJson = await chainRes.value.json();
-        if (chainJson.data) setLiveChain(chainJson.data);
-      }
-
-      setDataLoaded(true);
-    } catch (e) {
-      console.warn('Landing page live data fetch error:', e);
-      setDataLoaded(true);
     }
+    loadLandingData();
+    const id = setInterval(loadLandingData, 60000);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, []);
 
-  useEffect(() => {
-    fetchLiveData();
-    // We reduced frequency to avoid flooding and sync errors
-    const interval = setInterval(fetchLiveData, 60000);
-    return () => clearInterval(interval);
-  }, [fetchLiveData]);
+  const leadIndex = indices[0] || fallbackIndices[0];
+  const marketPulse = useMemo(() => {
+    const gainers = indices.filter((item) => (item.changePercent ?? 0) >= 0).length;
+    return Math.round((gainers / Math.max(1, indices.length)) * 100);
+  }, [indices]);
 
-  // Helper to get index data
-  const getNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEI') || { price: 24892.50, change: 145.30, changePercent: 0.58, isPositive: true };
-  const getBankNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEBANK') || { price: 52341.20, change: -62.80, changePercent: -0.12, isPositive: false };
-  const getFinNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEFN' || i.name?.includes('FIN')) || { price: 21450.00, change: 45.20, changePercent: 0.21, isPositive: true };
+  const formatPrice = (value: number) =>
+    Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const nifty = getNifty();
-  const banknifty = getBankNifty();
-  const finnifty = getFinNifty();
-  const pcr = liveChain?.pcr || liveChain?.records?.underlyingValue ? (liveChain.records.data?.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) / Math.max(1, liveChain.records.data?.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0))) : 1.34;
-  const maxPain = liveChain?.maxPain || 24900;
-  const spotPrice = nifty.price;
-  const totalCallOi = liveChain?.totalCallOi || liveChain?.records?.data?.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0) || 0;
-  const totalPutOi = liveChain?.totalPutOi || liveChain?.records?.data?.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) || 0;
-  const options = liveChain?.options || (liveChain?.records?.data || []).map((d:any) => ({
-    strikePrice: d.strikePrice,
-    callLtp: d.CE?.lastPrice||0, callChange: d.CE?.change||0, callVol: d.CE?.totalTradedVolume||0,
-    callOi: d.CE?.openInterest||0, callOiChg: d.CE?.changeinOpenInterest||0, callIv: d.CE?.impliedVolatility||0,
-    putLtp: d.PE?.lastPrice||0, putChange: d.PE?.change||0, putVol: d.PE?.totalTradedVolume||0,
-    putOi: d.PE?.openInterest||0, putOiChg: d.PE?.changeinOpenInterest||0, putIv: d.PE?.impliedVolatility||0,
-  })) || [];
-  const atmStrike = Math.round(spotPrice / 50) * 50;
-  const step = 50;
-  const atmIv = options.length > 0 ? (options.find((o:any) => o.strikePrice === atmStrike)?.callIv || options[Math.floor(options.length/2)]?.callIv || 12.8) : 12.8;
-  const nearAtmOi = options.filter((o:any) => Math.abs(o.strikePrice - atmStrike) <= step*2);
-  const topCallOi = nearAtmOi.reduce((max:number,o:any) => o.callOi > max ? o.callOi : max, 0);
-  const topPutOi = nearAtmOi.reduce((max:number,o:any) => o.putOi > max ? o.putOi : max, 0);
-  const topCallStrike = nearAtmOi.find((o:any) => o.callOi === topCallOi)?.strikePrice || atmStrike + step*2;
-  const topPutStrike = nearAtmOi.find((o:any) => o.putOi === topPutOi)?.strikePrice || atmStrike - step*2;
+  const openDashboard = () => navigate('/screener');
 
-  const fmtPrice = (n: number) => (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtOI = (n: number) => {
-    const val = n ?? 0;
-    if (!val || isNaN(val)) return '0';
-    if (val >= 10000000) return (typeof val === 'number' ? (val / 10000000).toFixed(2) : Number(val / 10000000).toFixed(2)) + 'Cr';
-    if (val >= 100000) return (typeof val === 'number' ? (val / 100000).toFixed(1) : Number(val / 100000).toFixed(1)) + 'L';
-    if (val >= 1000) return (typeof val === 'number' ? (val / 1000).toFixed(1) : Number(val / 1000).toFixed(1)) + 'K';
-    return String(Math.round(val));
-  };
-  const chgBadge = (pct: number) => (pct ?? 0) >= 0
-    ? `<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▲ +${typeof pct === 'number' ? pct.toFixed(2) : Number(pct || 0).toFixed(2)}%</span>`
-    : `<span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▼ ${typeof pct === 'number' ? pct.toFixed(2) : Number(pct || 0).toFixed(2)}%</span>`;
-
-  useEffect(() => {
-    // Intercept vanilla links in the injected HTML to use React Router
-    const handleNavigation = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement).closest('a');
-      if (target) {
-        const href = target.getAttribute('href');
-        if (href === '/screener' || href === '/screener.html') {
-          e.preventDefault();
-          navigate('/screener');
+  return (
+    <main className="ultra-landing relative min-h-screen overflow-hidden bg-[#030712] text-white">
+      <style>{`
+        .ultra-landing {
+          background:
+            radial-gradient(circle at 12% 8%, rgba(16, 185, 129, 0.26), transparent 28rem),
+            radial-gradient(circle at 86% 12%, rgba(59, 130, 246, 0.24), transparent 30rem),
+            radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.16), transparent 34rem),
+            #030712;
         }
-      }
-    };
-    
-    document.addEventListener('click', handleNavigation);
-    return () => document.removeEventListener('click', handleNavigation);
-  }, [navigate]);
-
-  // Build option chain rows HTML from live data
-  const chainRowsHtml = options.length > 0
-    ? options.filter(o => o.strikePrice >= atmStrike - 300 && o.strikePrice <= atmStrike + 300).map((opt: any) => {
-        const isATM = opt.strikePrice === atmStrike;
-        const isCallITM = spotPrice > opt.strikePrice;
-        const isPutITM = spotPrice < opt.strikePrice;
-        const atmClass = isATM ? 'border-2 border-emerald-500 bg-emerald-50/10' : 'hover:bg-slate-50/50 transition border-b border-gray-150';
-        const callBg = isCallITM ? 'bg-blue-50/20' : '';
-        const putBg = isPutITM ? 'bg-gray-100/40' : '';
-        const atmLabel = isATM ? '<span class="absolute top-0.5 right-1 text-[7px] bg-emerald-600 text-white font-extrabold px-1 rounded transform scale-75 whitespace-nowrap">ATM ACTIVE</span>' : '';
-        const ceOichgColor = (opt.callOiChg || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600';
-        const peOichgColor = (opt.putOiChg || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600';
-
-        return `<tr class="${atmClass}">
-          <td class="py-3 px-4 text-center ${callBg} ${ceOichgColor} font-bold font-mono">${(opt.callOiChg || 0) >= 0 ? '+' : ''}${fmtOI(opt.callOiChg || 0)}</td>
-          <td class="py-3 px-4 text-right ${callBg} font-mono">${fmtOI(opt.callVol || 0)}</td>
-          <td class="py-3 px-4 text-right ${callBg} font-mono">${typeof opt.callIv === 'number' ? opt.callIv.toFixed(1) : Number(opt.callIv || 0).toFixed(1)}%</td>
-          <td class="py-3 px-4 text-right ${callBg} font-mono font-black text-slate-900 pr-6">₹${typeof opt.callLtp === 'number' ? opt.callLtp.toFixed(1) : Number(opt.callLtp || 0).toFixed(1)}</td>
-          <td class="py-3 px-6 text-center font-bold text-slate-900 bg-gray-50 border-x border-gray-200 font-mono relative">${atmLabel}${(opt.strikePrice ?? 0).toLocaleString('en-IN')}</td>
-          <td class="py-3 px-4 text-left ${putBg} font-mono font-black text-slate-900 pl-6">₹${typeof opt.putLtp === 'number' ? opt.putLtp.toFixed(1) : Number(opt.putLtp || 0).toFixed(1)}</td>
-          <td class="py-3 px-4 text-left ${putBg} font-mono">${typeof opt.putIv === 'number' ? opt.putIv.toFixed(1) : Number(opt.putIv || 0).toFixed(1)}%</td>
-          <td class="py-3 px-4 text-left ${putBg} font-mono">${fmtOI(opt.putVol || 0)}</td>
-          <td class="py-3 px-4 text-center ${putBg} ${peOichgColor} font-bold font-mono">${(opt.putOiChg || 0) >= 0 ? '+' : ''}${fmtOI(opt.putOiChg || 0)}</td>
-        </tr>`;
-      }).join('')
-    : `<tr><td colspan="9" class="py-8 text-center text-slate-400 font-mono text-xs">Loading live option chain data...</td></tr>`;
-
-  // Build heatmap HTML from top stocks
-  const heatmapStocks = [
-    { name: 'BANKING', oiChg: '+3.42%', price: '+1.24%', vol: '1.4M', type: 'LBU', bg: 'bg-[#15803d]', text: 'text-white' },
-    { name: 'RELIANCE', oiChg: '+2.85%', price: '+0.95%', vol: '840K', type: 'LBU', bg: 'bg-[#15803d]', text: 'text-white' },
-    { name: 'IT INDEX', oiChg: '+1.20%', price: '+0.42%', vol: '1.1M', type: 'SC', bg: 'bg-[#dcfce7]', text: 'text-[#166534]' },
-    { name: 'AUTO INDEX', oiChg: '-2.80%', price: '-1.05%', vol: '920K', type: 'SBU', bg: 'bg-[#fee2e2]', text: 'text-[#991b1b]' },
-    { name: 'HDFC BANK', oiChg: '-1.52%', price: '-0.64%', vol: '2.1M', type: 'LU', bg: 'bg-[#fff1f2]', text: 'text-[#be123c]' },
-    { name: 'INFRA', oiChg: '+4.10%', price: '+2.38%', vol: '610K', type: 'LBU', bg: 'bg-[#15803d]', text: 'text-white' },
-  ];
-
-  return <>
-    <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
-
-    <!-- Brand Page Loader Overlay (1.5 seconds) -->
-    <div id="page-loader">
-      <div class="loader-logo-container">
-        <div class="loader-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-        </div>
-        <div class="loader-text"></div>
-        <div class="loader-subtext">Pro Derivatives Terminal</div>
-      </div>
-      <div class="loader-track">
-        <div class="loader-bar"></div>
-      </div>
-    </div>
-
-    <script>
-      // Manage Brand Loader active cycle
-      setTimeout(function() {
-        var loader = document.getElementById('page-loader');
-        if (loader) {
-          loader.style.opacity = '0';
-          loader.style.pointerEvents = 'none';
-          setTimeout(function() {
-            loader.style.display = 'none';
-          }, 400);
+        .landing-grid {
+          background-image:
+            linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+          background-size: 46px 46px;
+          mask-image: radial-gradient(circle at center, black, transparent 78%);
         }
-      }, 1500);
-    </script>
+        .landing-perspective { perspective: 1400px; }
+        .terminal-3d {
+          transform-style: preserve-3d;
+          animation: terminalFloat 8s ease-in-out infinite;
+        }
+        .terminal-3d::before {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          border-radius: 32px;
+          padding: 1px;
+          background: linear-gradient(135deg, rgba(52, 211, 153, 0.9), rgba(34, 211, 238, 0.55), rgba(99, 102, 241, 0.75));
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+        }
+        .terminal-shadow {
+          transform: rotateX(72deg) translateZ(-90px);
+          filter: blur(28px);
+        }
+        .orbit-ring {
+          position: absolute;
+          inset: 12%;
+          border: 1px solid rgba(52, 211, 153, 0.2);
+          border-radius: 999px;
+          transform: rotateX(72deg) rotateZ(18deg);
+          animation: orbitSpin 18s linear infinite;
+        }
+        .orbit-ring:nth-child(2) {
+          inset: 22%;
+          border-color: rgba(96, 165, 250, 0.2);
+          animation-duration: 13s;
+          animation-direction: reverse;
+        }
+        .glass-panel {
+          background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.78));
+          border: 1px solid rgba(148, 163, 184, 0.18);
+          box-shadow: 0 28px 90px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+          backdrop-filter: blur(22px) saturate(150%);
+        }
+        .shine-card { position: relative; overflow: hidden; }
+        .shine-card::after {
+          content: '';
+          position: absolute;
+          inset: -120% -40%;
+          background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.16), transparent 62%);
+          transform: translateX(-45%) rotate(12deg);
+          animation: cardShine 6s ease-in-out infinite;
+        }
+        .ticker-track { animation: tickerMove 32s linear infinite; }
+        .ticker-track:hover { animation-play-state: paused; }
+        .floating-cube {
+          transform-style: preserve-3d;
+          animation: cubeFloat 6s ease-in-out infinite;
+        }
+        .pulse-dot::before {
+          content: '';
+          position: absolute;
+          inset: -5px;
+          border-radius: 999px;
+          background: rgba(52, 211, 153, 0.28);
+          animation: pingSoft 1.8s ease-in-out infinite;
+        }
+        @keyframes terminalFloat {
+          0%, 100% { transform: rotateX(8deg) rotateY(-12deg) translateY(0); }
+          50% { transform: rotateX(4deg) rotateY(-7deg) translateY(-14px); }
+        }
+        @keyframes orbitSpin {
+          from { transform: rotateX(72deg) rotateZ(0deg); }
+          to { transform: rotateX(72deg) rotateZ(360deg); }
+        }
+        @keyframes cardShine {
+          0%, 60% { transform: translateX(-55%) rotate(12deg); }
+          78%, 100% { transform: translateX(55%) rotate(12deg); }
+        }
+        @keyframes tickerMove {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        @keyframes cubeFloat {
+          0%, 100% { transform: translate3d(0, 0, 38px) rotateX(0deg) rotateY(0deg); }
+          50% { transform: translate3d(10px, -18px, 72px) rotateX(13deg) rotateY(18deg); }
+        }
+        @keyframes pingSoft {
+          0%, 100% { opacity: 0; transform: scale(0.78); }
+          50% { opacity: 1; transform: scale(1.08); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .terminal-3d, .orbit-ring, .shine-card::after, .ticker-track, .floating-cube, .pulse-dot::before { animation: none !important; }
+        }
+      `}</style>
 
-    <!-- 1. GLOBAL NAVIGATION BAR -->
-    <nav class="sticky top-0 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between z-50 shadow-sm">
-      <div class="flex items-center gap-6">
-        <!-- Logo Branding matching StockPro Terminal precision -->
-        <a href="/" class="flex items-center gap-2.5">
-          <div class="bg-blue-600 text-white p-1.5 rounded flex items-center justify-center font-bold">
-            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+      <div className="landing-grid pointer-events-none fixed inset-0 opacity-70" />
+      <div className="pointer-events-none fixed -left-32 top-1/4 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl" />
+      <div className="pointer-events-none fixed -right-32 top-20 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
+
+      <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5">
+        <button onClick={() => navigate('/landing')} className="flex items-center gap-3 text-left">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950 shadow-xl shadow-emerald-500/20">
+            <TrendingUp size={24} strokeWidth={2.8} />
+          </span>
+          <span>
+            <span className="block text-lg font-black tracking-tight">Stock<span className="text-emerald-300">Pro</span></span>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">Free F&O terminal</span>
+          </span>
+        </button>
+
+        <div className="hidden items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-xl md:flex">
+          <span className="pulse-dot relative h-2.5 w-2.5 rounded-full" style={{ backgroundColor: market.color }} />
+          <span className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: market.color }}>{market.label}</span>
+          <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-black text-emerald-300">YAHOO LIVE</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/news')} className="hidden rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 backdrop-blur-xl transition hover:bg-white/10 sm:inline-flex">
+            Market News
+          </button>
+          <button onClick={openDashboard} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-black text-slate-950 shadow-xl shadow-white/10 transition hover:-translate-y-0.5 hover:bg-emerald-50">
+            Open Dashboard <ArrowRight size={15} />
+          </button>
+        </div>
+      </header>
+
+      <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-16 pt-8 lg:grid-cols-[1.02fr_0.98fr] lg:pb-24 lg:pt-16">
+        <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}>
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.26em] text-emerald-300">
+            <Sparkles size={14} /> Ultra 3D Market Command Center
           </div>
-          <span class="font-extrabold text-sm tracking-tight text-slate-950 uppercase border-r border-gray-300 pr-5 flex items-center gap-1.5">
-            F&O Analytics <span class="bg-blue-600/10 text-blue-600 text-[10px] font-black px-1.5 py-0.5 rounded ml-1">PRO</span>
-          </span>
-        </a>
+          <h1 className="max-w-4xl text-5xl font-black leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-7xl">
+            Trade smarter with a cinematic F&O analytics cockpit.
+          </h1>
+          <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
+            A premium, motion-rich landing experience for live indices, option-chain intelligence, Greeks, scanners, heatmaps, institutional flow, and market news — now fully free for every user.
+          </p>
 
-        <!-- Central Search Bar with wide, modern light-gray text input -->
-        <div class="hidden lg:flex items-center relative w-96 max-w-lg">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-            <i data-lucide="search" class="w-3.5 h-3.5 text-gray-400"></i>
-          </span>
-          <input 
-            type="text" 
-            placeholder="Search indices, derivatives, options strike..." 
-            class="w-full pl-9 pr-3.5 py-1.5 bg-gray-100 border border-gray-200 rounded text-xs font-medium text-slate-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
-          />
-        </div>
-      </div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <button onClick={openDashboard} className="shine-card inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-6 py-4 text-sm font-black text-slate-950 shadow-2xl shadow-emerald-500/25 transition hover:-translate-y-1 hover:bg-emerald-300">
+              <PlayCircle size={18} /> Launch Free Terminal
+            </button>
+            <button onClick={() => navigate('/option-chain')} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/8 px-6 py-4 text-sm font-black text-white backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/12">
+              Explore Option Chain <ArrowRight size={18} />
+            </button>
+          </div>
 
-      <!-- Right Side Actions & Real-Time Status -->
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 px-3 py-1 rounded border" style="background:${market.color}1a;border-color:${market.color}55;" title="Live NSE market status">
-          <span class="relative flex h-1.5 w-1.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background:${market.color}"></span>
-            <span class="relative inline-flex rounded-full h-1.5 w-1.5" style="background:${market.color}"></span>
-          </span>
-          <span class="font-extrabold tracking-wider text-[10px] font-mono" style="color:${market.color}">${market.label}</span>
-        </div>
-        
-        <!-- Primary Blue Button to launch the react screen -->
-        <a 
-          href="/screener" 
-          class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-xs px-4 py-2 rounded transition-all duration-150 flex items-center gap-1.5 shadow-sm shadow-blue-600/25"
-        >
-          <span>Access Pro Terminal</span>
-          <i data-lucide="arrow-right" class="w-3 h-3"></i>
-        </a>
-      </div>
-    </nav>
-
-    <!-- 2. THE HERO SECTION UPGRADE (Inspired by StockPro Premium Layout & Active Trading Desktop UI) -->
-    <header id="hero-header" class="relative bg-[#020617] border-b border-slate-950 overflow-hidden min-h-[520px]">
-      
-      
-      <!-- High-Tech PC Trading Grid paper background with axis indicators (Dark neon contrast) -->
-      <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:50px_50px] opacity-[0.45] pointer-events-none"></div>
-
-      <!-- Right Edge price axis column simulation for dark mode terminal -->
-      <div class="absolute right-0 top-0 bottom-0 w-20 border-l border-slate-800 bg-slate-950/80 pointer-events-none hidden xl:flex flex-col justify-around py-12 px-2 text-right font-mono text-[9px] text-[#38bdf8] select-none">
-        <div>25,480.00</div>
-        <div>25,260.00</div>
-        <div>25,040.00</div>
-        <div class="text-[#38bdf8] font-bold bg-[#38bdf8]/10 border border-[#38bdf8]/30 rounded px-1">${fmtPrice(nifty.price)}</div>
-        <div>24,620.00</div>
-        <div>24,400.00</div>
-      </div>
-
-      <!-- Bottom Edge timeline axis simulation to look like a hardware monitor frame -->
-      <div class="absolute bottom-0 left-0 right-20 h-7 border-t border-slate-800 bg-slate-950/80 pointer-events-none hidden xl:flex items-center justify-between px-12 text-center font-mono text-[9px] text-slate-500 select-none">
-        <div>09:15 AM</div>
-        <div>10:30 AM</div>
-        <div>11:45 AM</div>
-        <div>01:00 PM</div>
-        <div>02:15 PM</div>
-        <div class="text-[#38bdf8] font-bold">03:30 PM (Live Feed)</div>
-      </div>
-
-      <!-- Absolute Watermarked Active Candlestick Series & Moving Average Indicators (Glowing Neon) -->
-      <div class="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.35] z-0">
-        <svg class="w-full h-full min-w-[1200px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 500" preserveAspectRatio="none">
-          
-          <!-- Moving average Exponential line (Electric blue glowing wave) -->
-          <path d="M 0 380 Q 200 300 400 340 T 800 210 T 1200 280 T 1440 180" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" />
-          <!-- Fast SMA line (Bright cyan glowing wave) -->
-          <path d="M 0 300 Q 150 210 350 280 T 750 160 T 1150 200 T 1440 110" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="3 3"/>
-          
-          <!-- High-Contrast Japanese Candlestick Patterns with glowing neon green and red fills -->
-          <!-- green candle 1 -->
-          <line x1="160" y1="280" x2="160" y2="350" stroke="#10b981" stroke-width="1.5" />
-          <rect x="154" y="295" width="12" height="40" fill="#10b981" fill-opacity="0.8" stroke="#10b981" stroke-width="1.5" />
-          
-          <!-- red candle 2 -->
-          <line x1="280" y1="220" x2="280" y2="310" stroke="#f43f5e" stroke-width="1.5" />
-          <rect x="274" y="240" width="12" height="50" fill="#f43f5e" fill-opacity="0.8" stroke="#f43f5e" stroke-width="1.5" />
-          
-          <!-- green candle 3 -->
-          <line x1="420" y1="180" x2="420" y2="290" stroke="#10b981" stroke-width="1.5" />
-          <rect x="414" y="200" width="12" height="70" fill="#10b981" fill-opacity="0.8" stroke="#10b981" stroke-width="1.5" />
-          
-          <!-- green candle 4 (Upward acceleration) -->
-          <line x1="560" y1="130" x2="560" y2="230" stroke="#10b981" stroke-width="1.5" />
-          <rect x="554" y="150" width="12" height="60" fill="#10b981" fill-opacity="0.8" stroke="#10b981" stroke-width="1.5" />
-          
-          <!-- red candle 5 (Correction) -->
-          <line x1="700" y1="210" x2="700" y2="320" stroke="#f43f5e" stroke-width="1.5" />
-          <rect x="694" y="235" width="12" height="65" fill="#f43f5e" fill-opacity="0.8" stroke="#f43f5e" stroke-width="1.5" />
-
-          <!-- green candle 6 (Double bottom bounce) -->
-          <line x1="840" y1="150" x2="840" y2="260" stroke="#10b981" stroke-width="1.5" />
-          <rect x="834" y="170" width="12" height="75" fill="#10b981" fill-opacity="0.8" stroke="#10b981" stroke-width="1.5" />
-
-          <!-- green candle 7 -->
-          <line x1="1020" y1="100" x2="1020" y2="200" stroke="#10b981" stroke-width="1.5" />
-          <rect x="1014" y="115" width="12" height="65" fill="#10b981" fill-opacity="0.8" stroke="#10b981" stroke-width="1.5" />
-
-          <!-- red candle 8 -->
-          <line x1="1180" y1="160" x2="1180" y2="250" stroke="#f43f5e" stroke-width="1.5" />
-          <rect x="1174" y="175" width="12" height="55" fill="#f43f5e" fill-opacity="0.8" stroke="#f43f5e" stroke-width="1.5" />
-
-          <!-- Bollinger Band boundary channels tracking the chart bounds -->
-          <path d="M 0 250 Q 200 180 400 220 T 800 100 T 1200 150 T 1440 60" fill="none" stroke="#475569" stroke-width="1" opacity="0.6" />
-          <path d="M 0 430 Q 200 370 400 390 T 800 290 T 1200 350 T 1440 240" fill="none" stroke="#475569" stroke-width="1" opacity="0.6" />
-        </svg>
-      </div>
-
-      <div class="relative max-w-7xl mx-auto px-6 py-12 lg:py-16 z-10">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
-          <!-- Left Column: Heavy High-contrast Typographic content (Span 6/12) -->
-          <div class="lg:col-span-6 space-y-6">
-            <!-- Brand Sublabel in glowing cyan / neon light index -->
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-black uppercase text-cyan-400 tracking-widest font-mono shadow-sm">analytics terminal</span>
-              <div class="h-0.5 w-12 bg-cyan-400 shadow-sm shadow-cyan-400/55"></div>
-            </div>
-            
-            <!-- Massive heavy font heading, outstanding high-contrast pure white -->
-            <h1 class="text-3xl sm:text-4.5xl lg:text-5xl font-black text-white tight-letter leading-[1.08] tracking-tight">
-              The financial world in full focus built on next-gen technology
-            </h1>
-            
-            <!-- Long editorial descriptives - legible crisp grey -->
-            <p class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              F&O Analytics Pro synthesizes over 12 million global daily contracts into instantly actionable volatility trends, option pricing models, and high-frequency sentiment markers. Built specifically on dynamic high-density grids to support modern portfolio execution.
-            </p>
-            
-            <!-- Actions matching image layout perfectly with strong contrasting layout -->
-            <div class="flex flex-wrap items-center gap-3.5 pt-3">
-              <a 
-                href="#pricing-section"
-                class="bg-transparent hover:bg-white/5 border border-slate-600 text-slate-300 font-extrabold text-xs px-6 py-3.5 rounded transition-all duration-300 hover:scale-105 hover:brightness-110 font-mono tracking-wider text-center backdrop-blur-sm"
+          <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
+            {[
+              ['29+', 'Live instruments'],
+              [`${marketPulse}%`, 'Market breadth'],
+              ['FREE', 'All tools'],
+            ].map(([value, label], index) => (
+              <motion.div
+                key={label}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.18 + index * 0.08 }}
+                className="rounded-2xl border border-white/10 bg-white/6 p-4 backdrop-blur-xl"
               >
-                VIEW PRICING
-              </a>
-              <a 
-                href="/screener" 
-                class="bg-green-600 hover:bg-green-700 text-white font-extrabold text-xs px-6 py-3.5 rounded transition-all duration-300 shadow-lg shadow-green-600/30 hover:shadow-green-600/50 hover:scale-105 hover:brightness-110 font-mono tracking-wider flex items-center gap-1.5 text-center"
+                <div className="text-2xl font-black text-white">{value}</div>
+                <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        <div className="landing-perspective relative min-h-[560px]">
+          <div className="orbit-ring" />
+          <div className="orbit-ring" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, rotateX: 18, rotateY: -22 }}
+            animate={{ opacity: 1, scale: 1, rotateX: 8, rotateY: -12 }}
+            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+            className="terminal-3d glass-panel absolute left-1/2 top-10 w-[min(92vw,620px)] -translate-x-1/2 rounded-[2rem] p-5"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-rose-400" />
+                <span className="h-3 w-3 rounded-full bg-amber-400" />
+                <span className="h-3 w-3 rounded-full bg-emerald-400" />
+              </div>
+              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">
+                Live cockpit
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
+                <Activity className="mb-3 text-emerald-300" size={18} />
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nifty 50</div>
+                <div className="mt-1 text-xl font-black">{formatPrice(leadIndex.price)}</div>
+                <div className="mt-1 text-xs font-bold text-emerald-300">+{Number(leadIndex.changePercent || 0).toFixed(2)}%</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
+                <Radar className="mb-3 text-cyan-300" size={18} />
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">PCR</div>
+                <div className="mt-1 text-xl font-black">1.34</div>
+                <div className="mt-1 text-xs font-bold text-cyan-300">Bullish bias</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/6 p-4">
+                <Database className="mb-3 text-violet-300" size={18} />
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Max Pain</div>
+                <div className="mt-1 text-xl font-black">24,250</div>
+                <div className="mt-1 text-xs font-bold text-violet-300">Active zone</div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-3xl border border-white/10 bg-slate-950/70 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Option Chain Pulse</span>
+                <span className="text-[10px] font-black text-emerald-300">ATM LIVE</span>
+              </div>
+              <div className="space-y-2">
+                {optionRows.map((row) => (
+                  <div key={row.strike} className="grid grid-cols-[1fr_0.8fr_1fr] items-center gap-2 rounded-2xl border border-white/5 bg-white/[0.035] px-3 py-2 text-xs font-bold">
+                    <span className="text-cyan-300">CE {row.ce}</span>
+                    <span className={`rounded-xl px-2 py-1 text-center font-black ${row.tone === 'neutral' ? 'bg-emerald-400 text-slate-950' : 'bg-white/8 text-white'}`}>{row.strike}</span>
+                    <span className="text-right text-emerald-300">PE {row.pe}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 h-28 rounded-3xl border border-emerald-400/10 bg-gradient-to-r from-emerald-400/10 via-cyan-400/10 to-violet-400/10 p-4">
+              <div className="flex h-full items-end gap-2">
+                {[42, 64, 50, 78, 58, 88, 69, 96, 74, 82, 92, 70].map((height, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ height: 8 }}
+                    animate={{ height }}
+                    transition={{ delay: i * 0.035, duration: 0.5, repeat: Infinity, repeatType: 'mirror', repeatDelay: 2 }}
+                    className="flex-1 rounded-t-lg bg-gradient-to-t from-emerald-500 to-cyan-300 opacity-85"
+                  />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          <div className="terminal-shadow absolute bottom-4 left-1/2 h-36 w-[520px] -translate-x-1/2 rounded-full bg-emerald-500/20" />
+          <motion.div className="floating-cube absolute right-4 top-16 hidden h-24 w-24 rounded-3xl border border-emerald-400/20 bg-emerald-400/10 backdrop-blur-xl lg:block" />
+          <motion.div className="floating-cube absolute bottom-24 left-0 hidden h-20 w-20 rounded-3xl border border-cyan-400/20 bg-cyan-400/10 backdrop-blur-xl lg:block" style={{ animationDelay: '1.2s' }} />
+        </div>
+      </section>
+
+      <section className="relative z-10 border-y border-white/10 bg-white/[0.035] py-4 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl overflow-hidden px-5">
+          <div className="ticker-track flex min-w-max items-center gap-4">
+            {[...indices, ...indices, ...fallbackIndices, ...fallbackIndices].map((item, index) => {
+              const up = (item.changePercent ?? 0) >= 0;
+              return (
+                <div key={`${item.symbol}-${index}`} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-300">{item.name}</span>
+                  <span className="font-mono text-sm font-black text-white">{formatPrice(item.price)}</span>
+                  <span className={`font-mono text-xs font-black ${up ? 'text-emerald-300' : 'text-rose-300'}`}>{up ? '+' : ''}{Number(item.changePercent || 0).toFixed(2)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-7xl px-5 py-20">
+        <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <div className="mb-3 text-xs font-black uppercase tracking-[0.28em] text-emerald-300">Platform Modules</div>
+            <h2 className="max-w-2xl text-4xl font-black tracking-[-0.05em] text-white md:text-5xl">Everything a trader needs, redesigned for speed.</h2>
+          </div>
+          <p className="max-w-md text-sm leading-7 text-slate-400">Clean information hierarchy, motion feedback, and premium cards make the product feel like a real trading terminal instead of a static website.</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {features.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
+              <motion.button
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ delay: index * 0.06, duration: 0.45 }}
+                whileHover={{ y: -8, rotateX: 2, rotateY: -2 }}
+                onClick={openDashboard}
+                className="shine-card group rounded-3xl border border-white/10 bg-white/[0.055] p-6 text-left backdrop-blur-xl transition hover:border-emerald-400/40 hover:bg-white/[0.08]"
               >
-                <span>LAUNCH PLATFORM</span>
-                <i data-lucide="external-link" class="w-3.5 h-3.5 text-white/80"></i>
-              </a>
-            </div>
-          </div>
-          
-          <!-- Right Column: Sleek High-Fidelity Terminal Preview (Span 6/12) -->
-          <div class="lg:col-span-6 z-10">
-            <div class="relative bg-slate-950 p-2.5 rounded-xl border border-slate-800 shadow-2xl shadow-blue-900/10 group">
-              <!-- Grid Header Accent -->
-              <div class="flex items-center justify-between pb-2 px-1 text-[10px] text-slate-400 font-mono">
-                <span class="flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
-                  <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                  <span class="w-2 h-2 rounded-full bg-green-400"></span>
-                  <span class="ml-1 text-slate-300 font-bold">ANALYTICS TERMINAL v3.0</span>
-                </span>
-                <span>Active Channels: 16 (NSE_FEED)</span>
-              </div>
-              
-              <!-- Realistic High-density trading interface content -->
-              <div class="relative aspect-video rounded-lg overflow-hidden border border-slate-800 bg-[#020617]">
-                <img 
-                  src="/assets/images/premium_terminal_interface_1780886741287.png"
-                  alt="F&O Analytics Pro Premium Trading Interface Preview" 
-                  class="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-300"
-                />
-                
-                <!-- Corner Labels and badges overlay to increase StockPro authenticity -->
-                <div class="absolute bottom-2 left-2 bg-slate-950/95 border border-slate-700 text-[9px] text-blue-400 font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                  <span>PCR STREAMER: LIVE</span>
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 transition group-hover:scale-110">
+                  <Icon size={22} />
                 </div>
-                <div class="absolute top-2 right-2 bg-emerald-950/95 border border-emerald-700 text-[9px] text-emerald-400 font-mono font-bold px-2 py-0.5 rounded">
-                  IV SKEW: +${typeof atmIv === 'number' ? (atmIv * 0.33).toFixed(2) : Number((atmIv || 0) * 0.33).toFixed(2)}%
-                </div>
-              </div>
-            </div>
-          </div>
-
+                <h3 className="text-lg font-black text-white">{feature.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-400">{feature.body}</p>
+              </motion.button>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
-      <!-- 2b. STICKY SUB-NAVIGATION STRIP (Anchor Menu exactly from image layout) -->
-      <div class="sticky top-[57px] bg-white/95 backdrop-blur-sm border-t border-b border-gray-200 z-40 text-center">
-        <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between overflow-x-auto">
-          <div class="flex items-center gap-6 sm:gap-8 shrink-0">
-            <a href="#overview" class="text-[10px] uppercase font-black text-blue-600 tracking-wider hover:text-blue-700 transition">Overview</a>
-            <span class="text-gray-300">|</span>
-            <a href="#analytical-dashboard" class="text-[10px] uppercase font-bold text-gray-500 tracking-wider hover:text-[#111827] transition">Products</a>
-            <span class="text-gray-300">|</span>
-            <a href="/" class="text-[10px] uppercase font-bold text-gray-500 tracking-wider hover:text-[#111827] transition">Terminal in Action</a>
-            <span class="text-gray-300">|</span>
-            <a href="#news-grid" class="text-[10px] uppercase font-bold text-gray-500 tracking-wider hover:text-[#111827] transition">Top Industry Challenges</a>
-            <span class="text-gray-300">|</span>
-            <a href="#insights-section" class="text-[10px] uppercase font-bold text-gray-550 tracking-wider hover:text-[#111827] transition">Insights</a>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- 3. TOP ANALYTICAL DASHBOARD ROW (Enhanced Premium Style, Gray Section Block) -->
-    <main id="overview" class="bg-gray-50/50 border-b border-gray-200 py-10">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Tiny visual alert banner -->
-        <div class="mb-8 flex items-center justify-between bg-white border border-gray-200 rounded p-3 text-[11px] font-mono shadow-sm">
-          <div class="flex items-center gap-2">
-            <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded font-bold text-[9px]">SYSTEM FEED</span>
-            <span class="text-slate-600">Dynamic Open Interest clustering identified near ${fmtPrice(atmStrike)} Strikes. Put writing accelerated.</span>
-          </div>
-          <span class="text-slate-400 font-semibold uppercase hidden sm:inline">PULSE ID: FOP-099X</span>
-        </div>
-
-        <div id="analytical-dashboard" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          <!-- CARD 1 (Left, White Background, Span 5/12): Futures Market Movers -->
-          <div class="lg:col-span-5 bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-20">
+        <div className="rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 shadow-2xl shadow-black/20 backdrop-blur-xl md:p-8">
+          <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div>
-              <div class="flex items-center justify-between pb-3.5 border-b border-gray-100 mb-4">
-                <h3 class="text-xs font-black text-slate-900 tracking-wider uppercase flex items-center gap-2">
-                  <i data-lucide="trending-up" class="text-blue-600 w-4 h-4"></i>
-                  Futures Market Movers
-                </h3>
-                <span class="text-[9px] font-mono text-gray-400 font-semibold uppercase">India Indices</span>
-              </div>
-              
-              <!-- High-density row lists with Bid/Ask and Volume info for institutional aesthetic -->
-              <div class="space-y-3.5">
-                <!-- NIFTY 50 row -->
-                <div class="p-3 border border-gray-100 rounded hover:border-blue-200 hover:bg-slate-50/40 transition cursor-pointer">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-black text-[#111827]">NIFTY 50 Futures</span>
-                      <span class="text-[9px] bg-gray-100 text-gray-500 font-mono font-medium px-1 rounded">NEAR_FUT</span>
-                    </div>
-                    <div class="flex items-center gap-2.5">
-                      <span class="font-mono text-xs font-bold text-[#111827]">${fmtPrice(nifty.price)}</span>
-                      ${chgBadge(nifty.changePercent)}
-                    </div>
-                  </div>
-                  <div class="mt-2 flex items-center justify-between text-[9.5px] font-mono text-slate-400">
-                    <span>Bid/Ask: <strong class="text-slate-700">${fmtPrice(nifty.price - 1)} / ${fmtPrice(nifty.price + 1)}</strong></span>
-                    <span>OI Vol: <strong class="text-slate-700">${totalCallOi > 0 ? fmtOI(totalCallOi) + ' Cr' : '421K Cr'}</strong></span>
-                  </div>
-                </div>
-                
-                <!-- BANKNIFTY row -->
-                <div class="p-3 border border-gray-100 rounded hover:border-red-200 hover:bg-slate-50/40 transition cursor-pointer">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-black text-[#111827]">BANKNIFTY Futures</span>
-                      <span class="text-[9px] bg-gray-100 text-gray-500 font-mono font-medium px-1 rounded">NEAR_FUT</span>
-                    </div>
-                    <div class="flex items-center gap-2.5">
-                      <span class="font-mono text-xs font-bold text-[#111827]">${fmtPrice(banknifty.price)}</span>
-                      ${chgBadge(banknifty.changePercent)}
-                    </div>
-                  </div>
-                  <div class="mt-2 flex items-center justify-between text-[9.5px] font-mono text-slate-400">
-                    <span>Bid/Ask: <strong class="text-slate-700">${fmtPrice(banknifty.price - 2)} / ${fmtPrice(banknifty.price + 2)}</strong></span>
-                    <span>OI Vol: <strong class="text-slate-700">${totalPutOi > 0 ? fmtOI(totalPutOi) + ' Cr' : '198K Cr'}</strong></span>
-                  </div>
-                </div>
-              </div>
+              <div className="mb-3 text-xs font-black uppercase tracking-[0.28em] text-cyan-300">3-Step Trading Flow</div>
+              <h2 className="text-4xl font-black tracking-[-0.05em] text-white">From scan to decision in one workspace.</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-400">Your landing page now explains the product clearly: discover opportunities, validate with analytics, then control risk before taking action.</p>
+              <button onClick={() => navigate('/scanner')} className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:-translate-y-1 hover:bg-emerald-50">
+                Try Smart Scanner <ArrowRight size={16} />
+              </button>
             </div>
 
-            <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-              <span>Dynamic calculations live</span>
-              <span class="text-gray-400">FUT Expiry: 25-JUN</span>
+            <div className="grid gap-4 md:grid-cols-3">
+              {workflow.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <motion.div
+                    key={step.label}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="relative rounded-3xl border border-white/10 bg-slate-950/70 p-5"
+                  >
+                    <div className="mb-6 flex items-center justify-between">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950"><Icon size={20} /></span>
+                      <span className="font-mono text-xs font-black text-slate-500">0{index + 1}</span>
+                    </div>
+                    <h3 className="text-xl font-black text-white">{step.label}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-400">{step.detail}</p>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
-
-          <!-- CARD 2 (Right, White Background, Span 7/12): F&O Market Sentiment Meter -->
-          <div class="lg:col-span-7 bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between pb-3.5 border-b border-gray-100 mb-4">
-                <h3 class="text-xs font-black text-slate-900 tracking-wider uppercase flex items-center gap-2">
-                  <i data-lucide="sliders-horizontal" class="text-blue-600 w-4 h-4"></i>
-                  F&O Market Sentiment Meter
-                </h3>
-                <span class="text-[9px] font-mono text-gray-400 font-semibold uppercase">Volatility Matrix</span>
-              </div>
-
-              <p class="text-xs text-gray-500 mb-4 leading-relaxed font-normal">
-                Synthesized from active open interest contracts across major call & put series strike rates. The current positioning indicates structural bullish support with substantial accumulation across weekly protective strikes.
-              </p>
-
-              <!-- Track block and labels -->
-              <div class="space-y-4 pt-1.5">
-                <div class="relative pt-6">
-                  
-                  <!-- Track with shaded color blocks (Soft Red -> Yellow -> Emerald Green) -->
-                  <div class="h-5 w-full rounded overflow-hidden flex border border-gray-200 shadow-inner">
-                    <!-- Bearish (Soft Red) -->
-                    <div class="w-1/3 bg-rose-100 flex items-center justify-center text-[8.5px] font-extrabold text-rose-700 font-mono uppercase tracking-wider border-r border-gray-200/50">
-                      Bearish
-                    </div>
-                    <!-- Balanced (Yellow) -->
-                    <div class="w-1/4 bg-amber-100 flex items-center justify-center text-[8.5px] font-extrabold text-amber-700 font-mono uppercase tracking-wider border-r border-gray-200/50">
-                      Balanced
-                    </div>
-                    <!-- Bullish (Vibrant Emerald Green) -->
-                    <div class="w-[41.67%] bg-emerald-500/15 flex items-center justify-center text-[9px] font-black text-emerald-800 font-mono uppercase tracking-widest bg-emerald-100">
-                      Bullish Segment
-                    </div>
-                  </div>
-
-                  <!-- Custom Sharp Black Vertical Pin pointing exactly to current PCR -->
-                  <div class="absolute -top-3 left-[71.5%] -ml-1.5 flex flex-col items-center">
-                    <!-- Glowing indicator circle -->
-                    <div class="w-4 h-4 rounded-full bg-[#111827] border border-white flex items-center justify-center shadow-md relative">
-                      <span class="absolute w-6 h-6 rounded-full bg-slate-900/10 animate-ping"></span>
-                      <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-                    </div>
-                    <!-- Pin shaft -->
-                    <div class="w-0.5 h-8 bg-[#111827]"></div>
-                  </div>
-                </div>
-
-                <!-- Labels showing range values -->
-                <div class="flex items-center justify-between text-[11px]">
-                  <span class="text-gray-400 font-mono">Bear threshold (0.4)</span>
-                  
-                  <!-- Put Call ratio tag badge -->
-                  <div class="bg-[#111827] text-white rounded px-3 py-1 font-mono text-[11px] font-bold tracking-tight inline-flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Put-Call Ratio (PCR): <span class="text-emerald-400 font-black">${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</span>
-                  </div>
-                  
-                  <span class="text-gray-400 font-mono">Bull threshold (1.8)</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-              <span>Sentiment Weighted Matrix: <strong class="text-emerald-600 font-bold">${pcr > 1.2 ? 'Strong Buy Protective Moat' : pcr >= 0.8 ? 'Neutral Consolidation' : 'Bearish Resistance Zone'}</strong></span>
-              <span>Daily Update Complete</span>
-            </div>
-          </div>
-
         </div>
-      </div>
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-24">
+        <div className="overflow-hidden rounded-[2rem] border border-emerald-400/20 bg-gradient-to-r from-emerald-400 via-cyan-300 to-indigo-400 p-[1px] shadow-2xl shadow-emerald-500/20">
+          <div className="rounded-[2rem] bg-slate-950 px-6 py-10 text-center md:px-12 md:py-14">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400 text-slate-950">
+              <CheckCircle2 size={28} />
+            </div>
+            <h2 className="mx-auto max-w-3xl text-4xl font-black tracking-[-0.05em] text-white md:text-5xl">All advanced tools are unlocked and ready.</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-400">No Pro lock, no hidden premium features, and no payment wall. Launch the dashboard and access the full StockPro workspace.</p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <button onClick={openDashboard} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-6 py-4 text-sm font-black text-slate-950 transition hover:-translate-y-1 hover:bg-emerald-300">
+                Start Free Now <ArrowRight size={18} />
+              </button>
+              <button onClick={() => navigate('/pricing')} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/8 px-6 py-4 text-sm font-black text-white backdrop-blur-xl transition hover:-translate-y-1 hover:bg-white/12">
+                View Free Access
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
-
-    <!-- 3b. STOCKPRO TERMINAL IN ACTION STAGGERED SHOWCASE SECTION (Pure White Light-mode, Orange/Amber backdrops) -->
-    <section id="terminal-in-action" class="bg-white border-b border-gray-200 py-16 sm:py-24">
-      <div class="max-w-7xl mx-auto px-6 space-y-20 sm:space-y-32">
-        
-        <!-- SECTION TITLE & SUBHEADING (StockPro Editorial Styling) -->
-        <div class="border-b border-gray-200 pb-5 max-w-2xl">
-          <span class="text-xs font-black uppercase text-orange-600 tracking-widest font-mono">Platform In Action</span>
-          <h2 class="text-2xl sm:text-3.5xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Derivatives Terminal In Action
-          </h2>
-          <p class="text-xs text-gray-500 mt-2 font-sans">
-            Explore advanced visualization matrices, multi-asset workflow controls, and global intelligence feeds designed for elite trading desks.
-          </p>
-        </div>
-
-        <!-- BAND 1: Research & Open Interest (Text Left, Image Right) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <!-- Text left -->
-          <div class="lg:col-span-5 space-y-4">
-            <div class="flex items-center gap-2">
-              <span class="text-[9px] font-black uppercase text-orange-600 tracking-widest font-mono">01 // RESEARCH INTELLIGENCE</span>
-              <div class="h-px w-6 bg-orange-600"></div>
-            </div>
-            <h3 class="text-xl sm:text-2.5xl lg:text-3xl font-black text-[#111827] tracking-tight leading-snug">
-              Research at your fingertips.
-            </h3>
-            <p class="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              F&O Analytics Pro provides interactive data matrices and exclusive outlooks by options strikes and expiration regions from a dedicated team of market analysts.
-            </p>
-            <div class="pt-2">
-              <span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 font-mono tracking-wider bg-orange-50 px-2 py-1 rounded">
-                <i data-lucide="line-chart" class="w-3 h-3"></i> LIVE CO-INTEGRATION ACTIVE
-              </span>
-            </div>
-          </div>
-          
-          <!-- Mockup right with vivid amber/orange backdrop -->
-          <div class="lg:col-span-7">
-            <div class="relative bg-gradient-to-tr from-amber-500 via-orange-600 to-amber-700 p-6 sm:p-10 rounded-2xl shadow-xl border border-orange-500/20 overflow-hidden flex items-center justify-center">
-              <!-- Graph Grid decoration watermark in absolute background -->
-              <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:30px_30px] opacity-[0.06] pointer-events-none"></div>
-              
-              <!-- Floating light glow sphere decoration -->
-              <div class="absolute -right-16 -top-16 w-36 h-36 rounded-full bg-orange-300 blur-3xl opacity-30 pointer-events-none"></div>
-
-              <!-- High-Fidelity Black Terminal Widget inside (HTML/CSS Based mockup) -->
-              <div class="relative w-full max-w-full bg-[#0a0f1d] rounded-xl border border-slate-800 shadow-2xl p-4 sm:p-5 font-mono text-[10px] text-slate-300 z-10 transition hover:scale-[1.01] duration-300">
-                <!-- Header panel controls -->
-                <div class="flex items-center justify-between pb-3.5 border-b border-slate-900 mb-4 text-slate-400">
-                  <div class="flex items-center gap-2">
-                    <span class="flex gap-1">
-                      <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                      <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    </span>
-                    <span class="text-[10px] font-bold text-slate-200">RESEARCH_DESK // OI_ANALYSIS_STRIP</span>
-                  </div>
-                  <span class="text-[8px] bg-emerald-950 border border-emerald-800 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-black tracking-wide flex items-center gap-1">
-                    <span class="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span> SECURE FEED
-                  </span>
-                </div>
-
-                <!-- Metrics layout -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-                  <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
-                    <div class="text-[8px] text-slate-500 font-bold">PUT VOL SELECT</div>
-                    <div class="text-[11px] font-black text-orange-500 mt-0.5">${fmtOI(totalPutOi)}</div>
-                  </div>
-                  <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
-                    <div class="text-[8px] text-slate-500 font-bold">CALL VOL SELECT</div>
-                    <div class="text-[11px] font-black text-slate-200 mt-0.5">${fmtOI(totalCallOi)}</div>
-                  </div>
-                  <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
-                    <div class="text-[8px] text-slate-500 font-bold">COMBINED PCR</div>
-                    <div class="text-[11px] font-black text-emerald-400 mt-0.5">${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</div>
-                  </div>
-                  <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
-                    <div class="text-[8px] text-slate-500 font-bold">OI STRIKE COLD</div>
-                    <div class="text-[11px] font-black text-slate-200 mt-0.5">${fmtPrice(topCallStrike)} CE</div>
-                  </div>
-                </div>
-
-                <!-- OI High-density lines -->
-                <div class="space-y-3 pt-1">
-                  <div class="flex items-center justify-between text-slate-500 font-bold text-[8px] tracking-wider uppercase border-b border-slate-900 pb-1.5">
-                    <span>OPTION STRATEGY</span>
-                    <span>IV SKEW</span>
-                    <span class="text-right">OI ACCUMULATION RATE</span>
-                  </div>
-
-                  <!-- Item 1 -->
-                  <div class="space-y-1">
-                    <div class="flex items-center justify-between text-slate-300 text-[9.5px]">
-                      <span class="font-bold text-slate-200">NIFTY ${fmtPrice(topCallStrike)} CALL</span>
-                      <span class="font-mono text-slate-400">${typeof atmIv === 'number' ? atmIv.toFixed(2) : Number(atmIv || 0).toFixed(2)}% <strong class="text-emerald-500 font-bold">▲</strong></span>
-                      <span class="font-bold font-mono">${fmtOI(topCallOi)} <span class="text-slate-500 text-[8px]">(100%)</span></span>
-                    </div>
-                    <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
-                      <div class="bg-gradient-to-r from-amber-500 to-orange-600 h-full rounded-full" style="width: 100%"></div>
-                    </div>
-                  </div>
-
-                  <!-- Item 2 -->
-                  <div class="space-y-1">
-                    <div class="flex items-center justify-between text-slate-300 text-[9.5px]">
-                      <span class="font-bold text-slate-200">NIFTY ${fmtPrice(topPutStrike)} PUT</span>
-                      <span class="font-mono text-slate-400">15.80% <strong class="text-emerald-500 font-bold">▲</strong></span>
-                      <span class="font-bold font-mono">${fmtOI(topPutOi)} <span class="text-slate-500 text-[8px]">(72%)</span></span>
-                    </div>
-                    <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
-                      <div class="bg-gradient-to-r from-amber-500 to-orange-600 h-full rounded-full" style="width: 72%"></div>
-                    </div>
-                  </div>
-
-                  <!-- Item 3 -->
-                  <div class="space-y-1">
-                    <div class="flex items-center justify-between text-slate-300 text-[9.5px]">
-                      <span class="font-bold text-slate-200">NIFTY ${fmtPrice(atmStrike)} PUT</span>
-                      <span class="font-mono text-slate-400">14.95% <strong class="text-rose-500 font-bold">▼</strong></span>
-                      <span class="font-bold font-mono">${fmtOI(nearAtmOi.find((o:any) => o.strikePrice === atmStrike)?.putOi || 0)} <span class="text-slate-500 text-[8px]">(56%)</span></span>
-                    </div>
-                    <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-900">
-                      <div class="bg-gradient-to-r from-amber-500 to-orange-600 h-full rounded-full" style="width: 56%"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Bottom stats bar -->
-                <div class="mt-4 pt-2.5 border-t border-slate-900 flex justify-between items-center text-[8px] text-slate-500">
-                  <span>LAST COMP PREVIEW CALCULATION</span>
-                  <span class="text-orange-500 font-bold">RUNNING</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <hr class="border-gray-100" />
-
-        <!-- BAND 2: Live Market Workspaces (Image Left, Text Right) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <!-- Mockup left with vivid amber/orange backdrop -->
-          <div class="lg:col-span-7 order-last lg:order-first">
-            <div class="relative bg-gradient-to-tr from-orange-600 via-amber-600 to-red-700 p-6 sm:p-10 rounded-2xl shadow-xl border border-orange-500/20 overflow-hidden flex items-center justify-center">
-              <!-- Graph Grid decoration watermark in absolute background -->
-              <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:35px_35px] opacity-[0.05] pointer-events-none"></div>
-
-              <!-- Floating light glow sphere decoration -->
-              <div class="absolute -left-12 -bottom-12 w-32 h-32 rounded-full bg-amber-400 blur-3xl opacity-20 pointer-events-none"></div>
-
-              <!-- High-Fidelity Black Terminal Widget inside (HTML/CSS Based workspace chart mockup) -->
-              <div class="relative w-full max-w-full bg-[#0a0f1d] rounded-xl border border-slate-800 shadow-2xl p-4 sm:p-5 font-mono text-[10px] text-slate-300 z-10 transition hover:scale-[1.01] duration-300">
-                <!-- Header with fast indicators -->
-                <div class="flex items-center justify-between pb-3.5 border-b border-slate-900 mb-4 text-slate-400">
-                  <div class="flex items-center gap-2">
-                    <span class="flex gap-1">
-                      <span class="w-2 h-2 rounded-full bg-slate-700"></span>
-                      <span class="w-2 h-2 rounded-full bg-slate-700"></span>
-                      <span class="w-2 h-2 rounded-full bg-slate-700"></span>
-                    </span>
-                    <span class="text-[10px] font-bold text-slate-200">WORKSPACE // VOLATILITY_SKEW_HISTOGRAM</span>
-                  </div>
-                  <div class="flex items-center gap-2.5 text-[8px] font-mono text-slate-500">
-                    <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> SKEW</span>
-                    <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-[#8b5cf6]"></span> SMA_FAST</span>
-                  </div>
-                </div>
-
-                <!-- SVG chart frame simulation -->
-                <div class="w-full h-36 bg-[linear-gradient(to_right,#111827_1px,transparent_1px),linear-gradient(to_bottom,#111827_1px,transparent_1px)] bg-[size:20px_20px] relative rounded border border-slate-950 overflow-hidden mb-3.5">
-                  <svg class="w-full h-full" viewBox="0 0 400 144" preserveAspectRatio="none">
-                    <!-- Smooth cyberwave line 1 (Cyan skew line) -->
-                    <path d="M 0 110 C 80 120, 140 50, 200 65 T 320 25 T 400 45" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" />
-                    <!-- Smooth moving average line 2 (Violet dashed line) -->
-                    <path d="M 0 90 Q 90 125 180 60 T 300 40 T 400 90" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="2 2" stroke-linecap="round" />
-                    
-                    <!-- Horizontal benchmark markers -->
-                    <line x1="0" y1="36" x2="400" y2="36" stroke="#1e293b" stroke-width="0.5" />
-                    <line x1="0" y1="72" x2="400" y2="72" stroke="#1e293b" stroke-width="0.5" />
-                    <line x1="0" y1="108" x2="400" y2="108" stroke="#1e293b" stroke-width="0.5" />
-
-                    <!-- Active marker blinking dot -->
-                    <circle cx="320" cy="25" r="3" fill="#22d3ee" class="animate-pulse" />
-                  </svg>
-                  
-                  <!-- Floating live value flag -->
-                  <div class="absolute top-2 left-3 border border-slate-800 bg-[#0c101b]/95 rounded px-2 py-0.5 text-[8px] select-none">
-                    <span class="text-slate-500 uppercase font-bold">PEAK SKEW:</span> <strong class="text-cyan-400 font-bold">+${typeof atmIv === 'number' ? (atmIv * 0.33).toFixed(2) : Number((atmIv || 0) * 0.33).toFixed(2)}% L-IV</strong>
-                  </div>
-                </div>
-
-                <!-- Green / Red Buy Sell Volume HFT Histogram panels simulation -->
-                <div class="space-y-1.5">
-                  <div class="flex items-center justify-between text-[7.5px] text-slate-500 uppercase font-black tracking-wider px-0.5">
-                    <span>INSTITUTIONAL BBO volume profile</span>
-                    <span>BULLS: 62% vs BEARS: 38%</span>
-                  </div>
-                  
-                  <div class="grid grid-cols-12 gap-1.5 h-10 items-end px-1 bg-slate-950/60 p-2 rounded border border-slate-900 select-none">
-                    <div class="bg-rose-500 h-[28%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[45%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[62%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[80%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-full rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[22%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[33%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[50%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[85%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-emerald-500 h-[92%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[30%] rounded-sm opacity-90 col-span-1"></div>
-                    <div class="bg-rose-500 h-[12%] rounded-sm opacity-90 col-span-1"></div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          <!-- Text right -->
-          <div class="lg:col-span-5 lg:col-start-8 space-y-4">
-            <div class="flex items-center gap-2">
-              <span class="text-[9px] font-black uppercase text-orange-600 tracking-widest font-mono">02 // WORKSPACE CONTROLS</span>
-              <div class="h-px w-6 bg-orange-600"></div>
-            </div>
-            <h3 class="text-xl sm:text-2.5xl lg:text-3xl font-black text-[#111827] tracking-tight leading-snug">
-              Make fast decisions with a customized workspace.
-            </h3>
-            <p class="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              Our advanced layout framework delivers dynamic multi-strike security monitors, powerful alerting engines, and sophisticated option chain visualization tools that move markets.
-            </p>
-            <div class="pt-2">
-              <span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 font-mono tracking-wider bg-orange-50 px-2 py-1 rounded">
-                <i data-lucide="sliders-horizontal" class="w-3 h-3"></i> HFT CHANNELS SYNCED
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <hr class="border-gray-100" />
-
-        <!-- BAND 3: Mobile Tracking Terminal (Text Left, Image Right) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <!-- Text left -->
-          <div class="lg:col-span-5 space-y-4">
-            <div class="flex items-center gap-2">
-              <span class="text-[9px] font-black uppercase text-orange-600 tracking-widest font-mono">03 // MOBILE COMPANION</span>
-              <div class="h-px w-6 bg-orange-600"></div>
-            </div>
-            <h3 class="text-xl sm:text-2.5xl lg:text-3xl font-black text-[#111827] tracking-tight leading-snug">
-              Never miss a beat.
-            </h3>
-            <p class="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              Access your derivative positions and live PCR volatility parameters right on your mobile device whether you are in transit or on the move.
-            </p>
-            <div class="pt-2">
-              <span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 font-mono tracking-wider bg-orange-50 px-2 py-1 rounded">
-                <i data-lucide="smartphone" class="w-3 h-3"></i> IOS / ANDROID WEB APP FRAMEWAY
-              </span>
-            </div>
-          </div>
-
-          <!-- Mockup right with vivid amber/orange backdrop containing beautiful smartphone device shell -->
-          <div class="lg:col-span-7">
-            <div class="relative bg-gradient-to-tr from-amber-500 via-orange-600 to-red-800 p-8 sm:p-12 rounded-2xl shadow-xl border border-orange-500/20 overflow-hidden flex items-center justify-center">
-              <!-- Graph Grid decoration watermark in absolute background -->
-              <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:25px_25px] opacity-[0.06] pointer-events-none"></div>
-
-              <!-- High-Fidelity Smartphone mockup component -->
-              <div class="relative mx-auto w-[210px] h-[385px] bg-[#030712] border-[5px] border-slate-950 rounded-[34px] p-2.5 shadow-2xl relative flex flex-col justify-between overflow-hidden group hover:scale-[1.02] duration-300">
-                <!-- Phone Display Notch -->
-                <div class="absolute top-0 left-12 right-12 h-3.5 bg-slate-950 rounded-b-xl z-20 flex items-center justify-center">
-                  <span class="w-8 h-0.5 bg-slate-900 rounded-full"></span>
-                </div>
-
-                <!-- Screen Contents -->
-                <div class="bg-[#090d16] h-full rounded-[24px] overflow-hidden p-2 flex flex-col justify-between font-mono text-[9px] text-slate-350 relative z-10 border border-slate-950 select-none">
-                  <!-- Header details -->
-                  <div class="flex items-center justify-between text-slate-500 pt-1 pb-1 text-[7px] border-b border-slate-900">
-                    <span>ANALYTICS_MOBILE</span>
-                    <span class="text-emerald-400 font-bold">● 9:15 AM LIVE</span>
-                  </div>
-
-                  <!-- Live core stats -->
-                  <div class="py-1">
-                    <div class="text-[7px] uppercase text-slate-500">NIFTY 50 INDEX (PRO)</div>
-                    <div class="text-[11px] font-black text-white flex items-center justify-between mt-0.5">
-                      <span>${fmtPrice(nifty.price)}</span>
-                    <span class="text-[7.5px] ${nifty.isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} px-1 rounded font-bold">${nifty.isPositive ? '+' : ''}${typeof nifty.changePercent === 'number' ? nifty.changePercent.toFixed(2) : Number(nifty.changePercent || 0).toFixed(2)}%</span>
-                    </div>
-                  </div>
-
-                  <!-- Mini Chart -->
-                  <div class="bg-slate-950 border border-slate-900 p-1.5 rounded h-16 relative overflow-hidden flex items-end">
-                    <svg class="absolute inset-0 w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-                      <!-- Blue active wave -->
-                      <path d="M 0 32 L 20 22 L 40 28 L 60 12 L 80 18 L 100 3" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" />
-                    </svg>
-                    <div class="text-[7px] text-slate-500 z-10 font-bold uppercase absolute bottom-1 right-1.5">PCR RATE: ${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</div>
-                  </div>
-
-                  <!-- Compact OI Options Chain elements -->
-                  <div class="space-y-1 pt-1.5 flex-1 flex flex-col justify-center">
-                    <div class="text-[7px] uppercase font-bold text-slate-500 pb-0.5">ACTIVE STRIKES ACCUMULATION</div>
-                    
-                    <div class="bg-slate-900 border border-slate-950 p-1 rounded flex items-center justify-between">
-                      <span class="text-[8px] text-emerald-400 font-extrabold">${fmtPrice(topPutStrike)} PE</span>
-                      <span class="text-slate-300">142K contract</span>
-                      <span class="text-slate-500 text-[6.5px]">▲ +40%</span>
-                    </div>
-                    
-                    <div class="bg-slate-900 border border-slate-950 p-1 rounded flex items-center justify-between">
-                      <span class="text-[8px] text-rose-400 font-extrabold">${fmtPrice(topCallStrike)} CE</span>
-                      <span class="text-slate-300">198K contract</span>
-                      <span class="text-slate-500 text-[6.5px]">▼ -12%</span>
-                    </div>
-                  </div>
-
-                  <!-- Nav bars -->
-                  <div class="border-t border-slate-900 pt-1.5 flex items-center justify-between text-[6.5px] text-slate-500 text-center uppercase tracking-tighter">
-                    <span class="text-orange-500 font-bold">Watchlists</span>
-                    <span>Skew</span>
-                    <span>Greeks</span>
-                    <span>Settings</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- 3c. ADVANCED LIGHT-THEME FINANCIAL ANALYTICS SUITE (Staggered High-Density Desktop Modules) -->
-    
-    <!-- SECTION 1: DYNAMIC F&O HEATMAP (Open Interest Sector Heatmap) -->
-    <section id="oi-heatmap" class="bg-gray-50 border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Header element with scannable title and elegant layout legend -->
-        <div class="flex flex-col md:flex-row md:items-end justify-between border-b border-gray-200 pb-5 mb-8 gap-4">
-          <div class="space-y-1">
-            <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">Market Heat Analysis</span>
-            <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight uppercase font-sans leading-none">
-              Live Open Interest (OI) Sector Heatmap
-            </h2>
-            <p class="text-xs text-gray-500 font-sans">
-              Real-time cross-sector derivatives position buildup map. High intensity colors represent extreme contract accumulation.
-            </p>
-          </div>
-          
-          <!-- Tiny, elegant legend block -->
-          <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-wrap gap-3 text-[9.5px] font-mono text-gray-600">
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded bg-[#15803d]" title="Long Build-up"></span>
-              <span class="font-bold">Long Build-up (+OI & +Price)</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded bg-[#dcfce7] border border-[#bbf7d0]" title="Short Covering"></span>
-              <span class="font-bold text-emerald-800">Short Covering (+Price & -OI)</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded bg-[#fee2e2] border border-[#fca5a5]" title="Short Build-up"></span>
-              <span class="font-bold text-red-800">Short Build-up (-Price & +OI)</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded bg-[#fff1f2] border border-[#fecdd3]" title="Long Unwinding"></span>
-              <span class="font-bold text-rose-700">Long Unwinding (-Price & -OI)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3x4 Grid Map for 12 Sectors/Stocks -->
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <!-- Card 1: Banking -->
-          <div class="p-4 rounded-xl bg-[#15803d] text-white shadow-sm border border-emerald-805 hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider">BANKING INDEX</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-emerald-990/60 font-mono font-black uppercase">LBU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight flex items-baseline gap-1">
-                <span>+3.42%</span>
-                <span class="text-[9px] font-medium opacity-85">OI Chg</span>
-              </div>
-              <div class="text-[9px] opacity-90 font-mono flex items-center justify-between">
-                <span>Price: +1.24%</span>
-                <span>Vol: 1.4M</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 2: Reliance -->
-          <div class="p-4 rounded-xl bg-[#15803d] text-white shadow-sm border border-emerald-805 hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider">RELIANCE</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-emerald-990/60 font-mono font-black uppercase">LBU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight flex items-baseline gap-1">
-                <span>+2.85%</span>
-                <span class="text-[9px] font-medium opacity-85">OI Chg</span>
-              </div>
-              <div class="text-[9px] opacity-90 font-mono flex items-center justify-between">
-                <span>Price: +0.95%</span>
-                <span>Vol: 840K</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 3: IT Index -->
-          <div class="p-4 rounded-xl bg-[#dcfce7] text-[#166534] border border-[#bbf7d0] shadow-sm hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider text-emerald-900 font-bold">IT INDEX</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-emerald-200/80 text-emerald-800 font-mono font-black uppercase">SC</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight text-emerald-900 flex items-baseline gap-1 animate-pulse">
-                <span>+1.20%</span>
-                <span class="text-[9px] font-medium text-emerald-700">OI Chg</span>
-              </div>
-              <div class="text-[9px] text-[#166534]/90 font-mono flex items-center justify-between">
-                <span>Price: +0.42%</span>
-                <span>Vol: 1.1M</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 4: Auto Index -->
-          <div class="p-4 rounded-xl bg-[#fee2e2] text-[#991b1b] border border-[#fca5a5] shadow-sm hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider text-red-950 font-bold">AUTO INDEX</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-red-200/80 text-red-800 font-mono font-black uppercase">SBU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight text-red-950 flex items-baseline gap-1">
-                <span>-2.80%</span>
-                <span class="text-[9px] font-medium text-red-700">OI Chg</span>
-              </div>
-              <div class="text-[9px] text-[#991b1b]/90 font-mono flex items-center justify-between">
-                <span>Price: -1.05%</span>
-                <span>Vol: 920K</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 5: HDFC Bank -->
-          <div class="p-4 rounded-xl bg-[#fff1f2] text-[#be123c] border border-[#fecdd3] shadow-sm hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider text-rose-950 font-bold">HDFC BANK</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-rose-200/80 text-rose-800 font-mono font-black uppercase">LU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight text-rose-950 flex items-baseline gap-1">
-                <span>-1.52%</span>
-                <span class="text-[9px] font-medium text-rose-700">OI Chg</span>
-              </div>
-              <div class="text-[9px] text-[#be123c]/90 font-mono flex items-center justify-between">
-                <span>Price: -0.64%</span>
-                <span>Vol: 2.1M</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 6: Infra Structure -->
-          <div class="p-4 rounded-xl bg-[#15803d] text-white shadow-sm border border-emerald-805 hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider">INFRASTRUCTURE</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-emerald-990/60 font-mono font-black uppercase">LBU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight flex items-baseline gap-1">
-                <span>+4.10%</span>
-                <span class="text-[9px] font-medium opacity-85">OI Chg</span>
-              </div>
-              <div class="text-[9px] opacity-90 font-mono flex items-center justify-between">
-                <span>Price: +2.38%</span>
-                <span>Vol: 610K</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 7: Pharma Index -->
-          <div class="p-4 rounded-xl bg-[#dcfce7] text-[#166534] border border-[#bbf7d0] shadow-sm hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider text-emerald-900 font-bold">PHARMA SECT</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-emerald-200/80 text-emerald-800 font-mono font-black uppercase">SC</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight text-emerald-900 flex items-baseline gap-1">
-                <span>+0.85%</span>
-                <span class="text-[9px] font-medium text-emerald-700">OI Chg</span>
-              </div>
-              <div class="text-[9px] text-[#166534]/90 font-mono flex items-center justify-between">
-                <span>Price: +0.15%</span>
-                <span>Vol: 450K</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 8: Metals Corp -->
-          <div class="p-4 rounded-xl bg-[#fee2e2] text-[#991b1b] border border-[#fca5a5] shadow-sm hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider text-red-950 font-bold">METALS CORE</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-red-200/80 text-red-800 font-mono font-black uppercase">SBU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight text-red-950 flex items-baseline gap-1 animate-pulse">
-                <span>-3.20%</span>
-                <span class="text-[9px] font-medium text-red-700">OI Chg</span>
-              </div>
-              <div class="text-[9px] text-[#991b1b]/90 font-mono flex items-center justify-between">
-                <span>Price: -1.95%</span>
-                <span>Vol: 1.3M</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 9: ICICI Bank -->
-          <div class="p-4 rounded-xl bg-[#15803d] text-white shadow-sm border border-emerald-805 hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider">ICICI BANK</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-emerald-990/60 font-mono font-black uppercase">LBU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight flex items-baseline gap-1">
-                <span>+3.15%</span>
-                <span class="text-[9px] font-medium opacity-85">OI Chg</span>
-              </div>
-              <div class="text-[9px] opacity-90 font-mono flex items-center justify-between">
-                <span>Price: +1.10%</span>
-                <span>Vol: 1.7M</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 10: Infosys -->
-          <div class="p-4 rounded-xl bg-[#fff1f2] text-[#be123c] border border-[#fecdd3] shadow-sm hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider text-rose-950 font-bold">INFOSYS</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-rose-200/80 text-rose-800 font-mono font-black uppercase">LU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight text-rose-950 flex items-baseline gap-1">
-                <span>-2.10%</span>
-                <span class="text-[9px] font-medium text-rose-700">OI Chg</span>
-              </div>
-              <div class="text-[9px] text-[#be123c]/90 font-mono flex items-center justify-between">
-                <span>Price: -0.80%</span>
-                <span>Vol: 880K</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 11: Telecom -->
-          <div class="p-4 rounded-xl bg-[#15803d] text-white shadow-sm border border-emerald-805 hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider">BHARTI AIRTEL</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-emerald-990/60 font-mono font-black uppercase">LBU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight flex items-baseline gap-1">
-                <span>+1.92%</span>
-                <span class="text-[9px] font-medium opacity-85">OI Chg</span>
-              </div>
-              <div class="text-[9px] opacity-90 font-mono flex items-center justify-between">
-                <span>Price: +0.65%</span>
-                <span>Vol: 720K</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 12: Energy Index -->
-          <div class="p-4 rounded-xl bg-[#fee2e2] text-[#991b1b] border border-[#fca5a5] shadow-sm hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 cursor-pointer flex flex-col justify-between h-28 group">
-            <div class="flex items-start justify-between">
-              <span class="text-xs font-black uppercase font-mono tracking-wider text-red-950 font-bold">ENERGY POWER</span>
-              <span class="text-[8px] px-1.5 py-0.5 rounded bg-red-200/80 text-red-800 font-mono font-black uppercase">SBU</span>
-            </div>
-            <div class="space-y-0.5">
-              <div class="text-lg font-black tracking-tight text-red-950 flex items-baseline gap-1">
-                <span>-1.85%</span>
-                <span class="text-[9px] font-medium text-red-700">OI Chg</span>
-              </div>
-              <div class="text-[9px] text-[#991b1b]/90 font-mono flex items-center justify-between">
-                <span>Price: -0.72%</span>
-                <span>Vol: 540K</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 2: INTERACTIVE STRATEGY OPTIMIZER (Payoff Curves) -->
-    <section id="strategy-optimizer" class="bg-white border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <div class="border-b border-gray-250 pb-5 mb-10 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Derivative Blueprint Engine</span>
-          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Options Strategy Blueprint Optimizer
-          </h2>
-          <p class="text-xs text-gray-550 mt-2 font-sans mb-1">
-            Toggle your directional expectations to discover advanced mathematical structural spreads with risk/reward payoff modeling charts.
-          </p>
-        </div>
-
-        <!-- Split Screen Structure -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
-          
-          <!-- Left side: Outlook selection tabs & summary metrics -->
-          <div class="lg:col-span-4 flex flex-col justify-between space-y-6">
-            <div class="space-y-4">
-              <label class="block text-[10px] font-black uppercase text-slate-500 tracking-wider font-mono">
-                Select Directional Market Sentiment Bias:
-              </label>
-              
-              <!-- Tabs layout -->
-              <div class="grid grid-cols-2 gap-2">
-                <!-- Bullish Tab -->
-                <button 
-                  onclick="switchStrategyOutlook('bullish')" 
-                  id="optim-tab-bullish" 
-                  class="strategy-tab-btn flex items-center justify-between p-3.5 rounded-lg border text-left transition font-sans cursor-pointer bg-blue-650 text-white border-blue-650"
-                  type="button"
-                >
-                  <div>
-                    <div class="text-[9px] font-mono tracking-widest uppercase opacity-75 font-black">Outlook 01</div>
-                    <div class="text-xs font-extrabold tracking-tight mt-0.5">Bullish Swing</div>
-                  </div>
-                  <i data-lucide="trending-up" class="w-4 h-4 opacity-75"></i>
-                </button>
-
-                <!-- Bearish Tab -->
-                <button 
-                  onclick="switchStrategyOutlook('bearish')" 
-                  id="optim-tab-bearish" 
-                  class="strategy-tab-btn flex items-center justify-between p-3.5 rounded-lg border text-left transition font-sans cursor-pointer bg-white text-slate-700 border-gray-200 hover:bg-gray-50"
-                  type="button"
-                >
-                  <div>
-                    <div class="text-[9px] font-mono tracking-widest uppercase text-slate-500 font-bold">Outlook 02</div>
-                    <div class="text-xs font-extrabold tracking-tight mt-0.5">Bearish Retreat</div>
-                  </div>
-                  <i data-lucide="trending-down" class="w-4 h-4 text-slate-400"></i>
-                </button>
-
-                <!-- Highly Volatile Tab -->
-                <button 
-                  onclick="switchStrategyOutlook('volatile')" 
-                  id="optim-tab-volatile" 
-                  class="strategy-tab-btn flex items-center justify-between p-3.5 rounded-lg border text-left transition font-sans cursor-pointer bg-white text-slate-700 border-gray-200 hover:bg-gray-50"
-                  type="button"
-                >
-                  <div>
-                    <div class="text-[9px] font-mono tracking-widest uppercase text-slate-500 font-bold">Outlook 03</div>
-                    <div class="text-xs font-extrabold tracking-tight mt-0.5">Highly Volatile</div>
-                  </div>
-                  <i data-lucide="zap" class="w-4 h-4 text-slate-400"></i>
-                </button>
-
-                <!-- Sideways Tab -->
-                <button 
-                  onclick="switchStrategyOutlook('sideways')" 
-                  id="optim-tab-sideways" 
-                  class="strategy-tab-btn flex items-center justify-between p-3.5 rounded-lg border text-left transition font-sans cursor-pointer bg-white text-slate-700 border-gray-200 hover:bg-gray-50"
-                  type="button"
-                >
-                  <div>
-                    <div class="text-[9px] font-mono tracking-widest uppercase text-slate-500 font-bold">Outlook 04</div>
-                    <div class="text-xs font-extrabold tracking-tight mt-0.5">Sideways Ranges</div>
-                  </div>
-                  <i data-lucide="split" class="w-4 h-4 text-slate-400"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Parameters statistics block -->
-            <div class="bg-gray-50 p-4 rounded-xl border border-gray-205 space-y-3 font-mono text-[10px]">
-              <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-                <span class="text-gray-500 font-bold">SYSTEM ACTIVE BLUEPRINT</span>
-                <strong id="blueprint-name" class="text-blue-650 font-black">BULL CALL SPREAD</strong>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <span class="text-gray-400 block font-bold">MAX PROFIT RATIO</span>
-                  <strong id="blueprint-maxprofit" class="text-emerald-600 text-[11px] font-black">₹14,250 (Unlimited Potential)</strong>
-                </div>
-                <div>
-                  <span class="text-gray-400 block font-bold">MAX DOWNSIDE RISK</span>
-                  <strong id="blueprint-maxloss" class="text-red-600 text-[11px] font-black">₹3,800 (Fully Capped)</strong>
-                </div>
-                <div>
-                  <span class="text-gray-400 block font-bold">DELTA RISK BIAS</span>
-                  <strong id="blueprint-delta" class="text-slate-800 text-[11px] font-black">Positive Delta (+0.48)</strong>
-                </div>
-                <div>
-                  <span class="text-gray-400 block font-bold">OPTIMAL HORIZON</span>
-                  <strong id="blueprint-horizon" class="text-slate-800 text-[11px] font-black">7 to 14 Days to Expiry</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right side: Crisp strategy card + Payoff Curve Diagram -->
-          <div class="lg:col-span-8">
-            <div class="bg-[#0a0f1d] text-white rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col justify-between h-full p-6 relative">
-              <!-- Graph Grid decoration watermark in absolute background (Dark slate mockup) -->
-              <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.25] pointer-events-none"></div>
-
-              <!-- Header panel detailing the selected strategy blueprint -->
-              <div class="relative z-10 flex items-center justify-between border-b border-slate-900 pb-3.5 mb-5 font-mono text-[9px] text-slate-450">
-                <span class="flex items-center gap-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                  <span class="font-bold text-slate-200 text-[10px]">PAYOFF MODEL DIAGRAM (REAL-TIME ESTIMATION)</span>
-                </span>
-                <span class="text-cyan-400 uppercase font-black" id="blueprint-badge">BULLISH STRUCTURE v4.1</span>
-              </div>
-
-              <!-- Interactive Payoff curve plot inside clean box -->
-              <div class="relative z-10 w-full h-44 bg-[#050914] border border-slate-900 rounded-lg overflow-hidden flex flex-col justify-between select-none">
-                
-                <!-- Zero profit watermark text -->
-                <div class="absolute top-1/2 left-4 -translate-y-1/2 text-[8px] text-slate-600 font-bold uppercase font-mono border-y border-slate-850/60 py-0.5 tracking-wider">
-                  Zero Breakeven Reference Axis (Premium Line)
-                </div>
-
-                <!-- Live Vector Plot -->
-                <svg class="w-full h-full" id="payoff-curve-svg" viewBox="0 0 500 176" preserveAspectRatio="none">
-                  <!-- Axis baseline -->
-                  <line x1="0" y1="88" x2="500" y2="88" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 3" />
-                  
-                  <!-- Profit fill background (above center line) -->
-                  <path id="payoff-fill-profit" d="M 120 148 L 280 28 L 500 28 L 500 88 L 120 88 Z" fill="#10b981" fill-opacity="0.08" />
-                  <!-- Loss fill background (below center line) -->
-                  <path id="payoff-fill-loss" d="M 0 148 L 120 148 L 280 88 L 0 88 Z" fill="#ef4444" fill-opacity="0.08" />
-
-                  <!-- Main payoff curve boundary path -->
-                  <path id="payoff-curve-line" d="M 0 148 L 120 148 L 280 28 L 500 28" fill="none" class="transition-all duration-500" stroke="#10b981" stroke-width="3" stroke-linecap="round" />
-                  
-                  <!-- Horizontal indicator lines -->
-                  <line x1="280" y1="28" x2="280" y2="148" stroke="#0f172a" stroke-width="0.75" />
-                  <line x1="120" y1="28" x2="120" y2="148" stroke="#0f172a" stroke-width="0.75" />
-
-                  <!-- Markers dot -->
-                  <circle id="payoff-dot-1" cx="280" cy="28" r="4.5" fill="#10b981" />
-                  <circle id="payoff-dot-2" cx="120" cy="148" r="4.5" fill="#ef4444" />
-                </svg>
-
-                <!-- Visual indicators along axis labels -->
-                <div class="absolute bottom-2.5 inset-x-4 flex justify-between font-mono text-[8px] text-slate-500 uppercase tracking-widest">
-                  <span>Downside Range (S-Loss)</span>
-                  <span id="breakeven-indicator" class="text-cyan-400 font-bold">ATM Break: ${fmtPrice(topPutStrike)} PE</span>
-                  <span>Upside Target (S-Profit)</span>
-                </div>
-              </div>
-
-              <!-- Payoff legend labels -->
-              <div class="relative z-10 grid grid-cols-3 gap-4 text-center font-mono text-[9px] mt-4 pt-3.5 border-t border-slate-900 text-slate-400 font-bold">
-                <div class="flex flex-col items-center">
-                  <span class="text-slate-500 uppercase">BREAKEVEN</span>
-                  <strong class="text-slate-200 mt-1" id="optimal-breakeven">${fmtPrice(maxPain - 50)} Spot</strong>
-                </div>
-                <div class="flex flex-col items-center border-x border-slate-900">
-                  <span class="text-slate-500 uppercase">PROBABILITY OF PROFIT</span>
-                  <strong class="text-emerald-400 mt-1 animate-pulse" id="optimal-pop">58.4% Likelihood</strong>
-                </div>
-                <div class="flex flex-col items-center">
-                  <span class="text-slate-500 uppercase">BLUEPRINT CODE</span>
-                  <strong class="text-cyan-400 mt-1" id="optimal-bcode">OPT_S_B19A</strong>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 3: INSTITUTIONAL FLOW TICKER (FII / DII Tracker) -->
-    <section id="order-flow-ledger" class="bg-gray-50 border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <div class="border-b border-gray-200 pb-5 mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div class="space-y-1">
-            <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">Institutional Flow Ledger</span>
-            <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-              Institutional Derivatives Order Flow Ledger
-            </h2>
-            <p class="text-xs text-gray-500 font-sans">
-              Daily net buy/sell values compiled from registered FII and DII option position reports in the current settlement expiry.
-            </p>
-          </div>
-          <span class="text-[9px] font-mono text-slate-500 border border-slate-200 bg-white px-2.5 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5">
-            <span class="inline-block w-2 h-2 rounded-full bg-emerald-550 animate-ping"></span> Live Secured FII_FEED Active
-          </span>
-        </div>
-
-        <!-- High density institutional ledger table -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <table class="w-full text-left font-sans text-xs border-collapse">
-            <thead>
-              <tr class="bg-slate-50 text-[10px] text-gray-500 font-mono border-b border-gray-200 uppercase tracking-wider font-extrabold pb-2.5">
-                <th class="py-3 px-6">Asset Class & Participant</th>
-                <th class="py-3 px-6 text-right">Net Position (Contracts)</th>
-                <th class="py-3 px-6 text-center">Market Sentiment Bias</th>
-                <th class="py-3 px-6">Institutional Drift Direction</th>
-                <th class="py-3 px-6 text-right">Daily Change %</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-150 text-slate-700 font-normal">
-              
-              <!-- Row 1 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3.5 px-6 font-bold text-[#111827] flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  FII Index Futures
-                </td>
-                <td class="py-3.5 px-6 text-right font-mono font-black text-emerald-700">+42,180</td>
-                <td class="py-3.5 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-emerald-800 bg-emerald-100/70 py-0.5 px-2 rounded-full font-mono">
-                    Strong Bullish
-                  </span>
-                </td>
-                <td class="py-3.5 px-6 font-medium text-slate-500">Heavy Accumulation over ${fmtPrice(atmStrike)} support strike</td>
-                <td class="py-3.5 px-6 text-right font-mono text-emerald-600 font-bold">+12.4%</td>
-              </tr>
-
-              <!-- Row 2 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3.5 px-6 font-bold text-[#111827] flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                  FII Index Options
-                </td>
-                <td class="py-3.5 px-6 text-right font-mono font-black text-rose-700">-18,450</td>
-                <td class="py-3.5 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-rose-800 bg-rose-100/70 py-0.5 px-2 rounded-full font-mono">
-                    Mild Bearish
-                  </span>
-                </td>
-                <td class="py-3.5 px-6 font-medium text-slate-500">Selective deep ATM hedges placed ahead of volatility spikes</td>
-                <td class="py-3.5 px-6 text-right font-mono text-rose-600 font-bold">-4.1%</td>
-              </tr>
-
-              <!-- Row 3 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3.5 px-6 font-bold text-[#111827] flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                  DII Index Futures
-                </td>
-                <td class="py-3.5 px-6 text-right font-mono font-black text-slate-700">+5,120</td>
-                <td class="py-3.5 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-slate-650 bg-slate-100 py-0.5 px-2 rounded-full font-mono">
-                    Neutral
-                  </span>
-                </td>
-                <td class="py-3.5 px-6 font-medium text-slate-500">Passive indexing allocations and minor re-alignments</td>
-                <td class="py-3.5 px-6 text-right font-mono text-slate-500 font-bold">+1.5%</td>
-              </tr>
-
-              <!-- Row 4 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3.5 px-6 font-bold text-[#111827] flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  FII Stock Futures
-                </td>
-                <td class="py-3.5 px-6 text-right font-mono font-black text-emerald-700">+12,940</td>
-                <td class="py-3.5 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-emerald-750 bg-emerald-50 py-0.5 px-2 rounded-full font-mono border border-emerald-100">
-                    Mild Bullish
-                  </span>
-                </td>
-                <td class="py-3.5 px-6 font-medium text-slate-500">Positive sector drift inside defensive tech and industrial indices</td>
-                <td class="py-3.5 px-6 text-right font-mono text-emerald-650 font-bold">+5.8%</td>
-              </tr>
-
-              <!-- Row 5 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3.5 px-6 font-bold text-[#111827] flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                  DII Stock Futures
-                </td>
-                <td class="py-3.5 px-6 text-right font-mono font-black text-slate-700">-3,200</td>
-                <td class="py-3.5 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-slate-650 bg-slate-100 py-0.5 px-2 rounded-full font-mono">
-                    Neutral
-                  </span>
-                </td>
-                <td class="py-3.5 px-6 font-medium text-slate-500">Normal profit booking in momentum metal portfolios</td>
-                <td class="py-3.5 px-6 text-right font-mono text-slate-500 font-bold">-0.9%</td>
-              </tr>
-
-              <!-- Row 6 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3.5 px-6 font-bold text-[#111827] flex items-center gap-2">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  FII Stock Options
-                </td>
-                <td class="py-3.5 px-6 text-right font-mono font-black text-emerald-700">+1,850</td>
-                <td class="py-3.5 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-emerald-800 bg-emerald-100/60 py-0.5 px-2 rounded-full font-mono">
-                    Bullish Acc
-                  </span>
-                </td>
-                <td class="py-3.5 px-6 font-medium text-slate-500">Covered writing strategy targeting upside breakout levels</td>
-                <td class="py-3.5 px-6 text-right font-mono text-emerald-600 font-bold">+18.2%</td>
-              </tr>
-
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 4: VOLATILITY SMILE & SKEW ANALYTICS CHART -->
-    <section id="iv-skew" class="bg-white border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <div class="border-b border-gray-200 pb-5 mb-8 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Implied Volatility Analytics</span>
-          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Implied Volatility (IV) Skew Matrix
-          </h2>
-          <p class="text-xs text-gray-500 mt-2 font-sans">
-            Classic U-shaped 'Volatility Smile' diagram mapped across key exercise strikes. Dotted marker denotes active At-The-Money (ATM) region.
-          </p>
-        </div>
-
-        <!-- Wide Analytics Panel Frame -->
-        <div class="bg-slate-50 border border-gray-200 rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          
-          <!-- Left 8 cols: Beautiful interactive smile curve plot -->
-          <div class="md:col-span-8 bg-[#0a0f1d] border border-slate-900 rounded-xl p-5 relative overflow-hidden h-64 flex flex-col justify-between">
-            <!-- Grid pattern watermark inside -->
-            <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:30px_30px] opacity-[0.25] pointer-events-none"></div>
-
-            <!-- Left IV% axis values label -->
-            <div class="absolute left-2.5 top-8 bottom-12 w-6 flex flex-col justify-between items-center text-[8.5px] font-mono text-slate-500 select-none">
-              <span>18%</span>
-              <span>16%</span>
-              <span>14%</span>
-              <span>12%</span>
-              <span>10%</span>
-            </div>
-
-            <!-- Plot Canvas frame -->
-            <div class="relative w-full h-full ml-6 mr-4 mb-4 select-none">
-              <svg class="w-full h-full" viewBox="0 0 520 160" preserveAspectRatio="none">
-                <!-- Vertical grid lines -->
-                <line x1="50" y1="0" x2="50" y2="160" stroke="#1e293b" stroke-width="0.75" />
-                <line x1="160" y1="0" x2="160" y2="160" stroke="#1e293b" stroke-width="0.75" />
-                <line x1="270" y1="0" x2="270" y2="160" stroke="#1e293b" stroke-width="1" stroke-dasharray="2 2" /> <!-- ATM axis indicator -->
-                <line x1="380" y1="0" x2="380" y2="160" stroke="#1e293b" stroke-width="0.75" />
-                <line x1="470" y1="3" x2="470" y2="160" stroke="#1e293b" stroke-width="0.75" />
-
-                <!-- Smile curve shadow fill -->
-                <path d="M 0 10 Q 270 145 520 20 L 520 160 L 0 160 Z" fill="#3b82f6" fill-opacity="0.04" />
-
-                <!-- U-shaped smooth curve of Smile -->
-                <path d="M 0 10 Q 270 145 520 20" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" />
-
-                <!-- Glow effect curve -->
-                <path d="M 0 10 Q 270 145 520 20" fill="none" stroke="#60a5fa" stroke-width="6" stroke-opacity="0.15" stroke-linecap="round" />
-
-                <!-- Active ATM highlight marker dot -->
-                <circle cx="270" cy="78" r="5" fill="#38bdf8" />
-                <circle cx="270" cy="78" r="9" fill="none" stroke="#38bdf8" stroke-width="1.5" class="animate-pulse" style="transform-origin: 270px 78px;" />
-
-                <!-- OTMS Call/Put boundaries labels inside SVG -->
-                <text x="70" y="40" fill="#64748b" font-family="monospace" font-size="7.5" font-weight="bold">DEEP IN-THE-MONEY PE</text>
-                <text x="320" y="40" fill="#64748b" font-family="monospace" font-size="7.5" font-weight="bold">OUT-OF-THE-MONEY CE</text>
-
-                <!-- Small float active flags -->
-                <rect x="235" y="94" width="70" height="15" rx="3" fill="#0c1223" stroke="#2563eb" stroke-width="1" />
-                <text x="240" y="104" fill="#60a5fa" font-family="monospace" font-size="7.5" font-weight="bold">ATM IV: ${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}%</text>
-              </svg>
-            </div>
-
-            <!-- Bottom Price labels alignment - Strike Prices adjusted specifically as per request -->
-            <div class="flex justify-between items-center text-[9px] font-mono text-slate-500 pt-1.5 border-t border-slate-900 px-6 uppercase select-none">
-              <span>Strike: ${fmtPrice(atmStrike - step*2)}</span>
-              <span>${fmtPrice(atmStrike - step)}</span>
-              <strong class="text-cyan-400 font-bold">ATM: ${fmtPrice(atmStrike)} (Spot)</strong>
-              <span>${fmtPrice(atmStrike + step)}</span>
-              <span>${fmtPrice(atmStrike + step*2)}</span>
-            </div>
-          </div>
-
-          <!-- Right 4 cols: Stats index summaries -->
-          <div class="md:col-span-4 space-y-4">
-            <h4 class="text-xs font-black uppercase text-slate-700 font-mono tracking-wider">
-              Volatility Matrix Parameters
-            </h4>
-            
-            <div class="divide-y divide-gray-200">
-              <div class="py-2.5 flex items-center justify-between text-xs">
-                <span class="text-gray-500 font-medium">Right-Hand Call SKEW</span>
-                <strong class="text-slate-900 font-bold font-mono">15.4% (Over-priced)</strong>
-              </div>
-              <div class="py-2.5 flex items-center justify-between text-xs">
-                <span class="text-gray-500 font-medium">Left-Hand Put SKEW</span>
-                <strong class="text-slate-900 font-bold font-mono">17.2% (Bear Hedge)</strong>
-              </div>
-              <div class="py-2.5 flex items-center justify-between text-xs">
-                <span class="text-gray-500 font-medium">ATM Implied Volatility</span>
-                <strong class="text-[#10b981] font-bold font-mono">${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}% Low IV env</strong>
-              </div>
-              <div class="py-2.5 flex items-center justify-between text-xs">
-                <span class="text-gray-500 font-medium">Historical Vol Deviation</span>
-                <strong class="text-slate-900 font-bold font-mono">14.1% standard dev</strong>
-              </div>
-            </div>
-
-            <div class="p-3 bg-blue-50 text-[10px] text-blue-700 leading-normal font-medium rounded border border-blue-100">
-              <span class="font-extrabold uppercase font-mono block mb-1">PRO-DESK ASSESSMENT</span>
-              The flat ATM floor implies compressed volatility. Standard option buyers can buy straddles at highly optimal cost boundaries.
-            </div>
-          </div>
-          
-        </div>
-
-      </div>
-    </section>
-
-    <!-- Interactive script helper for Options Strategy Blueprint Optimizer -->
-    <script>
-      function switchStrategyOutlook(outlook) {
-        // 1. Remove active state from all tabs
-        const tabBtns = document.querySelectorAll('.strategy-tab-btn');
-        tabBtns.forEach(btn => {
-          btn.classList.remove('bg-blue-650', 'text-white', 'border-blue-650');
-          btn.classList.add('bg-white', 'text-slate-700', 'border-gray-200', 'hover:bg-gray-50');
-          // Update nested subtitles block styles
-          const labelTitle = btn.querySelector('.font-mono');
-          if (labelTitle) {
-            labelTitle.classList.remove('opacity-75');
-            labelTitle.classList.add('text-slate-500');
-          }
-        });
-
-        // 2. Add active states to the clicked outlook button
-        const activeBtn = document.getElementById('optim-tab-' + outlook);
-        if (activeBtn) {
-          activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-gray-200', 'hover:bg-gray-50');
-          activeBtn.classList.add('bg-blue-650', 'text-white', 'border-blue-650');
-          const labelTitle = activeBtn.querySelector('.font-mono');
-          if (labelTitle) {
-            labelTitle.classList.add('opacity-75');
-          }
-        }
-
-        // 3. Strategy blueprints dataset
-        const strategies = {
-          'bullish': {
-            name: "BULL CALL SPREAD",
-            maxprofit: "₹14,250 (Capped)",
-            maxloss: "₹3,800 (Capped)",
-            delta: "Positive Delta (+0.48)",
-            horizon: "7 to 14 Days to Expiry",
-            badge: "BULLISH STRUCTURE v4.1",
-            breakeven: "24,842.50 Spot",
-            pop: "58.4%",
-            bcode: "OPT_S_B19A",
-            indicatorText: "ATM Break: ${fmtPrice(atmStrike - step)} PE",
-            // Path and visual fills variables
-            curveD: "M 0 148 L 120 148 L 280 28 L 500 28",
-            fillProfitD: "M 120 148 L 280 28 L 500 28 L 500 88 L 120 88 Z",
-            fillLossD: "M 0 148 L 120 148 L 280 88 L 0 88 Z",
-            dot1X: 280, dot1Y: 28,
-            dot2X: 120, dot2Y: 148,
-            dot1Fill: "#10b981", dot2Fill: "#ef4444"
-          },
-          'bearish': {
-            name: "BEAR PUT SPREAD",
-            maxprofit: "₹11,400 (Capped)",
-            maxloss: "₹4,100 (Capped)",
-            delta: "Negative Delta (-0.52)",
-            horizon: "5 to 10 Days to Expiry",
-            badge: "BEARISH STRUCTURE v4.1",
-            breakeven: "24,758.00 Spot",
-            pop: "62.1%",
-            bcode: "OPT_S_P24K",
-            indicatorText: "ATM Break: ${fmtPrice(atmStrike)} CE",
-            // Payoff curve slopes down to the right (profit on left, loss on right)
-            curveD: "M 0 28 L 220 28 L 380 148 L 500 148",
-            fillProfitD: "M 0 28 L 220 28 L 380 88 L 0 88 Z",
-            fillLossD: "M 220 88 L 380 148 L 500 148 L 500 88 Z",
-            dot1X: 220, dot1Y: 28,
-            dot2X: 380, dot2Y: 148,
-            dot1Fill: "#10b981", dot2Fill: "#ef4444"
-          },
-          'volatile': {
-            name: "LONG STRADDLE (Z-SKEW)",
-            maxprofit: "Unlimited Potential",
-            maxloss: "₹8,500 (Max Floor)",
-            delta: "Neutral Delta (0.00)",
-            horizon: "1 to 3 Days to Expiry",
-            badge: "VOLATILE BREAKOUT v2.0",
-            breakeven: "24,420 & 25,280",
-            pop: "44.8%",
-            bcode: "OPT_S_V5X",
-            indicatorText: "ATM Break: 24,850 ATM",
-            // V Shape (Profit is high on left and right edges, max loss is centered at point)
-            curveD: "M 0 10 L 150 78 L 250 148 L 350 78 L 500 10",
-            fillProfitD: "M 0 10 L 150 78 L 165 88 L 0 88 Z M 335 88 L 350 78 L 500 10 L 500 88 Z",
-            fillLossD: "M 152 88 L 250 148 L 348 88 Z",
-            dot1X: 250, dot1Y: 148,
-            dot2X: 500, dot2Y: 10,
-            dot1Fill: "#ef4444", dot2Fill: "#10b981"
-          },
-          'sideways': {
-            name: "SHORT IRON CONDOR",
-            maxprofit: "₹6,800 (Guaranteed Max)",
-            maxloss: "₹3,200 (Capped Wall)",
-            delta: "Neutral Theta Bias (+24.5)",
-            horizon: "15 to 30 Days to Expiry",
-            badge: "SIDEWAYS COOLDOWN v3.2",
-            breakeven: "24,620 & 25,120",
-            pop: "74.5%",
-            bcode: "OPT_S_C73M",
-            indicatorText: "ATM Break: ${fmtPrice(atmStrike - step*3)} / ${fmtPrice(atmStrike + step*2)} Range",
-            // Flat in the middle (premium credit profit), slopes down to capped loss on both sides
-            curveD: "M 0 140 L 140 140 L 220 38 L 300 38 L 380 140 L 500 140",
-            fillProfitD: "M 183 88 L 220 38 L 300 38 L 336 88 Z",
-            fillLossD: "M 0 140 L 140 140 L 180 88 L 0 88 Z M 338 88 L 380 140 L 500 140 L 500 88 Z",
-            dot1X: 260, dot1Y: 38,
-            dot2X: 140, dot2Y: 140,
-            dot1Fill: "#10b981", dot2Fill: "#ef4444"
-          }
-        };
-
-        const config = strategies[outlook];
-        if (config) {
-          // Update stats panel inputs
-          document.getElementById('blueprint-name').innerText = config.name;
-          document.getElementById('blueprint-maxprofit').innerText = config.maxprofit;
-          document.getElementById('blueprint-maxloss').innerText = config.maxloss;
-          document.getElementById('blueprint-delta').innerText = config.delta;
-          document.getElementById('blueprint-horizon').innerText = config.horizon;
-
-          // Update payoff card elements
-          document.getElementById('blueprint-badge').innerText = config.badge;
-          document.getElementById('breakeven-indicator').innerText = config.indicatorText;
-          document.getElementById('optimal-breakeven').innerText = config.breakeven;
-          document.getElementById('optimal-pop').innerText = config.pop + " Likelihood";
-          document.getElementById('optimal-bcode').innerText = config.bcode;
-
-          // Animate and mutate SVG paths and elements
-          const curveLine = document.getElementById('payoff-curve-line');
-          if (curveLine) curveLine.setAttribute('d', config.curveD);
-
-          const profitFill = document.getElementById('payoff-fill-profit');
-          if (profitFill) profitFill.setAttribute('d', config.fillProfitD);
-
-          const lossFill = document.getElementById('payoff-fill-loss');
-          if (lossFill) lossFill.setAttribute('d', config.fillLossD);
-
-          // Update interactive visualization vector dot points
-          const dot1 = document.getElementById('payoff-dot-1');
-          if (dot1) {
-            dot1.setAttribute('cx', config.dot1X);
-            dot1.setAttribute('cy', config.dot1Y);
-            dot1.setAttribute('fill', config.dot1Fill);
-          }
-
-          const dot2 = document.getElementById('payoff-dot-2');
-          if (dot2) {
-            dot2.setAttribute('cx', config.dot2X);
-            dot2.setAttribute('cy', config.dot2Y);
-            dot2.setAttribute('fill', config.dot2Fill);
-          }
-        }
-      }
-    </script>
-
-    <!-- 4. REAL FINANCIAL NEWS & IMAGES SECTION (StockPro Layout Grid) -->
-    <section id="news-grid" class="max-w-7xl mx-auto px-6 py-12 bg-white">
-      <div class="border-b border-gray-200 pb-4 mb-8 flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-        <div class="space-y-1">
-          <h2 class="text-lg font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
-            <i data-lucide="newspaper" class="text-blue-600 w-4 h-4"></i>
-            StockPro Market Intelligence Daily
-          </h2>
-          <p class="text-xs text-gray-400">Institutional-grade research and analysis covering derivatives volatility spikes, tech equities, and macro structural pricing.</p>
-        </div>
-        <span class="text-[10px] text-gray-400 font-mono uppercase bg-gray-50 border border-gray-200 px-2 py-1 rounded">Feed: STOCKPRO_SECURED</span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        <!-- ARTICLE CARD 1: AI Market Pulse -->
-        <article class="bg-white border border-gray-100 rounded-lg overflow-hidden flex flex-col justify-between hover:border-gray-300 hover:shadow-sm transition-all duration-200 group">
-          <div class="space-y-3.5">
-            <!-- Dynamic Image Container -->
-            <div class="aspect-video w-full bg-slate-50 border-b border-gray-100 relative overflow-hidden">
-              <img 
-                src="/assets/images/ai_market_rally_graph_1780886754704.png"
-                alt="AI tech market chart" 
-                class="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
-              />
-              <span class="absolute bottom-1.5 left-2 bg-blue-600 text-white font-mono text-[8px] uppercase px-1.5 py-0.5 rounded font-black">
-                ANALYSIS
-              </span>
-            </div>
-            
-            <div class="px-4 space-y-2">
-              <div class="flex items-center gap-2.5">
-                <span class="text-[9px] font-black uppercase text-blue-600 tracking-wider font-mono">Artificial Intelligence</span>
-                <span class="text-gray-300">•</span>
-                <span class="text-[9px] text-gray-400 font-mono">15m ago</span>
-              </div>
-              <h3 class="text-sm font-extrabold text-[#111827] group-hover:text-blue-600 leading-tight transition-all">
-                AI's 26% Rally Looks Healthier Than Prior Surges — Here's Why
-              </h3>
-              <p class="text-[11.5px] text-gray-400 leading-relaxed font-normal line-clamp-2">
-                Underlying data points to strong institutional call option buying and solid revenue conversions than prior dot-com metrics.
-              </p>
-            </div>
-          </div>
-          
-          <div class="mt-4 p-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-            <span>By F&O Analytics Desks</span>
-            <span>4 min read</span>
-          </div>
-        </article>
-
-        <!-- ARTICLE CARD 2: Skyscraper Global desk -->
-        <article class="bg-white border border-gray-100 rounded-lg overflow-hidden flex flex-col justify-between hover:border-gray-300 hover:shadow-sm transition-all duration-200 group">
-          <div class="space-y-3.5">
-            <!-- Dynamic Image Container -->
-            <div class="aspect-video w-full bg-slate-50 border-b border-gray-100 relative overflow-hidden">
-              <img 
-                src="/assets/images/urban_trading_skyscrapers_1780886767951.png"
-                alt="Skyscraper skyscraper visual" 
-                class="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
-              />
-              <span class="absolute bottom-1.5 left-2 bg-slate-900 text-white font-mono text-[8px] uppercase px-1.5 py-0.5 rounded font-black">
-                LEGAL FEED
-              </span>
-            </div>
-            
-            <div class="px-4 space-y-2">
-              <div class="flex items-center gap-2.5">
-                <span class="text-[9px] font-black uppercase text-blue-600 tracking-wider font-mono">REGULATION</span>
-                <span class="text-gray-300">•</span>
-                <span class="text-[9px] text-gray-400 font-mono">1h ago</span>
-              </div>
-              <h3 class="text-sm font-extrabold text-[#111827] group-hover:text-blue-600 leading-tight transition-all">
-                SEC Establishes Tight Regulatory Framework Over Weekly Option Expirations
-              </h3>
-              <p class="text-[11.5px] text-gray-400 leading-relaxed font-normal line-clamp-2">
-                New margin requirements on next-day expiries are forcing market makers to re-hedge volatility exposure across indices.
-              </p>
-            </div>
-          </div>
-          
-          <div class="mt-4 p-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-            <span>By Compliance Desk</span>
-            <span>6 min read</span>
-          </div>
-        </article>
-
-        <!-- ARTICLE CARD 3: Bonds / Custom Pastel Vector visual -->
-        <article class="bg-white border border-gray-100 rounded-lg overflow-hidden flex flex-col justify-between hover:border-gray-300 hover:shadow-sm transition-all duration-200 group">
-          <div class="space-y-3.5">
-            <!-- Dynamic Image Container -->
-            <div class="aspect-video w-full bg-slate-50 border-b border-gray-100 relative overflow-hidden">
-              <img 
-                src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=250&fit=crop" 
-                alt="Global bond yields chart" 
-                class="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
-              />
-              <span class="absolute bottom-1.5 left-2 bg-indigo-600 text-white font-mono text-[8px] uppercase px-1.5 py-0.5 rounded font-black">
-                MACRO FLOW
-              </span>
-            </div>
-            
-            <div class="px-4 space-y-2">
-              <div class="flex items-center gap-2.5">
-                <span class="text-[9px] font-black uppercase text-blue-600 tracking-wider font-mono">Macroeconomics</span>
-                <span class="text-gray-300">•</span>
-                <span class="text-[9px] text-gray-400 font-mono">3h ago</span>
-              </div>
-              <h3 class="text-sm font-extrabold text-[#111827] group-hover:text-blue-600 leading-tight transition-all">
-                Global Bond Yields Twist Amid Sudden Shifts in Core Inflation Metrics
-              </h3>
-              <p class="text-[11.5px] text-gray-450 leading-relaxed font-normal line-clamp-2">
-                Sovereign debt pricing fluctuations trigger cross-asset adjustments, impacting weekly options skew indexes specifically in emerging equities.
-              </p>
-            </div>
-          </div>
-          
-          <div class="mt-4 p-4 pt-3 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-            <span>By Global Strategy Desks</span>
-            <span>5 min read</span>
-          </div>
-        </article>
-
-      </div>
-    </section>
-
-    <!-- 3d. ADDITIONAL PREMIUM STRUCTURAL BLOCKS (LIGHT THEME) -->
-
-    <!-- SECTION 5: MULTI-DEVICE RESPONSIVE CANVAS (Trade Seamlessly Across Hardware) -->
-    <section id="multi-device" class="bg-gray-50 border-b border-gray-200 py-20 overflow-hidden">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Section Header detailing coordinated synchronization across hardware layout -->
-        <div class="border-b border-gray-200 pb-5 mb-12 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">Cross-Platform Terminals</span>
-          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Trade Seamlessly Across Hardware
-          </h2>
-          <p class="text-xs text-gray-500 mt-2 font-sans">
-            Your custom graphics setups, derivatives calculators, and live alert tickers synchronized with high-frequency accuracy across sovereign systems.
-          </p>
-        </div>
-
-        <!-- Overlapping device stack layout with responsive styling -->
-        <div class="relative w-full max-w-4xl mx-auto h-[480px] mt-8 select-none">
-          
-          <!-- Screen 1: Desktop Monitor Workspace Frame (Back layer) -->
-          <div class="absolute left-0 top-[20px] w-[65%] hidden md:block bg-white border border-gray-250 rounded-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
-            <!-- Window mock terminal bezel bar styling -->
-            <div class="bg-slate-900 px-3 py-2 flex items-center justify-between border-b border-slate-800">
-              <div class="flex gap-1.5">
-                <span class="w-2 h-2 bg-red-500 rounded-full inline-block"></span>
-                <span class="w-2 h-2 bg-yellow-500 rounded-full inline-block"></span>
-                <span class="w-2 h-2 bg-green-500 rounded-full inline-block"></span>
-              </div>
-              <span class="text-[8.5px] text-slate-400 font-mono tracking-widest uppercase">StockPro Professional Terminal v3.45</span>
-              <div class="w-8"></div>
-            </div>
-            
-            <!-- White-themed high-density internal content -->
-            <div class="p-4 bg-white h-[280px] grid grid-cols-12 gap-3 text-slate-800 font-sans">
-              <!-- Sidebar widget -->
-              <div class="col-span-3 border-r border-gray-150 pr-2.5 space-y-2 text-[9px] font-mono">
-                <span class="text-[8px] text-gray-400 font-bold block tracking-wider uppercase">Active Index Node</span>
-                <div class="flex justify-between items-center bg-blue-50/70 p-1.5 rounded border border-blue-100 text-blue-900">
-                  <span class="font-bold">NIFTY 50</span>
-                  <span class="font-black">${fmtPrice(nifty.price)}</span>
-                </div>
-                <div class="flex justify-between items-center p-1.5 rounded border border-gray-100 text-gray-700">
-                  <span class="font-bold">BANKNIFTY</span>
-                  <span class="font-black ${banknifty.isPositive ? 'text-emerald-600' : 'text-rose-600'}">${fmtPrice(banknifty.price)}</span>
-                </div>
-                <div class="flex justify-between items-center p-1.5 rounded border border-gray-100 text-gray-700">
-                  <span class="font-bold">FINNIFTY</span>
-                  <span class="font-black ${finnifty.isPositive ? 'text-emerald-600' : 'text-rose-600'}">${fmtPrice(finnifty.price)}</span>
-                </div>
-              </div>
-              <!-- Large financial multi-line chart representing real-time coordinated data -->
-              <div class="col-span-9 flex flex-col justify-between">
-                <div class="flex items-center justify-between border-b border-gray-150 pb-1.5">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-[10px] font-black text-slate-900 uppercase font-sans">NIFTY JUN EXPIRED FUTURE</span>
-                    <span class="text-[8px] bg-slate-100 px-1 font-mono text-gray-500 rounded font-semibold">1m Ticker</span>
-                  </div>
-                  <span class="text-[10px] font-black font-mono text-emerald-600 animate-pulse">+0.94% Trend Buildup</span>
-                </div>
-                <!-- SVG Coordinated upward breakout pattern line path -->
-                <div class="w-full h-[200px] relative">
-                  <svg class="w-full h-full" viewBox="0 0 400 160" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="multiChartGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.18"/>
-                        <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
-                      </linearGradient>
-                    </defs>
-                    <line x1="0" y1="40" x2="400" y2="40" stroke="#f1f5f9" stroke-width="1" />
-                    <line x1="0" y1="80" x2="400" y2="80" stroke="#f1f5f9" stroke-width="1" />
-                    <line x1="0" y1="120" x2="400" y2="120" stroke="#f1f5f9" stroke-width="1" />
-                    
-                    <path d="M 0 130 C 50 120, 80 140, 130 95 C 180 110, 230 40, 300 35 C 340 38, 370 15, 400 12" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
-                    <path d="M 0 130 C 50 120, 80 140, 130 95 C 180 110, 230 40, 300 35 C 340 38, 370 15, 400 12 L 400 160 L 0 160 Z" fill="url(#multiChartGrad)" />
-                    <path d="M 0 140 C 60 135, 90 130, 130 110 C 180 100, 230 75, 300 55 C 350 48, 380 32, 400 28" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3 3"/>
-                    
-                    <circle cx="300" cy="35" r="4.5" fill="#3b82f6"/>
-                    <circle cx="400" cy="12" r="4" fill="#10b981"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Screen 2: Laptop Workspace Frame (Mid layer, overlapping desktop right side) -->
-          <div class="absolute left-[20%] md:left-[35%] top-[5%] md:top-[120px] w-full md:w-[55%] bg-slate-800 rounded-xl p-1.5 shadow-2xl transition hover:scale-[1.01] duration-300">
-            <div class="bg-white rounded-lg overflow-hidden border border-slate-705 h-[240px] flex flex-col justify-between font-sans">
-              <!-- Header tab styling representation -->
-              <div class="bg-gray-100 px-3 py-1.5 flex items-center justify-between border-b border-gray-200">
-                <div class="flex gap-1">
-                  <span class="w-1.5 h-1.5 bg-gray-300 rounded-full inline-block"></span>
-                  <span class="w-1.5 h-1.5 bg-gray-300 rounded-full inline-block"></span>
-                </div>
-                <span class="text-[8px] text-gray-500 font-mono">PORTFOLIO WORKSPACE</span>
-                <span class="text-[8px] bg-emerald-100 text-emerald-800 font-mono px-1 font-black rounded uppercase">Synced</span>
-              </div>
-              
-              <!-- Content showing exact coordinated indicators -->
-              <div class="p-3.5 bg-white h-full grid grid-cols-2 gap-4">
-                <div class="flex flex-col justify-between pr-2.5 border-r border-gray-150">
-                  <div class="flex justify-between items-baseline">
-                    <span class="text-[9.5px] font-black text-gray-800">Volatility VIX Skew</span>
-                    <span class="text-[8.5px] font-mono text-blue-600 font-bold">${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}% Low IV</span>
-                  </div>
-                  <!-- Mirrored Coordinated trend diagram path -->
-                  <div class="w-full h-24">
-                    <svg class="w-full h-full" viewBox="0 0 200 100" preserveAspectRatio="none">
-                      <path d="M 0 85 C 30 80, 50 90, 80 60 C 110 70, 140 30, 170 28 C 185 30, 195 10, 200 8" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" />
-                      <path d="M 0 85 C 30 80, 50 90, 80 60 C 110 70, 140 30, 170 28 C 185 30, 195 10, 200 8 L 200 100 L 0 100 Z" fill="#2563eb" fill-opacity="0.06" />
-                      <circle cx="200" cy="8" r="3.5" fill="#10b981"/>
-                    </svg>
-                  </div>
-                  <span class="text-[7.5px] text-gray-400 font-mono tracking-wide">Sync State: Coordinated real-time breakout patterns</span>
-                </div>
-
-                <!-- Live Strike spreads ledger representation -->
-                <div class="flex flex-col justify-between text-[8px] space-y-1.5 font-mono">
-                  <span class="text-[9px] font-black border-b border-gray-150 pb-1 text-slate-800 uppercase font-sans">Active Sells Ledger</span>
-                  <div class="flex justify-between text-red-600">
-                    <span>Strike ${fmtPrice(atmStrike + step*2)} CE</span>
-                    <span class="font-bold">₹22.50</span>
-                  </div>
-                  <div class="flex justify-between text-red-600">
-                    <span>Strike ${fmtPrice(atmStrike + step*3)} CE</span>
-                    <span class="font-bold">₹8.10</span>
-                  </div>
-                  <div class="flex justify-between text-emerald-600 border-t border-dashed border-gray-200 pt-1.5">
-                    <span>Strike ${fmtPrice(atmStrike - step)} PE</span>
-                    <span class="font-bold">₹32.10</span>
-                  </div>
-                  <div class="flex justify-between text-emerald-600">
-                    <span>Strike ${fmtPrice(atmStrike - step*2)} PE</span>
-                    <span class="font-bold">₹12.40</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- Physical laptop bottom base bezel representation -->
-            <div class="h-2 bg-slate-900 w-[95%] mx-auto rounded-b border-t border-slate-700"></div>
-          </div>
-
-          <!-- Screen 3: Mobile Phone Core Screen (Front layer, overlapping right bottom side) -->
-          <div class="absolute right-[4%] bottom-[20px] w-[26%] sm:w-[18%] aspect-[9/18.5] bg-slate-950 rounded-[2.2rem] border-[5px] border-slate-800 p-1.5 shadow-2xl transition hover:rotate-2 duration-300">
-            <div class="bg-white rounded-[1.8rem] h-full w-full overflow-hidden flex flex-col justify-between p-2.5 font-sans relative">
-              <!-- Center camera notch representation -->
-              <div class="absolute top-1 left-1/2 -translate-x-1/2 w-8 h-2.5 bg-slate-150 rounded-full z-10"></div>
-              
-              <!-- Mobile dashboard bar -->
-              <div class="pt-1 pb-1.5 border-b border-gray-150 flex justify-between items-center px-1">
-                <span class="text-[7.5px] font-black text-slate-900 tracking-tight">STOCKPRO</span>
-                <span class="text-[6.5px] text-gray-400 font-mono tracking-tight">09:06 UTC</span>
-              </div>
-
-              <!-- Coordinated market trend output layout matching terminal line charts -->
-              <div class="my-auto space-y-1">
-                <div class="text-[7.5px] font-mono text-gray-550 flex justify-between uppercase">
-                  <span>Nifty Index</span>
-                    <span class="text-blue-600 font-bold">${nifty.isPositive ? '+' : ''}${typeof nifty.changePercent === 'number' ? nifty.changePercent.toFixed(2) : Number(nifty.changePercent || 0).toFixed(2)}%</span>
-                  </div>
-                <div class="text-[12px] font-black font-mono tracking-tight text-gray-900 leading-none">${fmtPrice(nifty.price)}</div>
-                
-                <!-- Coordinated trend line nested graphics -->
-                <div class="w-full h-16 bg-blue-50/20 rounded border border-gray-100 overflow-hidden">
-                  <svg class="w-full h-full" viewBox="0 0 100 50" preserveAspectRatio="none">
-                    <path d="M 0 42 C 15 40, 25 45, 40 30 C 55 35, 70 15, 85 14 C 92 15, 96 5, 100 4" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" />
-                    <path d="M 0 42 C 15 40, 25 45, 40 30 C 55 35, 70 15, 85 14 C 92 15, 96 5, 100 4 L 100 50 L 0 50 Z" fill="#2563eb" fill-opacity="0.05" />
-                    <circle cx="100" cy="4" r="2.5" fill="#10b981" />
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Compact execution layout indicators -->
-              <div class="space-y-1.5 pt-1.5 border-t border-gray-100">
-                <div class="grid grid-cols-2 gap-1 text-[7px] text-center font-bold font-mono">
-                  <span class="py-1 bg-blue-650 text-white rounded shadow-sm">BUY CALL</span>
-                  <span class="py-1 bg-rose-650 text-white rounded shadow-sm">BUY PUT</span>
-                </div>
-                <span class="text-[6px] text-center block text-gray-400 font-mono uppercase tracking-widest leading-none">Active Ledger Sync Mode</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 6: SIMPLIFIED LIVE OPTION CHAIN PREVIEW (Lightning-Fast Execution Option Matrix) -->
-    <section id="option-matrix" class="bg-white border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Header layout with descriptive detail -->
-        <div class="border-b border-gray-200 pb-5 mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div class="space-y-1">
-            <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">Option Chain Matrix</span>
-            <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-              Lightning-Fast Execution Option Matrix
-            </h2>
-            <p class="text-xs text-gray-500 font-sans">
-              Dynamic derivatives execution panel with real-time volatility estimates split by strike nodes. Highlights represent active trading ranges.
-            </p>
-          </div>
-          <span class="text-[9.5px] font-mono text-slate-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-550 animate-ping"></span> Live Nifty Expiry June Active
-          </span>
-        </div>
-
-        <!-- High density option chain matrix layout (Calls CE on left with soft blue tints, Puts PE on right with soft neutral gray tints) -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
-          <table class="w-full text-left font-sans text-xs border-collapse min-w-[780px]">
-            <thead>
-              <tr class="bg-[#f8fafc] text-slate-800 text-[10px] font-mono tracking-widest font-black uppercase text-center border-b border-gray-200 divide-x divide-gray-200">
-                <th colspan="4" class="py-2.5 bg-blue-50/40 text-blue-800 font-extrabold">Calls (CE)</th>
-                <th class="py-2.5 bg-gray-150 text-gray-900 font-black">Strike Node</th>
-                <th colspan="4" class="py-2.5 bg-gray-50 text-slate-700 font-extrabold">Puts (PE)</th>
-              </tr>
-              <tr class="bg-[#f1f5f9] text-[9px] text-slate-500 font-mono uppercase tracking-wider font-extrabold border-b border-gray-200">
-                <th class="py-2.5 px-4 text-center">OI Change</th>
-                <th class="py-2.5 px-4 text-right">Volume (Ctr)</th>
-                <th class="py-2.5 px-4 text-right">Implied Vol (IV)</th>
-                <th class="py-2.5 px-4 text-right pr-6">LTP (₹)</th>
-                
-                <th class="py-2.5 px-6 text-center text-slate-900 bg-gray-100 border-x border-gray-200">Strike Price</th>
-                
-                <th class="py-2.5 px-4 text-left pl-6">LTP (₹)</th>
-                <th class="py-2.5 px-4 text-left">Implied Vol (IV)</th>
-                <th class="py-2.5 px-4 text-left">Volume (Ctr)</th>
-                <th class="py-2.5 px-4 text-center">OI Change</th>
-              </tr>
-            </thead>
-            
-            <tbody class="divide-y divide-gray-150 text-[11px] text-slate-700">
-              ${chainRowsHtml}
-
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 7: AUTOMATED ALGORITHMIC SIGNAL FEED (Real-Time AI Signal Intelligence) -->
-    <section id="ai-feed" class="bg-gray-50 border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Section Header identifying timeline triggers and AI metrics -->
-        <div class="border-b border-gray-200 pb-5 mb-10 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">Automated Intelligence Stream</span>
-          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Real-Time AI Signal Intelligence
-          </h2>
-          <p class="text-xs text-gray-500 mt-2 font-sans">
-            Algorithmic execution signals and multi-strike consolidation alerts generated server-side by our high-performance scanners.
-          </p>
-        </div>
-
-        <!-- Vertical Timeline Card Stream Structure -->
-        <div class="relative max-w-3xl mx-auto pl-6 md:pl-10 space-y-6">
-          
-          <!-- Shared vertical axis structural timeline line -->
-          <div class="absolute left-1.5 md:left-5 top-2.5 bottom-2.5 w-0.5 bg-gray-300"></div>
-
-          <!-- Alert 1 -->
-          <div class="relative group">
-            <!-- Timeline pinpoint marker dot -->
-            <span class="absolute -left-[23.5px] md:-left-[24.5px] top-1.5 w-4 h-4 rounded-full bg-blue-600 border-4 border-white shadow flex items-center justify-center transition duration-200 group-hover:scale-125 z-10"></span>
-            
-            <div class="bg-white p-5 rounded-xl border border-gray-250 shadow-sm transition hover:shadow-md duration-200">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5 text-[10.5px]">
-                <div class="flex items-center gap-2">
-                  <span class="bg-blue-600 text-white text-[8px] font-black font-mono uppercase px-2 py-0.5 rounded tracking-wide">
-                    [OI BREAKOUT]
-                  </span>
-                  <span class="font-extrabold text-blue-600 font-mono tracking-wider">SYSTEM DETECTOR N9</span>
-                </div>
-                <span class="text-gray-500 font-mono font-bold uppercase transition-colors group-hover:text-gray-800">10:52:14 IST • ACTIVE NOW</span>
-              </div>
-              <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-blue-600 transition">
-                NIFTY Strike ${fmtPrice(atmStrike)} Call OI Buildup Exceeds Maximum Threshold Limits (${fmtOI(topCallOi)} Contracts)
-              </h4>
-              <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                Automated open interest scanners confirm aggressive cross-participant derivatives writing. Short-term price breakout probabilities above the 24,940 Spot bounds rise to <strong>74.2%</strong>. Active spread adjustments recommended.
-              </p>
-            </div>
-          </div>
-
-          <!-- Alert 2 -->
-          <div class="relative group">
-            <!-- Timeline pinpoint marker dot -->
-            <span class="absolute -left-[23.5px] md:-left-[24.5px] top-1.5 w-4 h-4 rounded-full bg-indigo-600 border-4 border-white shadow flex items-center justify-center transition duration-200 group-hover:scale-125 z-10"></span>
-            
-            <div class="bg-white p-5 rounded-xl border border-gray-250 shadow-sm transition hover:shadow-md duration-200">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5 text-[10.5px]">
-                <div class="flex items-center gap-2">
-                  <span class="bg-indigo-650 text-white text-[8px] font-black font-mono uppercase px-2 py-0.5 rounded tracking-wide">
-                    [AI SIGNAL]
-                  </span>
-                  <span class="font-extrabold text-indigo-600 font-mono tracking-wider">PROPICKS SYSTEM CORES</span>
-                </div>
-                <span class="text-gray-500 font-mono font-bold uppercase">09:12:45 IST • 1.5H AGO</span>
-              </div>
-              <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-indigo-600 transition">
-                RELIANCE MACD Confirmative Bullish Crossover Registered at Spot ₹2,460.10
-              </h4>
-              <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                System processors index massive institutional call protections. Blocks recorded at the bottom 2,455 Put reference node suggests solid downside support is now locked under momentum trends.
-              </p>
-            </div>
-          </div>
-
-          <!-- Alert 3 -->
-          <div class="relative group">
-            <!-- Timeline pinpoint marker dot -->
-            <span class="absolute -left-[23.5px] md:-left-[24.5px] top-1.5 w-4 h-4 rounded-full bg-slate-500 border-4 border-white shadow flex items-center justify-center transition duration-200 group-hover:scale-125 z-10"></span>
-            
-            <div class="bg-white p-5 rounded-xl border border-gray-250 shadow-sm transition hover:shadow-md duration-200">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5 text-[10.5px]">
-                <div class="flex items-center gap-2">
-                  <span class="bg-slate-700 text-white text-[8px] font-black font-mono uppercase px-2 py-0.5 rounded tracking-wide">
-                    [SKEW DEVIATION]
-                  </span>
-                  <span class="font-extrabold text-slate-700 font-mono tracking-wider">VOL SMILE MONITOR</span>
-                </div>
-                <span class="text-gray-500 font-mono font-bold uppercase">09:02:11 IST • 2H AGO</span>
-              </div>
-              <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-slate-800 transition">
-                Option Smile Skew Index registers Out-of-Bounds Pricing Deviation of 14.1%
-              </h4>
-              <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                Aggressive call premiums trigger skew variances. Decisive ATM volatility remains compressed at ${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}%. Algorithmic guidance adjusts recommended strategies from condors to long-running straddle models.
-              </p>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 8: GLOBAL ENTERPRISE TRUST BANNER (Powering Data Discovery) -->
-    <section id="trust-banner" class="bg-white border-b border-gray-200 py-10">
-      <div class="max-w-7xl mx-auto px-6 text-center">
-        
-        <!-- Elegant typography tracking block description label -->
-        <span class="text-[9.5px] font-black uppercase text-gray-400 tracking-widest font-mono block mb-6">
-          Powering Data Discovery for Institutional Traders Global-Wide
-        </span>
-        
-        <!-- Interactive vector grayscale institutional logo placeholders -->
-        <div class="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-60 hover:opacity-85 transition-opacity duration-300">
-          
-          <!-- Logo 1: MCX -->
-          <div class="flex items-center gap-2 select-none grayscale cursor-default hover:scale-105 transition-all">
-            <svg class="w-5 h-5 text-gray-650" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="10" />
-              <circle cx="12" cy="12" r="5" stroke-dasharray="2 2" />
-            </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">MCX</span>
-          </div>
-
-          <!-- Logo 2: NSE Data Feed -->
-          <div class="flex items-center gap-2 select-none grayscale cursor-default hover:scale-105 transition-all">
-            <svg class="w-5 h-5 text-gray-650" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="4" y1="20" x2="20" y2="4" />
-              <line x1="8" y1="20" x2="20" y2="8" />
-              <line x1="4" y1="16" x2="16" y2="4" />
-            </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">NSE Data Feed</span>
-          </div>
-
-          <!-- Logo 3: NSE CONNECT -->
-          <div class="flex items-center gap-2 select-none grayscale cursor-default hover:scale-105 transition-all">
-            <svg class="w-5 h-5 text-gray-650" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <path d="M12 2a10 10 0 0 1 10 10H12V2z" />
-              <path d="M12 12v10a10 10 0 0 1-10-10h10z" />
-            </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">NSE CONNECT</span>
-          </div>
-
-          <!-- Logo 4: BSE LIVE FEED -->
-          <div class="flex items-center gap-2 select-none grayscale cursor-default hover:scale-105 transition-all">
-            <svg class="w-5 h-5 text-gray-650" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">BSE FEED</span>
-          </div>
-
-          <!-- Logo 5: CDSL -->
-          <div class="flex items-center gap-2 select-none grayscale cursor-default hover:scale-105 transition-all">
-            <svg class="w-5 h-5 text-gray-650" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">CDSL</span>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 9: MAX PAIN & MULTI-STRIKE OI GRID CHART -->
-    <section id="max-pain-section" class="bg-white border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Header -->
-        <div class="border-b border-gray-200 pb-5 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div class="space-y-1">
-            <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Derivative Equilibrium</span>
-            <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-              Options Max Pain & Multi-Strike Open Interest
-            </h2>
-            <p class="text-xs text-gray-500 font-sans">
-              Strike-wise comparative derivatives volume. Highlighting the strike of maximum pain where option sellers realize minimum overall loss.
-            </p>
-          </div>
-          <div class="flex items-center gap-2 text-xs font-mono">
-            <span class="flex items-center gap-1.5 font-bold text-slate-700">
-              <span class="w-3.5 h-3.5 rounded bg-emerald-500 inline-block"></span> Call OI
-            </span>
-            <span class="flex items-center gap-1.5 font-bold text-slate-700">
-              <span class="w-3.5 h-3.5 rounded bg-rose-500 inline-block"></span> Put OI
-            </span>
-          </div>
-        </div>
-
-        <!-- High density comparative vertical bar chart layout -->
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 items-end h-[360px] pt-8 max-w-4xl mx-auto select-none">
-          
-          <!-- Strike ${fmtPrice(atmStrike)} Slot -->
-          <div class="flex flex-col items-center justify-end h-full space-y-4 group">
-            <div class="flex items-end gap-3 h-52 w-full justify-center">
-              <!-- Call Bar -->
-              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: 60%;" title="Call OI: 3.8M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">3.8M</span>
-              </div>
-              <!-- Put Bar -->
-              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: 35%;" title="Put OI: 2.1M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">2.1M</span>
-              </div>
-            </div>
-            <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-slate-900 font-black">${fmtPrice(atmStrike)}</strong>
-              <span class="text-[8px] text-gray-400 block font-bold uppercase">OTM Zone</span>
-            </div>
-          </div>
-
-          <!-- Strike 24,850 Slot -->
-          <div class="flex flex-col items-center justify-end h-full space-y-4 group">
-            <div class="flex items-end gap-3 h-52 w-full justify-center">
-              <!-- Call Bar -->
-              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: 42%;" title="Call OI: 2.4M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">2.4M</span>
-              </div>
-              <!-- Put Bar -->
-              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: 58%;" title="Put OI: 3.6M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">3.6M</span>
-              </div>
-            </div>
-            <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-slate-900 font-black">24,850</strong>
-              <span class="text-[8px] text-gray-400 block font-bold uppercase">Support Build</span>
-            </div>
-          </div>
-
-          <!-- Strike ${fmtPrice(maxPain)} Highlighted Slot (MAX PAIN FOCUS) -->
-          <div class="flex flex-col items-center justify-end h-full space-y-4 relative p-4 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50/15 group">
-            <!-- Floating badge -->
-            <span class="absolute -top-5 inset-x-0 mx-auto w-max bg-amber-500 text-white text-[8px] font-black font-mono tracking-widest uppercase py-1 px-2.5 rounded-full shadow-sm">
-              MAX PAIN FOCUS: ${fmtPrice(maxPain)}
-            </span>
-            
-            <div class="flex items-end gap-3 h-52 w-full justify-center">
-              <!-- Call Bar -->
-              <div class="w-8 bg-emerald-600 rounded-t-sm relative shadow-sm" style="height: 85%;" title="Call OI: 4.9M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-black text-emerald-800">4.9M</span>
-              </div>
-              <!-- Put Bar -->
-              <div class="w-8 bg-rose-600 rounded-t-sm relative shadow-sm" style="height: 82%;" title="Put OI: 4.8M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-black text-rose-800">4.8M</span>
-              </div>
-            </div>
-            <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-amber-900 font-black">${fmtPrice(maxPain)} Spot</strong>
-              <span class="text-[8px] text-amber-700 block font-black uppercase">Concentration</span>
-            </div>
-          </div>
-
-          <!-- Strike 24,950 Slot -->
-          <div class="flex flex-col items-center justify-end h-full space-y-4 group">
-            <div class="flex items-end gap-3 h-52 w-full justify-center">
-              <!-- Call Bar -->
-              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: 52%;" title="Call OI: 3.1M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">3.1M</span>
-              </div>
-              <!-- Put Bar -->
-              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: 30%;" title="Put OI: 1.8M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">1.8M</span>
-              </div>
-            </div>
-            <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-slate-900 font-black">24,950</strong>
-              <span class="text-[8px] text-gray-400 block font-bold uppercase">Pivot Node</span>
-            </div>
-          </div>
-
-          <!-- Strike ${fmtPrice(atmStrike + step*2)} Slot -->
-          <div class="flex flex-col items-center justify-end h-full space-y-4 group">
-            <div class="flex items-end gap-3 h-52 w-full justify-center">
-              <!-- Call Bar -->
-              <div class="w-8 bg-emerald-500/80 rounded-t-sm group-hover:bg-emerald-500 transition-all duration-200 relative" style="height: 72%;" title="Call OI: 4.2M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-emerald-700">4.2M</span>
-              </div>
-              <!-- Put Bar -->
-              <div class="w-8 bg-rose-500/80 rounded-t-sm group-hover:bg-rose-500 transition-all duration-200 relative" style="height: 18%;" title="Put OI: 1.0M">
-                <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-rose-700">1.0M</span>
-              </div>
-            </div>
-            <div class="text-center font-mono border-t border-gray-150 pt-2 w-full">
-              <strong class="text-xs text-slate-900 font-black">${fmtPrice(atmStrike + step*2)}</strong>
-              <span class="text-[8px] text-gray-400 block font-bold uppercase">Resistance Wall</span>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 10: IMPLIED VS HISTORICAL VOLATILITY OVERLAY GRAPH -->
-    <section id="volatility-overlay" class="bg-gray-50 border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Header -->
-        <div class="border-b border-gray-200 pb-5 mb-10 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Volatility Dispersal Index</span>
-          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Implied Volatility (IV) vs Historical Volatility (HV) Analysis
-          </h2>
-          <p class="text-xs text-gray-500 mt-2 font-sans">
-            Overlay analytics visualizing divergence between option-market expectation (IV) and the trailing physical underlying drift variance (HV).
-          </p>
-        </div>
-
-        <!-- Line graph card structure with high contrast curves -->
-        <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-8 items-center max-w-5xl mx-auto">
-          
-          <!-- Curve Canvas Slot -->
-          <div class="md:col-span-8 bg-slate-900 border border-slate-950 rounded-xl p-5 relative overflow-hidden h-72 flex flex-col justify-between">
-            <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:30px_30px] opacity-[0.2] pointer-events-none"></div>
-
-            <!-- Left Axis Indicator Labels -->
-            <div class="absolute left-2.5 top-8 bottom-12 w-6 flex flex-col justify-between items-center text-[8px] font-mono text-slate-500 select-none">
-              <span>24%</span>
-              <span>20%</span>
-              <span>16%</span>
-              <span>12%</span>
-              <span>8%</span>
-            </div>
-
-            <!-- Chart Plot SVG Frame -->
-            <div class="relative w-full h-full ml-5 mr-3 mb-4 select-none">
-              <svg class="w-full h-full" viewBox="0 0 520 180" preserveAspectRatio="none">
-                <!-- Grid division elements -->
-                <line x1="0" y1="36" x2="520" y2="36" stroke="#1e293b" stroke-width="0.75" />
-                <line x1="0" y1="72" x2="520" y2="72" stroke="#1e293b" stroke-width="0.75" />
-                <line x1="0" y1="108" x2="520" y2="108" stroke="#1e293b" stroke-width="0.75" />
-                <line x1="0" y1="144" x2="520" y2="144" stroke="#1e293b" stroke-width="0.75" />
-                
-                <!-- Cross segments -->
-                <line x1="170" y1="0" x2="170" y2="180" stroke="#1e293b" stroke-width="0.75" stroke-dasharray="1 3" />
-                <line x1="340" y1="0" x2="340" y2="180" stroke="#1e293b" stroke-width="0.75" stroke-dasharray="1 3" />
-
-                <!-- Crossover spread highlight fill (Soft purple background) -->
-                <!-- Plot paths: IV is M 0 130 C 120 120, 200 60, 310 50 C 370 45, 420 110, 520 100 -->
-                <!-- Plot paths: HV is M 0 110 C 130 115, 200 95, 310 90 C 370 85, 420 80, 520 75 -->
-                <!-- Crossover between x=170 and 370 has purple fill -->
-                <path d="M 210 80 C 260 70, 310 50, 340 52 C 370 54, 400 80, 422 92 Z" fill="#9333ea" fill-opacity="0.15" />
-
-                <!-- Solid Electric-Blue Line checking IV -->
-                <path d="M 0 142 C 100 135, 170 120, 220 78 C 280 40, 350 45, 400 100 C 450 140, 490 120, 520 110" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" />
-
-                <!-- Dotted Charcoal-Gray Line checking trailing 30-Day HV -->
-                <path d="M 0 108 C 100 105, 170 100, 220 95 C 280 90, 350 82, 400 78 C 450 72, 490 68, 520 62" fill="none" stroke="#64748b" stroke-width="1.75" stroke-dasharray="3 3" stroke-linecap="round" />
-
-                <!-- Active Highlight circle indicating IV > HV Arbitrage Premium -->
-                <circle cx="280" cy="52" r="4.5" fill="#a855f7" />
-                <circle cx="280" cy="52" r="8" fill="none" stroke="#a855f7" stroke-width="1" class="animate-pulse" style="transform-origin: 280px 52px;" />
-
-                <circle cx="400" cy="100" r="4" fill="#3b82f6" />
-                <circle cx="400" cy="78" r="4" fill="#64748b" />
-              </svg>
-
-              <!-- Elegant tiny callout label indicating market mispricing -->
-              <div class="absolute top-[28%] left-[45%] bg-purple-950/90 text-purple-300 text-[8px] font-black font-mono px-2 py-1 rounded border border-purple-800 shadow-sm whitespace-nowrap animate-bounce leading-none">
-                IV SQUEEZE: +4.8% SPREAD (ARBITRAGE)
-              </div>
-            </div>
-
-            <!-- Horizontal axis labels representing timeline/expirations -->
-            <div class="flex justify-between items-center text-[8.5px] font-mono text-slate-500 pt-1.5 border-t border-slate-950 px-4 uppercase select-none">
-              <span>Expiry June 11</span>
-              <span>June 18</span>
-              <strong class="text-cyan-400 font-bold">Expiry June 25 (Monthly)</strong>
-              <span>July 02</span>
-              <span>July 09</span>
-            </div>
-          </div>
-
-          <!-- Description index panel summaries -->
-          <div class="md:col-span-4 space-y-5">
-            <h4 class="text-xs font-black uppercase text-slate-700 font-mono tracking-wider border-b border-gray-150 pb-2">
-              Volatility Coordinates
-            </h4>
-            
-            <div class="divide-y divide-gray-100 text-xs">
-              <div class="py-2 flex items-center justify-between">
-                <span class="text-gray-500 font-medium font-sans">Active Implied Vol (IV)</span>
-                <strong class="text-blue-600 font-bold font-mono">15.82% Median</strong>
-              </div>
-              <div class="py-2 flex items-center justify-between">
-                <span class="text-gray-500 font-medium font-sans">30-Day Historical (HV)</span>
-                <strong class="text-slate-600 font-bold font-mono">11.02% Compression</strong>
-              </div>
-              <div class="py-2 flex items-center justify-between">
-                <span class="text-gray-500 font-medium font-sans">IV/HV Yield Premium</span>
-                <strong class="text-purple-600 font-bold font-mono">+4.80% (Vol Arbitrage)</strong>
-              </div>
-              <div class="py-2 flex items-center justify-between">
-                <span class="text-gray-500 font-medium font-sans">Vega Exposure Sensitivity</span>
-                <strong class="text-slate-900 font-bold font-mono">₹450 per contract %</strong>
-              </div>
-            </div>
-
-            <div class="p-3 bg-blue-50 text-[10px] text-blue-700 leading-normal font-medium rounded border border-blue-100">
-              <span class="font-extrabold uppercase font-mono block mb-1">TRADING SYSTEM INSIGHT</span>
-              The IV/HV divergence implies a premium surge on June 25 options. Writing strategies (iron condors/calendar-spreads) benefit optimally from impending IV crushing mechanisms.
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 11: LIVE INSTITUTIONAL BLOCK TRADE PULSE BOARD -->
-    <section id="block-trades" class="bg-white border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Header -->
-        <div class="border-b border-gray-200 pb-5 mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div class="space-y-1">
-            <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">High Frequency Scanning Feed</span>
-            <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-              Live Institutional Block Trades & Volume Spikes
-            </h2>
-            <p class="text-xs text-gray-500 font-sans">
-              Instantaneous tracking matrix filtering registered FII/DII block orders and excessive multi-strike volume accumulators.
-            </p>
-          </div>
-          <span class="text-[9.5px] font-mono text-slate-500 border border-slate-200 bg-white px-2.5 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5 animate-pulse">
-            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span> Ledger Stream active (0.1ms tick)
-          </span>
-        </div>
-
-        <!-- Ledger table grid layout -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto max-w-5xl mx-auto">
-          <table class="w-full text-left font-sans text-xs border-collapse min-w-[640px]">
-            <thead>
-              <tr class="bg-slate-50 text-[10px] text-gray-500 font-mono border-b border-gray-200 uppercase tracking-wider font-extrabold pb-2.5">
-                <th class="py-3 px-6">Execution Timestamp</th>
-                <th class="py-3 px-6">Symbol Asset</th>
-                <th class="py-3 px-6 text-right">Volume / Order Size</th>
-                <th class="py-3 px-6 text-center">Execution State Tag</th>
-                <th class="py-3 px-6 text-right">Settlement Node</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-150 text-slate-700 font-normal">
-              
-              <!-- Row 1 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3 px-6 font-mono text-gray-400 font-bold">10:45:30 IST</td>
-                <td class="py-3 px-6 font-extrabold text-slate-900">RELIANCE JUN 2500 CE</td>
-                <td class="py-3 px-6 text-right font-mono font-black text-blue-650">₹14.2 Cr Order</td>
-                <td class="py-3 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-blue-800 bg-blue-100 py-0.5 px-2.5 rounded-full font-mono">
-                    Block Trade
-                  </span>
-                </td>
-                <td class="py-3 px-6 text-right font-mono font-bold text-slate-800">NSE Clearing Corp</td>
-              </tr>
-
-              <!-- Row 2 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3 px-6 font-mono text-gray-400 font-bold">10:14:02 IST</td>
-                <td class="py-3 px-6 font-extrabold text-slate-900 font-sans">NIFTY ${fmtPrice(atmStrike)} CE</td>
-                <td class="py-3 px-6 text-right font-mono font-black text-emerald-650">150,050 QTY</td>
-                <td class="py-3 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-emerald-800 bg-emerald-100 py-0.5 px-2.5 rounded-full font-mono">
-                    Long Build-up
-                  </span>
-                </td>
-                <td class="py-3 px-6 text-right font-mono font-bold text-slate-800">NSE Spot Index</td>
-              </tr>
-
-              <!-- Row 3 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3 px-6 font-mono text-gray-400 font-bold">09:34:50 IST</td>
-                <td class="py-3 px-6 font-extrabold text-slate-900 leading-none">HDFC BANK JUN 1600 PE</td>
-                <td class="py-3 px-6 text-right font-mono font-black text-emerald-600">90,000 QTY</td>
-                <td class="py-3 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-emerald-800 bg-emerald-50 border border-emerald-200 py-0.5 px-2.5 rounded-full font-mono">
-                    Short Covering
-                  </span>
-                </td>
-                <td class="py-3 px-6 text-right font-mono font-bold text-slate-800">BSE Clearing Corp</td>
-              </tr>
-
-              <!-- Row 4 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3 px-6 font-mono text-gray-400 font-bold">09:12:15 IST</td>
-                <td class="py-3 px-6 font-extrabold text-slate-900 leading-none">INFOSYS JUN 1500 CE</td>
-                <td class="py-3 px-6 text-right font-mono font-black text-blue-600">₹8.4 Cr Order</td>
-                <td class="py-3 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-blue-800 bg-blue-100 py-0.5 px-2.5 rounded-full font-mono">
-                    Block Trade
-                  </span>
-                </td>
-                <td class="py-3 px-6 text-right font-mono font-bold text-slate-800">NSE Institutional Desk</td>
-              </tr>
-
-              <!-- Row 5 -->
-              <tr class="hover:bg-slate-50/50 transition">
-                <td class="py-3 px-6 font-mono text-gray-400 font-bold">09:05:42 IST</td>
-                <td class="py-3 px-6 font-extrabold text-slate-900 leading-none">ICICI BANK JUN 1150 PE</td>
-                <td class="py-3 px-6 text-right font-mono font-black text-rose-650">₹11.5 Cr Order</td>
-                <td class="py-3 px-6 text-center">
-                  <span class="inline-block text-[9px] font-black uppercase text-rose-800 bg-rose-100 py-0.5 px-2.5 rounded-full font-mono">
-                    Short Build-up
-                  </span>
-                </td>
-                <td class="py-3 px-6 text-right font-mono font-bold text-slate-800">Domestic Broker Block</td>
-              </tr>
-
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 12: GLOBAL CROSS-ASSET DERIVATIVES TICKER MATRIX -->
-    <section id="global-matrix" class="bg-gray-50 border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Header -->
-        <div class="border-b border-gray-200 pb-5 mb-10 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Macro Hedging Coordinates</span>
-          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Global Cross-Asset Options & Macro Indicators
-          </h2>
-          <p class="text-xs text-gray-500 mt-2 font-sans">
-            Comprehensive system matrices displaying volatility metrics and trend spreads across key sovereign indices and macroeconomic anchors.
-          </p>
-        </div>
-
-        <!-- 4 Column Metric Grid Layout -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          <!-- Card 1: CBOE VIX -->
-          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm transition hover:scale-[1.02] duration-200 flex flex-col justify-between h-36">
-            <div class="flex items-start justify-between">
-              <div>
-                <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Volatility Index</span>
-                <h4 class="text-xs font-black text-[#111827] uppercase mt-0.5 font-sans leading-none">CBOE VIX Options</h4>
-              </div>
-              <span class="text-[9px] px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-mono font-black uppercase">-3.85%</span>
-            </div>
-            <div>
-              <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">12.42</div>
-              <div class="text-[8.5px] text-gray-400 font-mono mt-1 flex justify-between uppercase">
-                <span>Implied Floor</span>
-                <span>Vol Standard: Low</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 2: US Dollar Index (DXY) Options -->
-          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm transition hover:scale-[1.02] duration-200 flex flex-col justify-between h-36">
-            <div class="flex items-start justify-between">
-              <div>
-                <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Currency Anchor</span>
-                <h4 class="text-xs font-black text-[#111827] uppercase mt-0.5 font-sans leading-none">US Dollar Index (DXY)</h4>
-              </div>
-              <span class="text-[9px] px-2 py-0.5 rounded bg-gray-100 text-slate-800 font-mono font-black uppercase">+0.12%</span>
-            </div>
-            <div>
-              <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">101.85</div>
-              <div class="text-[8.5px] text-gray-400 font-mono mt-1 flex justify-between uppercase">
-                <span>Skew: Neutral</span>
-                <span>Anchor Bias: Flat</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 3: Global Index Futures -->
-          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm transition hover:scale-[1.02] duration-200 flex flex-col justify-between h-36">
-            <div class="flex items-start justify-between">
-              <div>
-                <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Sovereign Index Spec</span>
-                <h4 class="text-xs font-black text-[#111827] uppercase mt-0.5 font-sans leading-none">S&P 500 Fut Volatility</h4>
-              </div>
-              <span class="text-[9px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono font-black uppercase">+0.78%</span>
-            </div>
-            <div>
-              <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">5,420.25</div>
-              <div class="text-[8.5px] text-gray-400 font-mono mt-1 flex justify-between uppercase">
-                <span>Volume: 1.84M</span>
-                <span>Trend: Expansion</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 4: Brent Crude Oil Derivatives -->
-          <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm transition hover:scale-[1.02] duration-200 flex flex-col justify-between h-36">
-            <div class="flex items-start justify-between">
-              <div>
-                <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Commodity Spreads</span>
-                <h4 class="text-xs font-black text-[#111827] uppercase mt-0.5 font-sans leading-none">Brent Crude Option LTP</h4>
-              </div>
-              <span class="text-[9px] px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-mono font-black uppercase">-1.24%</span>
-            </div>
-            <div>
-              <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">₹6,840.00</div>
-              <div class="text-[8.5px] text-gray-400 font-mono mt-1 flex justify-between uppercase">
-                <span>Premium Spread</span>
-                <span>Bias: Moderate Sell</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 13: INTERACTIVE F&O FAQ ACCORDION -->
-    <section id="faq-section" class="bg-white border-b border-gray-200 py-16">
-      <div class="max-w-4xl mx-auto px-6">
-        
-        <!-- Header -->
-        <div class="border-b border-gray-200 pb-5 mb-10 text-center mx-auto max-w-xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Expert Guidance</span>
-          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Frequently Asked Questions
-          </h2>
-          <p class="text-xs text-gray-500 mt-2 font-sans">
-            Get instant answers regarding data feed compliance, real-time pipeline integration, and high-frequency algorithms from our engineers.
-          </p>
-        </div>
-
-        <!-- Accordions (Details list) -->
-        <div class="space-y-4">
-          
-          <details class="group bg-gray-50 rounded-xl border border-gray-200 p-5 [&_summary::-webkit-details-marker]:hidden transition-all duration-300 [&[open]]:bg-white [&[open]]:shadow-sm [&[open]]:border-blue-300">
-            <summary class="flex items-center justify-between cursor-pointer focus:outline-none">
-              <h3 class="text-xs sm:text-sm font-black text-[#111827] uppercase tracking-wide font-sans">
-                Where does your live derivatives data originate?
-              </h3>
-              <span class="flex-shrink-0 ml-1.5 p-1 text-slate-400 group-open:rotate-180 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </span>
-            </summary>
-            <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              Our platform uses NSE's official data APIs and Yahoo Finance feeds to deliver real, live market data. Prices, indices and option chains refresh automatically throughout the trading session.
-            </p>
-          </details>
-
-          <details class="group bg-gray-50 rounded-xl border border-gray-200 p-5 [&_summary::-webkit-details-marker]:hidden transition-all duration-300 [&[open]]:bg-white [&[open]]:shadow-sm [&[open]]:border-blue-300">
-            <summary class="flex items-center justify-between cursor-pointer focus:outline-none">
-              <h3 class="text-xs sm:text-sm font-black text-[#111827] uppercase tracking-wide font-sans">
-                Is there a trial period for algorithmic signals?
-              </h3>
-              <span class="flex-shrink-0 ml-1.5 p-1 text-slate-400 group-open:rotate-180 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2500/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </span>
-            </summary>
-            <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              Yes, the Basic plan is free forever with live market data. Pro Trader at ₹999/month adds advanced analytics, alerts and priority data feeds.
-            </p>
-          </details>
-
-          <details class="group bg-gray-50 rounded-xl border border-gray-200 p-5 [&_summary::-webkit-details-marker]:hidden transition-all duration-300 [&[open]]:bg-white [&[open]]:shadow-sm [&[open]]:border-blue-300">
-            <summary class="flex items-center justify-between cursor-pointer focus:outline-none">
-              <h3 class="text-xs sm:text-sm font-black text-[#111827] uppercase tracking-wide font-sans">
-                How frequently are volatile option greeks updated?
-              </h3>
-              <span class="flex-shrink-0 ml-1.5 p-1 text-slate-400 group-open:rotate-180 transition-transform duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </span>
-            </summary>
-            <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              Greeks are calculated using the Black-Scholes model updated every market tick for Pro users, and every 5 minutes for Basic users.
-            </p>
-          </details>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 14: TIRED SUBSCRIPTION PRICING CARDS -->
-    <section id="pricing-section" class="bg-gray-50 border-b border-gray-200 py-16">
-      <div class="max-w-7xl mx-auto px-6">
-
-        <!-- Header -->
-        <div class="border-b border-gray-200 pb-5 mb-12 text-center mx-auto max-w-xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Precision Licensing</span>
-          <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Select Your Analytical Edge
-          </h2>
-          <p class="text-xs text-gray-500 mt-2 font-sans">
-            Clear structural pricing models adapted for independent retail participants up to full high-frequency institutional trading desks.
-          </p>
-        </div>
-
-        <!-- 3-Column Plan Cards Layout -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
-
-          <!-- Card 1: Basic -->
-          <div class="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow duration-200">
-            <div>
-              <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-                <div>
-                  <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Level 01</span>
-                  <h3 class="text-sm font-black text-[#111827] uppercase tracking-wide mt-0.5">Basic</h3>
-                </div>
-                <span class="text-[10px] font-black font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Starter</span>
-              </div>
-              <div class="mb-5">
-                <span class="text-2xl font-black text-[#111827] font-mono leading-none">Free Forever</span>
-                <p class="text-[10px] text-gray-450 font-normal mt-1 leading-normal">Perfect for personal indices observation and general structural screeners.</p>
-              </div>
-              <ul class="space-y-2.5 text-xs text-slate-650 border-t border-gray-100 pt-4 mb-8">
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2500/svg" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Basic Option Chains (Delayed)</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Underlying Equities Analytics</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Delayed Interactive Heatmaps</span>
-                </li>
-                <li class="flex items-center gap-2 text-slate-400 line-through">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span>Live FII / DII Desk Ledgers</span>
-                </li>
-              </ul>
-            </div>
-            <button class="w-full py-2.5 px-4 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow-sm">
-              Activate Basic Account
-            </button>
-          </div>
-
-          <!-- Card 2: Pro Trader (Most Popular highlight) -->
-          <div class="bg-white border-2 border-blue-600 rounded-2xl p-6 flex flex-col justify-between shadow-lg relative transform scale-[1.02] md:scale-105 z-10 transition hover:shadow-xl w-full">
-            <!-- Popular Badge -->
-            <span class="absolute -top-3.5 inset-x-0 mx-auto w-max bg-blue-600 text-white text-[8px] font-black font-mono tracking-widest uppercase py-1 px-3.5 rounded-full select-none shadow">
-              MOST POPULAR
-            </span>
-
-            <div>
-              <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-                <div>
-                  <span class="text-[9px] font-black uppercase text-blue-650 font-mono tracking-wider">Level 02</span>
-                  <h3 class="text-sm font-black text-[#111827] uppercase tracking-wide mt-0.5 font-sans">Pro Trader</h3>
-                </div>
-                <span class="text-[10px] font-black font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">Popular</span>
-              </div>
-              <div class="mb-5">
-                <div class="flex items-baseline gap-1">
-                  <span class="text-3xl font-black text-[#111827] font-mono leading-none">₹999</span>
-                  <span class="text-[10px] text-gray-500 font-mono">/ month</span>
-                </div>
-                <p class="text-[10px] text-gray-450 font-normal mt-1 leading-normal">Equips active retail derivatives traders with high frequency tools.</p>
-              </div>
-              <ul class="space-y-2.5 text-xs text-slate-650 border-t border-gray-100 pt-4 mb-8">
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Live Option Greek Terminals (0.1ms)</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Live FII / DII Block Ledgers</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>AI Breakout Signal Streams</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Real-Time IV vs HV Volatility Curves</span>
-                </li>
-              </ul>
-            </div>
-            <button class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow">
-              Select Pro Trader Elite
-            </button>
-          </div>
-
-          <!-- Card 3: Enterprise -->
-          <div class="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-            <div>
-              <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-                <div>
-                  <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Level 03</span>
-                  <h3 class="text-sm font-black text-[#111827] uppercase tracking-wide mt-0.5">Enterprise</h3>
-                </div>
-                <span class="text-[10px] font-black font-mono text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">Custom</span>
-              </div>
-              <div class="mb-5">
-                <span class="text-2xl font-black text-[#111827] font-mono leading-none">Contact Us</span>
-                <p class="text-[10px] text-gray-450 font-normal mt-1 leading-normal">High performance workstation pipelines with raw compliance endpoints.</p>
-              </div>
-              <ul class="space-y-2.5 text-xs text-slate-650 border-t border-gray-100 pt-4 mb-8">
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-800 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Raw Low-Latency SAPI API Access</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-800 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Multi-Monitor Workstation Support</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-800 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Dedicated Compliance Officers</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-800 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Custom Algorithmic Backtesting Nodes</span>
-                </li>
-              </ul>
-            </div>
-            <button class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow-sm">
-              Inquire Enterprise Licensing
-            </button>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- SECTION 15: CORPORATE DISCLOSURE FOOTER -->
-    <footer id="corporate-footer" class="bg-[#F3F4F6] text-slate-800 py-16 border-t border-gray-250">
-      <div class="max-w-7xl mx-auto px-6">
-        
-        <!-- Link grid columns -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-          
-          <div class="space-y-4">
-            <span class="font-black text-sm tracking-tight text-slate-900 uppercase flex items-center gap-2">
-              StockPro Screener <span class="bg-blue-600 text-white text-[8px] font-mono px-1.5 py-0.5 rounded tracking-wide">Elite</span>
-            </span>
-            <p class="text-xs text-gray-550 font-normal leading-relaxed">
-              Premium high-frequency derivatives screening analytics. We coordinate continuous strike-wise derivatives tracking engines, open interest smile diagnostics, and algorithmic ProPicks models for corporate desks.
-            </p>
-          </div>
-
-          <div>
-            <h4 class="text-slate-900 text-xs font-black tracking-widest uppercase mb-4 font-mono">Platform</h4>
-            <ul class="space-y-2.5 text-xs text-slate-600">
-              <li><a href="/#option-matrix" class="hover:text-blue-600 transition font-medium">Strike Option Matrix</a></li>
-              <li><a href="/#max-pain-section" class="hover:text-blue-600 transition font-medium">Open Interest Bars</a></li>
-              <li><a href="/#volatility-overlay" class="hover:text-blue-600 transition font-medium font-sans">IV/HV Volatility Curves</a></li>
-              <li><a href="/#block-trades" class="hover:text-blue-600 transition font-medium font-sans">FII/DII Block Trade Ledgers</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 class="text-slate-900 text-xs font-black tracking-widest uppercase mb-4 font-mono">Solutions</h4>
-            <ul class="space-y-2.5 text-xs text-slate-600">
-              <li><a href="/screener" class="hover:text-blue-600 transition font-medium">Algorithmic Screener Core</a></li>
-              <li><a href="/screener" class="hover:text-blue-600 transition font-medium font-sans">Multi-Monitor Terminals</a></li>
-              <li><a href="/screener" class="hover:text-blue-600 transition font-medium font-sans">Exchange Connectivity SAPI</a></li>
-              <li><a href="/screener" class="hover:text-blue-600 transition font-medium">ProPicks AI Strategy</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 class="text-slate-900 text-xs font-black tracking-widest uppercase mb-4 font-mono">Legal & Compliance</h4>
-            <ul class="space-y-2.5 text-xs text-slate-600">
-              <li><a href="/sebi-disclosure" class="hover:text-blue-600 transition font-medium">F&O Disclosures Matrix</a></li>
-              <li><a href="/sebi-disclosure" class="hover:text-blue-600 transition font-medium font-sans">SEBI Registrars Log</a></li>
-              <li><a href="/disclaimer" class="hover:text-blue-600 transition font-medium font-sans">Exchange Audit Protocols</a></li>
-              <li><a href="/disclaimer" class="hover:text-blue-600 transition font-medium">Risk Guidelines Index</a></li>
-            </ul>
-          </div>
-
-        </div>
-
-        <div class="border-t border-gray-250 pt-8 mt-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-[10.5px] text-gray-500 font-mono">
-          <div>
-            <span class="font-extrabold uppercase text-slate-700 block mb-1">NSE DATA FEED</span>
-            <span>OK (LIVE)</span>
-          </div>
-          <div>
-            <span class="font-extrabold uppercase text-slate-700 block mb-1">REGULATORY SECURED</span>
-            <span>TLS-256 SECURED VERIFICATION</span>
-          </div>
-          <div>
-            <span class="font-extrabold uppercase text-slate-700 block mb-1">EXCHANGES DISK</span>
-            <span>NSE/BSE AUTHORIZED AGENT</span>
-          </div>
-          <div>
-            <span class="font-extrabold uppercase text-slate-700 block mb-1">SYSTEM CORES</span>
-            <span>COORDINATED v3.45</span>
-          </div>
-        </div>
-
-        <!-- Financial Risk Disclaimer -->
-        <div class="border-t border-gray-250 mt-8 pt-8 space-y-4">
-          <p class="text-[10px] text-gray-500 leading-relaxed font-sans font-normal">
-            <strong>Mandatory Financial Risk Disclosure:</strong> Derivatives and Options trading involve substantial risk of loss and are not suitable for every investor. Past performance is not indicative of future market results. High-frequency algorithmic signals represent computational mathematical outputs and should not be treated as absolute advisory coordinates.
-          </p>
-          <div class="flex flex-col md:flex-row md:items-center justify-between text-[11px] text-gray-500 font-mono gap-4">
-            <span>&copy; 2026 StockPro ProPicks Analytics — F&O Services. All Sovereign Rights Reserved.</span>
-            <div class="flex items-center gap-4 text-xs font-sans">
-              <a href="/privacy" class="hover:text-slate-800 transition font-semibold text-blue-600">Privacy Policy</a>
-              <span>•</span>
-              <a href="/terms" class="hover:text-slate-800 transition">Terms of Use</a>
-              <span>•</span>
-              <a href="/disclaimer" class="hover:text-slate-800 transition">Legal Disclaimers</a>
-              <span>•</span>
-              <a href="/sebi-disclosure" class="hover:text-slate-800 transition">SEBI Disclosure</a>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </footer>
-
-    <!-- Initialize Lucide Icons -->
-    <script>
-      if (typeof lucide !== 'undefined' && lucide.createIcons) {
-        lucide.createIcons();
-      } else {
-        console.warn('Lucide is not globally loaded in index.html.');
-      }
-    </script>
-    <script src="/live-data.js"></script>
-  ` }} />
-  </>;
+  );
 }
