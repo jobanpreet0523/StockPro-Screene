@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Activity, Gauge, Layers, Shield, Target, TrendingUp, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Activity, Gauge, Layers, Shield, Target, TrendingUp } from 'lucide-react';
 
 interface Props {
   selectedValue: string;
@@ -81,7 +82,7 @@ export default function OptionChainAnalyticsCards({ selectedValue, currentPrice 
   );
 }
 
-function AnalyticsCard({ icon: Icon, label, value, note, tone, onClick }: { icon: typeof Zap; label: string; value: string; note: string; tone: Tone; onClick?: () => void }) {
+function AnalyticsCard({ icon: Icon, label, value, note, tone, onClick }: { icon: LucideIcon; label: string; value: string; note: string; tone: Tone; onClick?: () => void }) {
   const toneClass = {
     slate: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200',
     emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
