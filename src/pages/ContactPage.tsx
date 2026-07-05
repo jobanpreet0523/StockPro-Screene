@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, MessageCircle, ShieldAlert, Sparkles, Crown, Bell, CheckCircle2 } from 'lucide-react';
+import { Mail, MessageCircle, ShieldAlert, Sparkles, Crown, Bell, CheckCircle2, BarChart3 } from 'lucide-react';
 
 export default function ContactPage() {
   const subject = encodeURIComponent('StockPro Pro Waitlist Request');
@@ -53,6 +53,19 @@ export default function ContactPage() {
         </div>
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs font-bold leading-6 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-300">
           <Bell size={15} className="mr-2 inline" />Stage 3 uses waitlist demand first. Real paid access should be enabled only after billing, plan limits, support, and access checks are ready.
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-blue-600 dark:text-blue-400"><BarChart3 size={14} /> Stage 5 measurement checklist</div>
+        <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-white">Measure before scaling.</h2>
+        <p className="mt-2 text-xs font-semibold leading-6 text-slate-600 dark:text-slate-300">Track the funnel weekly so product decisions are based on usage, not guesses.</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          {["Visitors", "Tool opens", "Pricing clicks", "Waitlist requests"].map((item) => (
+            <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-black text-slate-800 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-100">
+              {item}
+            </div>
+          ))}
         </div>
       </section>
     </div>
