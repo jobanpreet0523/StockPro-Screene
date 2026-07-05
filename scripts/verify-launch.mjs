@@ -111,6 +111,14 @@ for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/a
   if (!worker.includes(token)) errors.push(`Worker live-plan wiring is missing: ${token}`);
 }
 
+const hero = read('src/components/MarketPulseHero.tsx');
+for (const unsafe of ['Live Sync', 'live breadth']) {
+  if (hero.includes(unsafe)) errors.push(`Hero still has unsafe free-live wording: ${unsafe}`);
+}
+for (const unsafe of ['Real-time NIFTY', 'Scan NSE stocks with live prices']) {
+  if (routeSeo.includes(unsafe)) errors.push(`RouteSeo still has unsafe free-live wording: ${unsafe}`);
+}
+
 const risk = read('src/pages/RiskDisclosurePage.tsx');
 if (!risk.includes('not a SEBI registered investment advisor')) {
   errors.push('Risk disclosure page is missing SEBI/non-advisory wording');
@@ -122,4 +130,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, live plan API client, worker live-plan wiring, data-source foundation, legal pages, footer links, and risk disclosure are present.');
+console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, live plan API client, worker live-plan wiring, safe delayed/live wording, data-source foundation, legal pages, footer links, and risk disclosure are present.');
