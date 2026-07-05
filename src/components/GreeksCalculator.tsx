@@ -9,8 +9,9 @@ function normalCDF(x: number): number {
   const a5 = 1.061405429;
   const p = 0.3275911;
   const sign = x < 0 ? -1 : 1;
-  const t = 1 / (1 + p * Math.abs(x) / Math.sqrt(2));
-  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-(Math.abs(x) / Math.sqrt(2)) ** 2);
+  const scaled = Math.abs(x) / Math.sqrt(2);
+  const t = 1 / (1 + p * scaled);
+  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-(scaled * scaled));
   return 0.5 * (1 + sign * y);
 }
 
