@@ -9,6 +9,7 @@ const requiredFiles = [
   'public/robots.txt',
   'public/sitemap.xml',
   'public/_redirects',
+  'src/_worker.js',
   'src/components/RouteSeo.tsx',
   'src/components/AnalyticsManager.tsx',
   'src/components/DataSourceBadge.tsx',
@@ -105,6 +106,11 @@ for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/a
   if (!livePlanApi.includes(token)) errors.push(`Live plan API client is missing: ${token}`);
 }
 
+const worker = read('src/_worker.js');
+for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider', '/api/live-feed/status', 'handlePlanRoutes(path, request)']) {
+  if (!worker.includes(token)) errors.push(`Worker live-plan wiring is missing: ${token}`);
+}
+
 const risk = read('src/pages/RiskDisclosurePage.tsx');
 if (!risk.includes('not a SEBI registered investment advisor')) {
   errors.push('Risk disclosure page is missing SEBI/non-advisory wording');
@@ -116,4 +122,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, live plan API client, data-source foundation, legal pages, footer links, and risk disclosure are present.');
+console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, live plan API client, worker live-plan wiring, data-source foundation, legal pages, footer links, and risk disclosure are present.');
