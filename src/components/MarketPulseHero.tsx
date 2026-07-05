@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Activity, ArrowUpRight, Gauge, LineChart, Radar, Sparkles, Zap } from 'lucide-react';
+import { Activity, ArrowUpRight, Bell, BookmarkPlus, Crown, Gauge, LineChart, Radar, Search, ShieldCheck, Sparkles, Target, Zap } from 'lucide-react';
 import { IndexData, Stock } from '../types';
 import type { DashboardTab } from './Layout';
 
@@ -22,6 +22,13 @@ const cardVariants = {
   }),
 };
 
+const workflow = [
+  { title: 'Explore', text: 'Indices, movers, sectors', icon: Search, tab: 'screener' as DashboardTab },
+  { title: 'Watchlist', text: 'Follow focused symbols', icon: BookmarkPlus, tab: 'screener' as DashboardTab },
+  { title: 'Screen', text: 'RSI, volume, F&O filters', icon: Target, tab: 'chartink' as DashboardTab },
+  { title: 'Upgrade', text: 'Saved views and alerts', icon: Crown, tab: 'pricing' as DashboardTab },
+];
+
 export default function MarketPulseHero({ indices, stocks, activeTab, setActiveTab, isLoadingStocks }: MarketPulseHeroProps) {
   const gainers = stocks.filter(stock => (stock.change ?? 0) >= 0).length;
   const losers = Math.max(stocks.length - gainers, 0);
@@ -31,34 +38,10 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
   const activeLabel = activeTab.replace(/-/g, ' ').replace('fo', 'option chain').toUpperCase();
 
   const metrics = [
-    {
-      label: 'Data Sync',
-      value: isLoadingStocks ? 'Syncing' : `${stocks.length || 0}`,
-      helper: 'delayed/cached instruments',
-      icon: Activity,
-      accent: 'emerald',
-    },
-    {
-      label: 'Market Breadth',
-      value: `${breadth}%`,
-      helper: `${gainers} advancers · ${losers} decliners`,
-      icon: Gauge,
-      accent: 'sky',
-    },
-    {
-      label: 'F&O Universe',
-      value: `${foCount}`,
-      helper: 'option-enabled stocks',
-      icon: Radar,
-      accent: 'violet',
-    },
-    {
-      label: 'Active Desk',
-      value: activeLabel,
-      helper: leadIndex ? `${leadIndex.name} ${leadIndex.change >= 0 ? '+' : ''}${leadIndex.changePercent}%` : 'Ready for analysis',
-      icon: LineChart,
-      accent: 'amber',
-    },
+    { label: 'Data Universe', value: isLoadingStocks ? 'Syncing' : `${stocks.length || 0}`, helper: 'delayed/cached instruments', icon: Activity },
+    { label: 'Market Breadth', value: `${breadth}%`, helper: `${gainers} advancers · ${losers} decliners`, icon: Gauge },
+    { label: 'F&O Desk', value: `${foCount}`, helper: 'option-enabled stocks', icon: Radar },
+    { label: 'Active Workspace', value: activeLabel, helper: leadIndex ? `${leadIndex.name} ${leadIndex.change >= 0 ? '+' : ''}${leadIndex.changePercent}%` : 'Ready for research', icon: LineChart },
   ];
 
   return (
@@ -66,7 +49,7 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
       initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       transition={{ duration: 0.55, ease: 'easeOut' }}
-      className="premium-surface relative overflow-hidden rounded-[1.75rem] border border-white/70 dark:border-slate-800/80 bg-white/85 dark:bg-slate-950/80 p-5 sm:p-6 shadow-2xl shadow-slate-200/70 dark:shadow-emerald-950/20 mb-6"
+      className="premium-surface relative overflow-hidden rounded-[1.75rem] border border-white/70 dark:border-slate-800/80 bg-white/90 dark:bg-slate-950/80 p-5 sm:p-6 shadow-2xl shadow-slate-200/70 dark:shadow-emerald-950/20 mb-6"
       id="premium_market_command_center"
     >
       <div className="absolute -top-24 -right-20 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl animate-float-slow" />
@@ -86,14 +69,14 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
-            Premium trading workspace
+            India-first market research workspace
           </motion.div>
 
           <h1 className="mt-4 max-w-3xl text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white sm:text-4xl lg:text-5xl">
-            Faster market scanning with a cinematic analytics cockpit.
+            Turn market noise into a focused daily research workflow.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
-            Upgraded UI layer for smarter first-glance decisions: market breadth, animated option intelligence, cleaner action hierarchy, and clear delayed/live data labeling.
+            StockPro combines delayed market dashboards, smart screeners, watchlists, F&O context, calculators, and education so visitors have a reason to return every trading day.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -103,16 +86,34 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
               onClick={() => setActiveTab('chartink')}
               className="glass-button inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-slate-950/20 dark:bg-white dark:text-slate-950"
             >
-              <Zap size={16} /> Run Smart Scanner
+              <Zap size={16} /> Run market screen
             </motion.button>
             <motion.button
               whileHover={{ y: -2, scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveTab('signals')}
+              onClick={() => setActiveTab('pricing')}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-4 py-2.5 text-sm font-black text-slate-800 shadow-sm backdrop-blur hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-100 dark:hover:border-emerald-500/40 dark:hover:text-emerald-300"
             >
-              <Sparkles size={16} /> View Signals
+              <Crown size={16} /> See Pro plans
             </motion.button>
+          </div>
+
+          <div className="mt-5 grid gap-2 sm:grid-cols-4">
+            {workflow.map((step) => {
+              const Icon = step.icon;
+              return (
+                <button key={step.title} onClick={() => setActiveTab(step.tab)} className="rounded-2xl border border-slate-200 bg-white/70 p-3 text-left transition hover:border-emerald-300 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-emerald-700">
+                  <Icon size={15} className="text-emerald-600 dark:text-emerald-400" />
+                  <div className="mt-2 text-xs font-black text-slate-950 dark:text-white">{step.title}</div>
+                  <div className="mt-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">{step.text}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-amber-700 ring-1 ring-amber-100 dark:bg-amber-950/30 dark:text-amber-300 dark:ring-amber-900/40"><ShieldCheck size={12} /> Educational analytics</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-blue-700 ring-1 ring-blue-100 dark:bg-blue-950/30 dark:text-blue-300 dark:ring-blue-900/40"><Bell size={12} /> Alerts roadmap</span>
           </div>
         </div>
 
@@ -131,9 +132,7 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
               >
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-400 opacity-0 transition group-hover:opacity-100" />
                 <div className="flex items-start justify-between gap-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
-                    <Icon size={17} />
-                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"><Icon size={17} /></div>
                   <ArrowUpRight size={15} className="text-slate-300 transition group-hover:text-emerald-500" />
                 </div>
                 <p className="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{metric.label}</p>
