@@ -91,7 +91,7 @@ if (!analytics.includes('VITE_GA_MEASUREMENT_ID')) {
 }
 
 const layout = read('src/components/Layout.tsx');
-for (const label of ['Privacy Policy', 'Terms of Use', 'Connect Broker Live Mode', 'Contact Us']) {
+for (const label of ['Privacy Policy', 'Terms of Use', 'Broker live setup', 'Contact Us']) {
   if (!layout.includes(label)) errors.push(`Footer is missing launch trust link: ${label}`);
 }
 if (!layout.includes('<DataSourceBadge')) errors.push('Layout is missing the data-source badge');
@@ -108,15 +108,15 @@ for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/a
 
 const worker = read('src/_worker.js');
 for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider', '/api/live-feed/status', 'handlePlanRoutes(path, request)']) {
-  if (!worker.includes(token)) errors.push(`Worker live-plan wiring is missing: ${token}`);
+  if (!worker.includes(token)) errors.push(`Worker route wiring is missing: ${token}`);
 }
 
 const hero = read('src/components/MarketPulseHero.tsx');
 for (const unsafe of ['Live Sync', 'live breadth']) {
-  if (hero.includes(unsafe)) errors.push(`Hero still has unsafe free-live wording: ${unsafe}`);
+  if (hero.includes(unsafe)) errors.push(`Hero still has unsafe wording: ${unsafe}`);
 }
-for (const unsafe of ['Real-time NIFTY', 'Scan NSE stocks with live prices']) {
-  if (routeSeo.includes(unsafe)) errors.push(`RouteSeo still has unsafe free-live wording: ${unsafe}`);
+for (const unsafe of ['Real-time NIFTY', 'Scan NSE stocks with live prices', 'Broker Live Data Mode', 'Buy Live Data Plan']) {
+  if (routeSeo.includes(unsafe)) errors.push(`RouteSeo still has unsafe wording: ${unsafe}`);
 }
 
 const risk = read('src/pages/RiskDisclosurePage.tsx');
@@ -130,4 +130,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, live plan API client, worker live-plan wiring, safe delayed/live wording, data-source foundation, legal pages, footer links, and risk disclosure are present.');
+console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, setup API client, worker route wiring, conservative data wording, data-source foundation, legal pages, footer links, and risk disclosure are present.');
