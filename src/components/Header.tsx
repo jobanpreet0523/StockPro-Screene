@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, Compass, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen, SlidersHorizontal, ChevronDown, FolderHeart, Globe, Settings2, Calculator, Zap } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LayoutDashboard, Landmark, ShieldCheck, ExternalLink, Sun, Moon, Newspaper, LogIn, LogOut, BookOpen, SlidersHorizontal, ChevronDown, Globe, Settings2, Calculator, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
@@ -16,6 +16,28 @@ interface HeaderProps {
   onSelectStock: (symbol: string) => void;
 }
 
+type Tab = HeaderProps['activeTab'];
+
+const primaryTabs: Array<{ tab: Tab; label: string; icon: React.ElementType }> = [
+  { tab: 'screener', label: 'Screener', icon: LayoutDashboard },
+  { tab: 'fo', label: 'Option Chain', icon: Cpu },
+  { tab: 'signals', label: 'Signals', icon: Zap },
+  { tab: 'pricing', label: 'Pricing', icon: ShieldCheck },
+];
+
+const moreTabs: Array<{ tab: Tab; label: string; icon: React.ElementType }> = [
+  { tab: 'chartink', label: 'Scanner', icon: SlidersHorizontal },
+  { tab: 'heatmap', label: 'Heatmap', icon: LayoutDashboard },
+  { tab: 'fii-dii', label: 'FII/DII', icon: Globe },
+  { tab: 'deals', label: 'Deals', icon: Landmark },
+  { tab: 'news', label: 'News', icon: Newspaper },
+  { tab: 'blog', label: 'Blog', icon: BookOpen },
+  { tab: 'us', label: 'US Markets', icon: Globe },
+  { tab: 'strategy-builder', label: 'Strategy Builder', icon: Settings2 },
+  { tab: 'greeks-calculator', label: 'Greeks', icon: Calculator },
+  { tab: 'risk-calculator', label: 'Risk Calc', icon: ShieldCheck },
+];
+
 export default function Header({
   indices,
   stocks,
@@ -30,27 +52,10 @@ export default function Header({
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showApiModal, setShowApiModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [prevPrices, setPrevPrices] = useState<Record<string, number>>({});
   const [flashStates, setFlashStates] = useState<Record<string, 'up' | 'down' | null>>({});
   const [marketStatus, setMarketStatus] = useState(() => getMarketStatus());
-  const [savedScannersList, setSavedScannersList] = useState<Record<string, { conditions: any[]; createdAt: string }>>({});
-  const [showScannersDropdown, setShowScannersDropdown] = useState(false);
-
-  useEffect(() => {
-    const loadScanners = () => {
-      try {
-        const stored = localStorage.getItem('savedScanners');
-        setSavedScannersList(stored ? JSON.parse(stored) : {});
-      } catch (e) {}
-    };
-    loadScanners();
-    window.addEventListener('stockpro_scanners_updated', loadScanners);
-    window.addEventListener('storage', loadScanners);
-    return () => {
-      window.removeEventListener('stockpro_scanners_updated', loadScanners);
-      window.removeEventListener('storage', loadScanners);
-    };
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -59,7 +64,6 @@ export default function Header({
     return () => clearInterval(interval);
   }, []);
 
-  // Detect price changes and trigger green/red visual flashes
   useEffect(() => {
     const newFlashes: Record<string, 'up' | 'down' | null> = {};
     let changed = false;
@@ -99,9 +103,8 @@ export default function Header({
       indices.forEach(idx => { currentPrices[idx.symbol] = idx.price; });
       setPrevPrices(currentPrices);
     }
-  }, [stocks, prevPrices]);
+  }, [stocks, indices, prevPrices]);
 
-  // Filtering dropdown searches
   const searchResults = stocks.filter(
     s =>
       s.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -113,18 +116,28 @@ export default function Header({
     return v >= 1000 ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (typeof v === 'number' ? v.toFixed(2) : Number(v || 0).toFixed(2));
   };
 
+  const tabButtonClass = (tab: Tab) => `flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+    activeTab === tab
+      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold'
+      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+  }`;
+
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setShowMoreMenu(false);
+  };
+
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white sticky top-0 z-50 shadow-md transition-all duration-300" id="app_header">
-      {/* Ticker Marquee Bar */}
       <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-x-auto sm:overflow-hidden text-[11px] sm:text-xs transition-all duration-300">
         <div className="max-w-7xl mx-auto flex flex-row items-center justify-between gap-4 sm:flex-row sm:items-center sm:gap-1.5 whitespace-nowrap">
-          <div className="flex items-center gap-2" title="Free public mode uses delayed/cached snapshots. Connect broker for real-time ticks.">
+          <div className="flex items-center gap-2" title="Free public mode uses 15-minute delayed market data. Broker live setup requires payment verification.">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]" style={{ color: marketStatus.color }}>
               <span className={`w-2 h-2 rounded-full ${marketStatus.isOpen ? 'animate-pulse' : ''}`} style={{ backgroundColor: marketStatus.color }} />
               {marketStatus.label}
             </div>
             <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono" style={{ color: marketStatus.color, borderColor: `${marketStatus.color}40`, backgroundColor: `${marketStatus.color}15` }}>
-              FREE SNAPSHOT
+              15-MIN DELAY
             </span>
           </div>
           <div className="flex-1 overflow-hidden ml-6 relative">
@@ -158,9 +171,7 @@ export default function Header({
         </div>
       </div>
 
-      {/* Main Header Container */}
       <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Logo Section */}
         <div className="flex items-center gap-3">
           <div className="bg-emerald-500 p-2 rounded-lg text-slate-950 shadow-inner">
             <TrendingUp size={24} className="stroke-[2.5]" />
@@ -177,12 +188,11 @@ export default function Header({
             {user ? (
               <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">Welcome back, {user.displayName?.split(' ')[0]}</p>
             ) : (
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">Advanced F&O & Market Dynamics Engine</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">15-minute delayed NSE/F&O analytics</p>
             )}
           </div>
         </div>
 
-        {/* Global Stock Search */}
         <div className="relative w-full md:w-80" id="search_container">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-400">
             <Search size={16} />
@@ -237,32 +247,35 @@ export default function Header({
           )}
         </div>
 
-        {/* Dashboard Tabs, Theme Switcher & Status */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          <nav className="flex bg-slate-100 dark:bg-slate-950 p-1.5 rounded-lg border border-slate-200 dark:border-slate-850" id="main_navigation">
-            <button onClick={() => setActiveTab('screener')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${activeTab === 'screener' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><LayoutDashboard size={14} />Screener</button>
-            <button onClick={() => setActiveTab('chartink')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${activeTab === 'chartink' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><SlidersHorizontal size={14} />Doji Scanner</button>
-            <button onClick={() => setActiveTab('fo')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'fo' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Cpu size={14} />F&O Analytics</button>
-            <button onClick={() => setActiveTab('us')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'us' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Globe size={14} className="text-blue-500" />US Markets</button>
-            <button onClick={() => setActiveTab('strategy-builder')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'strategy-builder' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Settings2 size={14} className="text-emerald-500" />Strategy Builder</button>
-            <button onClick={() => setActiveTab('greeks-calculator')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'greeks-calculator' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Calculator size={14} className="text-purple-500" />Options Greeks</button>
-            <button onClick={() => setActiveTab('risk-calculator')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'risk-calculator' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><ShieldCheck size={14} className="text-indigo-500" />Risk Calc</button>
-            <button onClick={() => setActiveTab('heatmap')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'heatmap' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><LayoutDashboard size={14} className="text-emerald-500" />Heatmap</button>
-            <button onClick={() => setActiveTab('fii-dii')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'fii-dii' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Globe size={14} className="text-indigo-500" /> FII/DII Data</button>
-            <button onClick={() => setActiveTab('signals')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'signals' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Zap size={14} className="text-emerald-500" /> Signals</button>
-            <button onClick={() => setActiveTab('deals')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'deals' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Landmark size={14} className="text-emerald-500" /> Bulk & Block Deals</button>
-            <button onClick={() => setActiveTab('news')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'news' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><Newspaper size={14} className="text-slate-500" /> STOCK MARKET DAILY NEWS</button>
-            <button onClick={() => setActiveTab('pricing')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'pricing' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>Pricing</button>
-            <button onClick={() => setActiveTab('blog')} className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer ${activeTab === 'blog' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow border border-slate-200 dark:border-slate-700/45 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}><BookOpen size={14} className="text-slate-500" /> F&O Strategic Blog</button>
-            <div className="relative"><button onClick={() => setShowScannersDropdown(!showScannersDropdown)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-205 cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"><FolderHeart size={14} className="text-emerald-500" /> My Scanners <ChevronDown size={12} /></button></div>
+          <nav className="flex flex-wrap bg-slate-100 dark:bg-slate-950 p-1.5 rounded-lg border border-slate-200 dark:border-slate-850" id="main_navigation">
+            {primaryTabs.map(({ tab, label, icon: Icon }) => (
+              <button key={tab} onClick={() => selectTab(tab)} className={tabButtonClass(tab)}>
+                <Icon size={14} /> {label}
+              </button>
+            ))}
+            <div className="relative">
+              <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                More Tools <ChevronDown size={12} />
+              </button>
+              {showMoreMenu && (
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-slate-800 dark:bg-slate-950 z-[60]">
+                  {moreTabs.map(({ tab, label, icon: Icon }) => (
+                    <button key={tab} onClick={() => selectTab(tab)} className={`w-full flex items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold transition ${activeTab === tab ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900'}`}>
+                      <Icon size={14} /> {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
 
           <button
             onClick={() => navigate('/connect-broker')}
             className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
-            title="Connect a broker for real-time market data"
+            title="View broker live setup"
           >
-            <LogIn size={13} /> Broker Live
+            <LogIn size={13} /> Live Setup
           </button>
 
           <button
@@ -277,7 +290,7 @@ export default function Header({
             onClick={() => navigate('/')}
             className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
           >
-            F&O Landing (Light) <ExternalLink size={12} />
+            Landing <ExternalLink size={12} />
           </button>
 
           <button
@@ -304,10 +317,10 @@ export default function Header({
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700">
             <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">API Access</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Your current account is {isPro ? 'Pro' : 'Free'}. Connect broker live mode separately from API access.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Your current account is {isPro ? 'Pro' : 'Free'}. Broker live setup is separate and remains locked until payment verification is active.</p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowApiModal(false)} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-bold">Close</button>
-              <button onClick={() => navigate('/connect-broker')} className="px-4 py-2 rounded-lg bg-emerald-500 text-slate-950 text-sm font-black">Broker Live</button>
+              <button onClick={() => navigate('/connect-broker')} className="px-4 py-2 rounded-lg bg-emerald-500 text-slate-950 text-sm font-black">Live Setup</button>
             </div>
           </div>
         </div>
