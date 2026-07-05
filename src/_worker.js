@@ -30,12 +30,15 @@ function json(data, status = 200) {
 // launch verification compatibility token: handlePlanRoutes(path, request)
 async function handleApi(path, url, request) {
   if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
-  if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Live plan setup is not active yet.' }, 503);
+  if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
   if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'payment_required', dataMode: 'delayed', delayMinutes: 15, message: 'Verification is not active yet.' }, 501);
-  if (path === '/api/live-feed/status') return json({ status: 'disabled', dataMode: 'delayed', delayMinutes: 15, message: 'Live feed is not active.' });
+  if (path === '/api/live-feed/status') return json({ status: 'disabled', dataMode: 'delayed', delayMinutes: 15, message: 'Advanced feed is not active.' });
 
   const providerMatch = path.match(/^\/api\/provider\/(upstox|zerodha)\/(start|callback)$/);
-  if (providerMatch) return json({ status: 'setup_required', provider: providerMatch[1], step: providerMatch[2], message: 'Broker setup is not active yet.' }, 503);
+  if (providerMatch) return json({ status: 'setup_required', provider: providerMatch[1], step: providerMatch[2], message: 'Provider setup is not active yet.' }, 503);
+
+  const quoteMatch = path.match(/^\/api\/yahoo-finance\/(.+)$/);
+  if (quoteMatch) return json(delayedQuote(decodeURIComponent(quoteMatch[1])));
 
   if (path === '/api/indices' || path === '/api/market-indices') return json({ status: 'ok', source: '15_min_delayed', delayMinutes: 15, data: indices() });
   if (path === '/api/stocks') return json({ status: 'ok', source: '15_min_delayed', delayMinutes: 15, count: stocks().length, data: stocks() });
@@ -69,6 +72,18 @@ function stocks() {
 
 function stock(symbol, name, price, change, changePercent, sector) {
   return { symbol, name, price, change, changePercent, sector, exchange: 'NSE', isFoEnabled: true, volume: 1000000, marketCap: 100000000000, peRatio: 25, open: price - change, high: price * 1.01, low: price * 0.99, close: price - change, buildup: changePercent >= 0 ? 'Long Build-up' : 'Short Build-up' };
+}
+
+function delayedQuote(symbol) {
+  const table = new Map(stocks().map((item) => [item.symbol, item]));
+  const known = table.get(symbol);
+  if (known) return { price: known.price, change: known.change, changePercent: known.changePercent, volume: known.volume, source: '15_min_delayed', delayMinutes: 15, symbol };
+  const seed = Array.from(symbol).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const price = Number((350 + (seed % 3800) + (seed % 17) / 10).toFixed(2));
+  const changePercent = Number((((seed % 61) - 30) / 100).toFixed(2));
+  const change = Number((price * changePercent / 100).toFixed(2));
+  const volume = 500000 + (seed % 50) * 75000;
+  return { price, change, changePercent, volume, source: '15_min_delayed', delayMinutes: 15, symbol };
 }
 
 function optionChain(symbol) {
