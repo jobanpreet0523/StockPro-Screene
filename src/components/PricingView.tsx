@@ -1,60 +1,114 @@
 import React from "react";
-import { Check, ShieldCheck, Zap, Crown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Check, ShieldCheck, Zap, Crown, Radio, LockKeyhole } from "lucide-react";
 
 export default function PricingView() {
+  const navigate = useNavigate();
+
   const freeFeatures = [
-    "Live market screener",
-    "Chartink-style custom scanner",
-    "F&O analytics and option chain",
-    "Real-time option tools and Greeks",
-    "IV calculator and risk calculator",
-    "Heatmap, FII/DII data, signals, news, and deals",
-    "Unlimited saved scanners and watchlist access",
+    "Delayed/cached market snapshots",
+    "Stock screener and scanner access",
+    "Option-chain analysis workspace",
+    "Heatmap, FII/DII, signals, news, and deals",
+    "Education and research tools",
+  ];
+
+  const liveFeatures = [
+    "Broker-connected real-time mode",
+    "Live-enabled screener and watchlist foundation",
+    "Live option-chain workflow foundation",
+    "Backend relay required before real ticks are shown",
+    "Clear data-source badge on every page",
   ];
 
   return (
-    <div className="max-w-5xl mx-auto w-full py-8 text-slate-900 dark:text-white">
+    <div className="max-w-6xl mx-auto w-full py-8 text-slate-900 dark:text-white">
       <div className="text-center mb-10">
         <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-300 mb-4">
-          <Crown size={14} /> All Tools Are Free
+          <Crown size={14} /> Free delayed data + paid live mode
         </div>
-        <h2 className="text-3xl md:text-4xl font-black mb-4">StockPro Free Access</h2>
+        <h2 className="text-3xl md:text-4xl font-black mb-4">Choose your StockPro data mode</h2>
         <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          The paid lock has been removed. Every analytics module is now available for free so users can open all tabs and use all functions without upgrading.
+          Delayed/cached data stays free for everyone. Real-time market data needs the ₹299 live plan and a secure broker connection.
         </p>
       </div>
 
-      <div className="max-w-3xl mx-auto bg-white/85 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl shadow-slate-200/60 dark:shadow-emerald-950/20 relative overflow-hidden">
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400" />
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-8">
-          <div>
-            <h3 className="text-2xl font-black flex items-center gap-2">
-              <Zap size={22} className="text-emerald-500" /> Full Platform Access
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">No subscription. No upgrade button. No hidden paid tab.</p>
-          </div>
-          <div className="text-left md:text-right">
-            <div className="text-4xl font-black text-emerald-600 dark:text-emerald-400">Free</div>
-            <div className="text-xs font-bold uppercase tracking-widest text-slate-400">forever</div>
-          </div>
-        </div>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <PlanCard
+          icon={Zap}
+          title="Free Delayed Data"
+          price="₹0"
+          period="forever"
+          description="Best for exploring StockPro tools, learning option-chain analysis, and using scanner workflows with delayed/cached snapshots."
+          features={freeFeatures}
+          button="Continue free"
+          onClick={() => navigate('/screener')}
+        />
 
-        <div className="grid sm:grid-cols-2 gap-4 mb-8">
-          {freeFeatures.map((feature) => (
-            <div key={feature} className="flex items-start gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-4">
-              <Check size={18} className="text-emerald-500 shrink-0 mt-0.5" />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{feature}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/20 p-4 flex items-center gap-3">
-          <ShieldCheck size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-          <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
-            All previous paid checks now resolve as unlocked. Login is only needed for real account/profile syncing, not for feature access.
-          </p>
-        </div>
+        <PlanCard
+          icon={Radio}
+          title="Live Data Plan"
+          price="₹299"
+          period="per month"
+          description="For users who need real-time mode. The live plan unlocks the broker connection workflow used by live-enabled features."
+          features={liveFeatures}
+          button="Set up live mode"
+          highlighted
+          onClick={() => navigate('/connect-broker')}
+        />
       </div>
+
+      <div className="mt-6 rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 p-4 flex items-start gap-3">
+        <ShieldCheck size={20} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+          Do not paste broker credentials in chat, GitHub, or public frontend code. Paid live users should connect through the secure broker setup page only after the backend relay and payment verification are configured.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PlanCard({ icon: Icon, title, price, period, description, features, button, highlighted = false, onClick }: {
+  icon: typeof Zap;
+  title: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  button: string;
+  highlighted?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className={`rounded-3xl p-7 shadow-xl relative overflow-hidden ${highlighted ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950 border border-emerald-400' : 'bg-white/85 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800'}`}>
+      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400" />
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h3 className="text-2xl font-black flex items-center gap-2">
+            <Icon size={22} className="text-emerald-500" /> {title}
+          </h3>
+          <p className={`text-sm mt-2 leading-6 ${highlighted ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'}`}>{description}</p>
+        </div>
+        {highlighted && <LockKeyhole size={22} className="text-emerald-400 shrink-0" />}
+      </div>
+
+      <div className="mb-6">
+        <span className="text-4xl font-black text-emerald-500">{price}</span>
+        <span className={`ml-2 text-xs font-bold uppercase tracking-widest ${highlighted ? 'text-slate-400 dark:text-slate-500' : 'text-slate-400'}`}>{period}</span>
+      </div>
+
+      <div className="grid gap-3 mb-8">
+        {features.map((feature) => (
+          <div key={feature} className="flex items-start gap-3">
+            <Check size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+            <span className={`text-sm font-semibold ${highlighted ? 'text-slate-200 dark:text-slate-700' : 'text-slate-700 dark:text-slate-200'}`}>{feature}</span>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={onClick} className={`w-full rounded-2xl px-4 py-3 text-sm font-black transition hover:-translate-y-0.5 ${highlighted ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400' : 'bg-slate-950 text-white dark:bg-white dark:text-slate-950'}`}>
+        {button}
+      </button>
     </div>
   );
 }
