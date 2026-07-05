@@ -8,9 +8,11 @@ Completed:
 - TypeScript Motion variant error in `MarketPulseHero.tsx` was fixed.
 - Security scan, typecheck, production build, and launch verification remain in the `npm run ci` chain.
 - Live-plan Worker wiring is checked by launch verification.
+- Safe delayed/live wording is checked by launch verification.
 
 Manual check:
 - Open GitHub Actions after each commit and confirm the latest run passes.
+- The GitHub connector is currently returning no workflow runs for the latest commits, so Actions must be checked manually in the GitHub UI.
 
 ## Phase B — Live-plan backend verification
 
@@ -65,15 +67,17 @@ Completed:
 - Legal pages and risk disclosure exist.
 - Sitemap and redirects include launch routes.
 - Connect-broker page is included.
+- Final launch checklist exists at `docs/LAUNCH_CHECKLIST.md`.
+- Free-user wording was changed from fake live wording to delayed/cached wording.
 
 What remains:
 - Confirm latest GitHub Actions run is green.
 - Deploy latest build.
-- Test every page on desktop and mobile.
+- Test every page on desktop and mobile using `docs/LAUNCH_CHECKLIST.md`.
 - Connect PagePulse, GA4, and Google Search Console.
 - Submit sitemap.
 - Confirm free users never see fake live-data labels.
 
 ## Launch rule
 
-StockPro can launch with free delayed data first. The ₹299 live data plan should be promoted as setup-ready, but it should only be activated after real payment verification and secure provider authorization are connected.
+StockPro can launch with free delayed data first. The 299 live data plan should be promoted as setup-ready, but it should only be activated after real payment verification and secure provider authorization are connected.
