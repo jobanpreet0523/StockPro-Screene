@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Check, Crown, Download, ShieldCheck, Zap } from "lucide-react";
+import { Bell, Check, Crown, Download, ShieldCheck, Users, Zap } from "lucide-react";
 
 export default function PricingView() {
   const navigate = useNavigate();
@@ -12,24 +12,45 @@ export default function PricingView() {
     <div className="max-w-6xl mx-auto w-full py-8 text-slate-900 dark:text-white">
       <div className="text-center mb-10">
         <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-300 dark:ring-emerald-900/40">
-          <Crown size={13} /> Monetization funnel
+          <Crown size={13} /> Upgrade center
         </div>
         <h2 className="mt-4 text-3xl md:text-4xl font-black mb-4">Choose your StockPro workflow</h2>
         <p className="text-slate-500 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
-          Keep the free workspace useful enough to build trust, then offer serious users saved screens, alerts, exports, and advanced research tools.
+          Keep the free workspace useful, then invite serious repeat users into Pro workflows with saved screens, alerts, exports, and advanced research tools.
         </p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card icon={Zap} title="Free" price="₹0" text="Best for first-time visitors and students exploring market research." items={freeFeatures} button="Use free workspace" onClick={() => navigate('/screener')} />
-        <Card icon={Bell} title="Pro" price="₹799/mo" text="Designed for repeat users who want saved workflows and cleaner daily research." items={proFeatures} button="Join Pro waitlist" onClick={() => navigate('/contact')} highlighted />
-        <Card icon={Download} title="Premium" price="₹1,999/mo" text="For power users who need a more complete research workspace." items={premiumFeatures} button="Request access" onClick={() => navigate('/contact')} dark />
+        <Card icon={Bell} title="Pro" price="₹799/mo" text="Designed for repeat users who want saved workflows and cleaner daily research." items={proFeatures} button="Join Pro waitlist" onClick={() => navigate('/contact?interest=pro')} highlighted />
+        <Card icon={Download} title="Premium" price="₹1,999/mo" text="For power users who need a more complete research workspace." items={premiumFeatures} button="Request access" onClick={() => navigate('/contact?interest=premium')} dark />
       </div>
+
+      <section className="mt-8 grid gap-4 lg:grid-cols-3">
+        <InfoCard icon={Users} title="Free users" value="Trust first" text="Make the free product useful enough that users return to screen, watch, and learn." />
+        <InfoCard icon={Bell} title="Pro users" value="Repeat workflow" text="Pro is for users who want saved screens, alerts, exports, and cleaner daily research." />
+        <InfoCard icon={Crown} title="Premium users" value="Power workspace" text="Premium is the future path for custom dashboards and deeper research tools." />
+      </section>
+
+      <section className="mt-8 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">Launch readiness</div>
+            <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">Collect demand before turning on paid access.</h3>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500 dark:text-slate-400">
+              Use the waitlist first. Turn on real paid access only after plan limits, support, policy pages, and backend access checks are ready.
+            </p>
+          </div>
+          <button onClick={() => navigate('/contact?interest=waitlist')} className="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-400">
+            Join waitlist
+          </button>
+        </div>
+      </section>
 
       <div className="mt-6 rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 p-4 flex items-start gap-3">
         <ShieldCheck size={20} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
-          Stage 1 keeps paid features clearly labeled as roadmap or waitlist until the backend, billing, and verification flows are fully ready.
+          Stage 3 keeps paid features on waitlist until billing, access rules, and support workflow are ready.
         </p>
       </div>
     </div>
@@ -51,5 +72,16 @@ function Card({ icon: Icon, title, price, text, items, button, onClick, dark = f
       <div className="grid gap-3 mb-8">{items.map((item) => <div key={item} className="flex items-start gap-3"><Check size={18} className="text-emerald-500 shrink-0 mt-0.5" /><span className="text-sm font-semibold">{item}</span></div>)}</div>
       <button onClick={onClick} className="w-full rounded-2xl px-4 py-3 text-sm font-black bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition">{button}</button>
     </div>
+  );
+}
+
+function InfoCard({ icon: Icon, title, value, text }: { icon: typeof Users; title: string; value: string; text: string }) {
+  return (
+    <article className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
+      <Icon size={20} className="text-emerald-500" />
+      <h3 className="mt-3 text-sm font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{title}</h3>
+      <div className="mt-2 text-xl font-black text-slate-950 dark:text-white">{value}</div>
+      <p className="mt-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">{text}</p>
+    </article>
   );
 }
