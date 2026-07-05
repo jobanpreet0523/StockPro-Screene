@@ -26,12 +26,13 @@ function loadGa(measurementId: string) {
   };
 
   window.gtag('js', new Date());
-  window.gtag('config', measurementId, { send_page_view: false });
+  window.gtag('config', measurementId);
 }
 
 function sendEvent(measurementId: string, name: string, label: string, path: string) {
   if (!measurementId || !window.gtag) return;
   window.gtag('event', name, {
+    send_to: measurementId,
     event_label: label,
     page_path: path,
     page_location: window.location.href,
@@ -67,11 +68,7 @@ export default function AnalyticsManager() {
     const path = `${location.pathname}${location.search}`;
     if (!gaId || !window.gtag) return;
 
-    window.gtag('event', 'page_view', {
-      page_path: path,
-      page_location: window.location.href,
-      page_title: document.title,
-    });
+    sendEvent(gaId, 'page_view', 'Page viewed', path);
 
     if (location.pathname === '/screener') sendEvent(gaId, 'screener_view', 'Screener opened', path);
     if (location.pathname === '/pricing') sendEvent(gaId, 'pricing_view', 'Pricing opened', path);
