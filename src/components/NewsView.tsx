@@ -43,12 +43,11 @@ export default function NewsView() {
               Stock Market Daily News
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Live broadcast feeds parsed from leading financial systems and Google News indices
+              Current market articles with source links and images when available
             </p>
           </div>
         </div>
 
-        {/* Searching and manual updates */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full sm:w-60">
             <Search className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400" size={14} />
@@ -76,7 +75,7 @@ export default function NewsView() {
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <RefreshCw className="text-emerald-500 animate-spin" size={32} />
           <p className="text-xs text-slate-500 font-mono tracking-wider animate-pulse">
-            Connecting security nodes to live satellite financial pipelines...
+            Loading current market articles...
           </p>
         </div>
       ) : error ? (
@@ -104,11 +103,13 @@ export default function NewsView() {
               className="group bg-slate-50 hover:bg-white dark:bg-slate-900/40 dark:hover:bg-slate-900/90 border border-slate-100 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-750 p-4 rounded-xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-4 cursor-pointer text-inherit decoration-none"
             >
               <div className="flex flex-col gap-2">
-                {art.title.includes('Global Bond Yields') && (
+                {art.imageUrl && (
                   <img 
-                    src="https://images.unsplash.com/photo-1590283603385-fc7ffb099951?auto=format&fit=crop&q=80&w=400" 
-                    alt="Global Bond Yields" 
-                    className="w-full h-32 object-cover rounded-lg"
+                    src={art.imageUrl} 
+                    alt={art.title} 
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-32 object-cover rounded-lg bg-slate-200 dark:bg-slate-900"
                   />
                 )}
                 <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-450">
@@ -126,7 +127,7 @@ export default function NewsView() {
                 </h3>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-mono text-slate-505 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition duration-300 mt-auto border-t border-slate-100/50 dark:border-slate-850/60 pt-2.5">
-                <span>View Full Coverage</span>
+                <span>Open Article</span>
                 <ArrowUpRight size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition duration-300" />
               </div>
             </a>
