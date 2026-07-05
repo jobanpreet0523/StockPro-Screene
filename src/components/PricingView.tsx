@@ -4,22 +4,22 @@ import { Check, ShieldCheck, Zap, Radio } from "lucide-react";
 
 export default function PricingView() {
   const navigate = useNavigate();
-  const freeFeatures = ["15-minute delayed market data", "Stock screener", "Scanner", "Option-chain workspace", "Education tools"];
-  const setupFeatures = ["Broker setup page", "Server verification required", "Live mode not active yet", "Clear data labels", "Upgrade path prepared"];
+  const freeFeatures = ["Delayed data view", "Screening workspace", "Scanner", "Workspace tools", "Education tools"];
+  const setupFeatures = ["Setup page", "Server verification required", "Advanced mode off by default", "Clear status labels", "Upgrade path prepared"];
 
   return (
     <div className="max-w-6xl mx-auto w-full py-8 text-slate-900 dark:text-white">
       <div className="text-center mb-10">
         <h2 className="text-3xl md:text-4xl font-black mb-4">Choose your StockPro mode</h2>
-        <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">Free users get 15-minute delayed market data. Broker setup is prepared for later activation.</p>
+        <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">Start with the free delayed workspace. Advanced mode remains off until setup checks are complete.</p>
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card icon={Zap} title="Free 15-Min Delayed" price="Free" text="Use screener, scanner, option-chain tools, and education features." items={freeFeatures} button="Continue free" onClick={() => navigate('/screener')} />
-        <Card icon={Radio} title="Broker Setup" price="Setup" text="Prepare the broker setup path. Live mode starts only after server verification is connected." items={setupFeatures} button="View setup" onClick={() => navigate('/connect-broker')} dark />
+        <Card icon={Zap} title="Free Delayed" price="Free" text="Use the main workspace and education features." items={freeFeatures} button="Continue free" onClick={() => navigate('/screener')} />
+        <Card icon={Radio} title="Verified Setup" price="Setup" text="Prepare the advanced path after server-side checks are connected." items={setupFeatures} button="View setup" onClick={() => navigate('/connect-broker')} dark />
       </div>
       <div className="mt-6 rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 p-4 flex items-start gap-3">
         <ShieldCheck size={20} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Do not mark any feature as live until the server setup is complete.</p>
+        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Keep public status labels conservative until setup verification is complete.</p>
       </div>
     </div>
   );
