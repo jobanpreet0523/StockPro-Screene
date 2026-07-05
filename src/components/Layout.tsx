@@ -8,6 +8,7 @@ import FloatingMotionDock from './FloatingMotionDock';
 import MarketCards from './MarketCards';
 import EmailCapturePopup from './EmailCapturePopup';
 import DataSourceBadge from './DataSourceBadge';
+import TrustDataBanner from './TrustDataBanner';
 import { useLiveStocks } from '../hooks/useLiveStocks';
 import { useMarketIndices } from '../hooks/useMarketIndices';
 import { getMarketDataStatus, type MarketDataStatus } from '../core/marketData';
@@ -129,6 +130,8 @@ export default function Layout() {
         onSelectStock={handleSelectStock}
       />
 
+      <TrustDataBanner />
+
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
         {!isUtilityRoute && (
           <>
@@ -152,20 +155,20 @@ export default function Layout() {
                     <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-full"></div>
                     <div className="h-2 bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse w-2/3"></div>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Fetching market snapshot...</span>
+                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Fetching 15-minute delayed market data...</span>
                 </>
               ) : stocksError ? (
                 <>
                   <div className="w-4 h-4 shrink-0 rounded-full bg-rose-500/20 items-center justify-center flex">
                     <div className="w-2 h-2 bg-rose-500 rounded-full"></div>
                   </div>
-                  <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Failed to sync market snapshot</span>
+                  <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Market data refresh delayed</span>
                   <DataSourceBadge status={marketDataStatus} compact />
                   <button
                     onClick={retryStocks}
                     className="ml-auto bg-slate-900 border border-transparent dark:border-slate-700 dark:bg-slate-800 text-white text-xs px-3 py-1 rounded hover:opacity-90 active:scale-95 transition-all outline-none"
                   >
-                    Retry Connection
+                    Retry
                   </button>
                 </>
               ) : (
@@ -173,7 +176,7 @@ export default function Layout() {
                   <Activity size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Loaded {stocks.length} stocks</span>
                   <DataSourceBadge status={marketDataStatus} compact />
-                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Free mode uses delayed/cached snapshots</span>
+                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Free mode uses 15-minute delayed data</span>
                 </>
               )}
             </motion.div>
@@ -199,7 +202,7 @@ export default function Layout() {
                       Indian Stock Markets are Closed (Weekend Session)
                     </h4>
                     <p className="text-xs text-slate-650 dark:text-slate-400 mt-1 leading-relaxed">
-                      Since today is a market holiday, the NSE/BSE trading session is closed. The platform displays the <strong>last-recorded snapshot prices</strong> with analytical option chain and chart overlay support.
+                      Since today is a market holiday, the NSE/BSE trading session is closed. The platform displays the <strong>latest 15-minute delayed market data available</strong> with analytical option chain and chart overlay support.
                     </p>
                   </div>
                 </div>
@@ -229,7 +232,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">StockPro Screener</h4>
-            <p className="text-[9px] text-slate-400 mb-2 leading-tight">StockPro Analytics is not a SEBI registered investment advisor. All data shown is for educational and informational purposes only. Derivatives trading involves risk of loss.</p>
+            <p className="text-[9px] text-slate-400 mb-2 leading-tight">StockPro Analytics is not a SEBI registered investment advisor. Free mode shows 15-minute delayed market data. Derivatives trading involves risk of loss.</p>
             <p>&copy; {new Date().getFullYear()} StockPro. All rights reserved.</p>
           </div>
           <div className="flex flex-col gap-2">
@@ -240,8 +243,8 @@ export default function Layout() {
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Data Source</h4>
-            <Link to="/connect-broker" className={footerLinkClass}>Connect Broker Live Mode</Link>
-            <p className="leading-relaxed">Free public mode uses delayed/cached data. Broker mode is required for real-time ticks.</p>
+            <Link to="/connect-broker" className={footerLinkClass}>Broker live setup</Link>
+            <p className="leading-relaxed">Free public mode uses 15-minute delayed data. Broker mode activates only after payment verification and secure setup.</p>
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Support</h4>
