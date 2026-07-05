@@ -14,6 +14,12 @@ PagePulse currently reports:
 - 0 organic clicks and impressions in the current reporting window
 - 0 page views in the current reporting window
 
+## Current decision
+
+PagePulse work is paused for now because the Free Plan allows only one project and the project Website URL edit is not saving from the PagePulse UI.
+
+Do not delete the existing PagePulse project until the plan/time limit issue is resolved. Continue launch-readiness through GitHub, Lovable deployment, sitemap, and manual page QA.
+
 ## Critical PagePulse issue
 
 The PagePulse project website URL is currently set to:
@@ -54,15 +60,16 @@ The GitHub code has already been updated to launch-safe delayed/cached wording. 
 - Added safe delayed/live wording checks to `scripts/verify-launch.mjs`.
 - Added launch checklist at `docs/LAUNCH_CHECKLIST.md`.
 
-## Manual PagePulse setup required now
+## Manual PagePulse setup required later
 
-1. Open the PagePulse project `stock pro`.
-2. Change the project website URL from `https://search.google.com/search-console/about` to `https://stockpro1.qzz.io/`.
-3. Confirm GA4 is connected to the same website property.
-4. Confirm Google Search Console is connected to the same website property.
-5. Deploy the latest GitHub build.
-6. Recrawl or refresh the tracked homepage in PagePulse.
-7. Add/check priority routes:
+1. Wait until the PagePulse edit/sync limitation is over, or upgrade if you need multiple projects.
+2. Open the PagePulse project `stock pro`.
+3. Change the project website URL from `https://search.google.com/search-console/about` to `https://stockpro1.qzz.io/`.
+4. Confirm GA4 is connected to the same website property.
+5. Confirm Google Search Console is connected to the same website property.
+6. Deploy the latest GitHub build.
+7. Recrawl or refresh the tracked homepage in PagePulse.
+8. Add/check priority routes:
    - `/`
    - `/screener`
    - `/option-chain`
@@ -70,8 +77,16 @@ The GitHub code has already been updated to launch-safe delayed/cached wording. 
    - `/pricing`
    - `/connect-broker`
    - `/risk-disclosure`
-8. Submit `https://stockpro1.qzz.io/sitemap.xml` in Google Search Console.
-9. Request indexing for priority URLs.
+9. Submit `https://stockpro1.qzz.io/sitemap.xml` in Google Search Console.
+10. Request indexing for priority URLs.
+
+## Launch path while PagePulse is paused
+
+- Keep GitHub Actions green.
+- Deploy the latest build from Lovable/GitHub.
+- Manually test the launch pages from `docs/LAUNCH_CHECKLIST.md`.
+- Confirm free users see delayed/cached wording only.
+- Keep the 299 live plan setup-ready only until real payment verification and secure provider authorization are connected.
 
 ## GA4 environment setup
 
