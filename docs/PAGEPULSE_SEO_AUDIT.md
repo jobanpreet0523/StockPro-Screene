@@ -1,41 +1,77 @@
-# PagePulse SEO Audit — Phase 5
+# PagePulse SEO Audit — Launch Status
 
 ## Current PagePulse status
 
 Project: stock pro  
-URL: https://stockpro1.qzz.io/
+Project UUID: `019f2e3d-c379-702a-8942-325c87552224`
 
 PagePulse currently reports:
 
-- 0 tracked pages
+- GA4 connected
+- Google Search Console connected
+- 1 tracked page
 - 0 tags
-- GA4 not connected
-- Google Search Console not connected
 - 0 organic clicks and impressions in the current reporting window
+- 0 page views in the current reporting window
 
-This means PagePulse is connected to the project shell, but it cannot yet provide useful SEO or page performance diagnostics.
+## Critical PagePulse issue
 
-## GitHub changes completed in Phase 5
+The PagePulse project website URL is currently set to:
+
+```text
+https://search.google.com/search-console/about
+```
+
+This should be changed inside PagePulse to:
+
+```text
+https://stockpro1.qzz.io/
+```
+
+Until the project website URL is corrected and the latest deployment is recrawled, PagePulse may show stale or confusing diagnostics.
+
+## Tracked page issue
+
+PagePulse has tracked the homepage:
+
+```text
+https://stockpro1.qzz.io/
+```
+
+But it still shows an older homepage title:
+
+```text
+StockPro — Free NSE F&O Screener | NIFTY Option Chain Live
+```
+
+The GitHub code has already been updated to launch-safe delayed/cached wording. Deploy the latest build, then recrawl in PagePulse so the tracked title updates.
+
+## GitHub changes completed
 
 - Added `src/components/RouteSeo.tsx` for route-level title, description, robots, canonical, Open Graph, and Twitter metadata.
 - Added `src/components/AnalyticsManager.tsx` for optional GA4 page-view tracking via `VITE_GA_MEASUREMENT_ID`.
 - Mounted both managers inside `BrowserRouter` in `src/App.tsx`.
-- Expanded `scripts/verify-launch.mjs` to check route metadata, canonical support, analytics hook, sitemap, redirects, and legal routes.
+- Added safe delayed/live wording checks to `scripts/verify-launch.mjs`.
+- Added launch checklist at `docs/LAUNCH_CHECKLIST.md`.
 
-## Manual PagePulse setup required
+## Manual PagePulse setup required now
 
-1. In PagePulse, connect Google Search Console for `https://stockpro1.qzz.io/`.
-2. In PagePulse, connect GA4 for the same website property.
-3. Submit `https://stockpro1.qzz.io/sitemap.xml` in Google Search Console.
-4. Request indexing for priority URLs:
+1. Open the PagePulse project `stock pro`.
+2. Change the project website URL from `https://search.google.com/search-console/about` to `https://stockpro1.qzz.io/`.
+3. Confirm GA4 is connected to the same website property.
+4. Confirm Google Search Console is connected to the same website property.
+5. Deploy the latest GitHub build.
+6. Recrawl or refresh the tracked homepage in PagePulse.
+7. Add/check priority routes:
    - `/`
    - `/screener`
    - `/option-chain`
    - `/scanner`
    - `/pricing`
-   - `/blog`
+   - `/connect-broker`
    - `/risk-disclosure`
-5. After deployment, wait for PagePulse to crawl pages and show tracked page count above zero.
+8. Submit `https://stockpro1.qzz.io/sitemap.xml` in Google Search Console.
+9. Request indexing for priority URLs.
 
 ## GA4 environment setup
 
@@ -45,7 +81,7 @@ Set this production environment variable in the hosting platform if GA4 tracking
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
-Do not add the measurement ID to private files. Public GA4 measurement IDs are safe to expose, but all server/private keys must remain outside GitHub.
+Public GA4 measurement IDs are safe to expose in frontend builds, but all server/private keys must remain outside GitHub.
 
 ## Next SEO checks after PagePulse data appears
 
