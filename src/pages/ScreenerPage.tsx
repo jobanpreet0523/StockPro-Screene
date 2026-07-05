@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
+import { Bell, Crown, Download, ShieldCheck, Star } from 'lucide-react';
 import StockScreener from '../components/StockScreener';
 import StockChart from '../components/StockChart';
 import ProductGrowthPanel from '../components/ProductGrowthPanel';
@@ -15,6 +15,24 @@ export default function ScreenerPage() {
     <>
       <div className="lg:col-span-12">
         <ProductGrowthPanel setActiveTab={setActiveTab} />
+      </div>
+
+      <div className="lg:col-span-12 grid gap-3 md:grid-cols-3">
+        <button onClick={() => setActiveTab('screener')} className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-950/75">
+          <Star size={18} className="text-amber-500" />
+          <div className="mt-3 text-sm font-black text-slate-950 dark:text-white">Build a watchlist</div>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">Click the star beside symbols to make the screener feel personal and useful on repeat visits.</p>
+        </button>
+        <button onClick={() => setActiveTab('pricing')} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-emerald-900/60 dark:bg-emerald-950/20">
+          <Bell size={18} className="text-emerald-600 dark:text-emerald-400" />
+          <div className="mt-3 text-sm font-black text-slate-950 dark:text-white">Alerts roadmap</div>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">Show users that Pro will add alerts, saved screens, and daily workflow automation.</p>
+        </button>
+        <button onClick={() => setActiveTab('pricing')} className="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-left text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800">
+          <Crown size={18} className="text-emerald-300" />
+          <div className="mt-3 text-sm font-black">Export and Pro tools</div>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-300"><Download size={12} className="mr-1 inline" />Keep free useful, then convert serious users with saved workflows and export features.</p>
+        </button>
       </div>
 
       <div className="lg:col-span-8 flex flex-col gap-6">
