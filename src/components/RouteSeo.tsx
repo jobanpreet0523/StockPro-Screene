@@ -57,12 +57,12 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     description: 'Read dashboard-connected news, updates, and headlines in the StockPro workflow.',
   },
   '/pricing': {
-    title: 'StockPro Modes — Free Delayed + Verified Setup',
-    description: 'Compare free delayed workspace access with the prepared verified setup path for advanced data labels.',
+    title: 'StockPro Upgrade Center — Free, Pro, Premium',
+    description: 'Compare the free delayed workspace with Pro and Premium roadmap features including saved screens, alerts, exports, and advanced research workflows.',
   },
   '/blog': {
-    title: 'Education Blog — StockPro',
-    description: 'Learn analysis concepts, risk discipline, data labels, and workspace usage on the StockPro blog.',
+    title: 'StockPro Education Hub — Screener, Option Chain, Risk Guides',
+    description: 'Learn market-screening workflows, option-chain basics, watchlist routines, risk discipline, and how to use StockPro tools for educational research.',
   },
   '/signals': {
     title: 'Signals Workspace — StockPro',
@@ -85,8 +85,8 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     description: 'Read important risks and non-advisory information before using analytics dashboards or educational tools.',
   },
   '/contact': {
-    title: 'Contact StockPro Support',
-    description: 'Contact StockPro for support, product feedback, broken links, UI issues, data concerns, and launch questions.',
+    title: 'Join StockPro Waitlist or Contact Support',
+    description: 'Contact StockPro support, join the Pro or Premium waitlist, request early access, report product feedback, or ask launch questions.',
   },
 };
 
