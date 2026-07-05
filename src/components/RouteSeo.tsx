@@ -4,8 +4,8 @@ import { useLocation } from 'react-router-dom';
 const SITE_URL = 'https://stockpro1.qzz.io';
 
 const defaultSeo = {
-  title: 'StockPro — Free NSE F&O Screener | NIFTY Option Chain Live',
-  description: 'Real-time NIFTY and BANKNIFTY option chain, PCR ratio, IV analysis, stock screener, scanner, signals, and market analytics for Indian traders.',
+  title: 'StockPro — Free NSE F&O Screener | Delayed Data + Broker Live Setup',
+  description: 'NSE and F&O analytics with delayed/cached free data, option-chain tools, stock screener, scanner, signals, and paid broker-live setup for Indian traders.',
   robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
 };
 
@@ -14,15 +14,15 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
   '/landing': defaultSeo,
   '/screener': {
     title: 'Free NSE Stock Screener — StockPro',
-    description: 'Scan NSE stocks with live prices, gainers, losers, market breadth, F&O filters, watchlists, and trading analytics on StockPro.',
+    description: 'Scan NSE stocks with delayed/cached prices, gainers, losers, market breadth, F&O filters, watchlists, and trading analytics on StockPro.',
   },
   '/scanner': {
     title: 'Smart Market Scanner for NSE Stocks — StockPro',
     description: 'Run smart scanner views for Indian stocks, signals, momentum, technical setups, and market opportunities using StockPro.',
   },
   '/option-chain': {
-    title: 'NIFTY & BANKNIFTY Option Chain Live — StockPro',
-    description: 'Analyze NIFTY, BANKNIFTY, FINNIFTY, and stock option chains with PCR, OI buildup, IV movement, support, resistance, and max pain tools.',
+    title: 'NIFTY & BANKNIFTY Option Chain Tools — StockPro',
+    description: 'Analyze NIFTY, BANKNIFTY, FINNIFTY, and stock option chains with PCR, OI buildup, IV movement, support, resistance, and max pain tools using delayed/cached or broker-connected data.',
   },
   '/us-markets': {
     title: 'US Markets Dashboard — StockPro',
@@ -57,8 +57,8 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     description: 'Read market news, stock updates, and trading headlines connected to the StockPro analytics workflow.',
   },
   '/pricing': {
-    title: 'StockPro Pricing — Free NSE F&O Tools',
-    description: 'Compare StockPro plans for free stock screening, option-chain analytics, market scanners, and advanced trading research tools.',
+    title: 'StockPro Pricing — Free NSE F&O Tools + ₹299 Live Setup',
+    description: 'Compare StockPro plans: free delayed/cached stock screening and option-chain analytics, plus ₹299 paid broker-live setup when backend verification is active.',
   },
   '/blog': {
     title: 'F&O Strategic Blog — StockPro',
@@ -69,8 +69,8 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     description: 'Explore NSE market signals, scanner alerts, momentum observations, and market intelligence for educational analysis.',
   },
   '/connect-broker': {
-    title: 'Connect Broker for Live NSE Data — StockPro',
-    description: 'Connect Upstox or Zerodha broker live mode for real-time NSE/F&O data, option-chain ticks, bid/ask, OI, Greeks, scanner updates, and watchlist streaming.',
+    title: 'Connect Broker for Live NSE Data Setup — StockPro',
+    description: 'Set up Upstox or Zerodha broker-live mode for paid StockPro users after payment verification and secure backend authorization are connected.',
   },
   '/privacy': {
     title: 'Privacy Policy — StockPro',
