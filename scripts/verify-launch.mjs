@@ -13,6 +13,7 @@ const requiredFiles = [
   'src/components/AnalyticsManager.tsx',
   'src/components/DataSourceBadge.tsx',
   'src/core/marketData.ts',
+  'src/services/livePlanApi.ts',
   'src/pages/ConnectBrokerPage.tsx',
   'src/pages/PrivacyPage.tsx',
   'src/pages/TermsPage.tsx',
@@ -99,6 +100,11 @@ for (const token of ['broker_live', 'delayed', 'fallback', 'MarketQuote', 'Marke
   if (!marketData.includes(token)) errors.push(`Market data model is missing: ${token}`);
 }
 
+const livePlanApi = read('src/services/livePlanApi.ts');
+for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider/', 'free_delayed', 'live_ready']) {
+  if (!livePlanApi.includes(token)) errors.push(`Live plan API client is missing: ${token}`);
+}
+
 const risk = read('src/pages/RiskDisclosurePage.tsx');
 if (!risk.includes('not a SEBI registered investment advisor')) {
   errors.push('Risk disclosure page is missing SEBI/non-advisory wording');
@@ -110,4 +116,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, broker data-source foundation, legal pages, footer links, and risk disclosure are present.');
+console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, live plan API client, data-source foundation, legal pages, footer links, and risk disclosure are present.');
