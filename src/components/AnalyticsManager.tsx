@@ -8,7 +8,8 @@ declare global {
   }
 }
 
-const BUILD_GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
+const GA_FALLBACK_ID = 'G-KK6FYQQ6GV';
+const BUILD_GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || GA_FALLBACK_ID;
 
 function loadGa(measurementId: string) {
   if (!measurementId) return;
@@ -43,7 +44,7 @@ export default function AnalyticsManager() {
   const [gaId, setGaId] = useState(BUILD_GA_ID);
 
   useEffect(() => {
-    if (BUILD_GA_ID) return;
+    if (BUILD_GA_ID !== GA_FALLBACK_ID) return;
     let active = true;
     fetch('/api/site-config')
       .then((res) => (res.ok ? res.json() : null))
