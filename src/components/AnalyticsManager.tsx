@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 declare global {
@@ -8,9 +8,10 @@ declare global {
   }
 }
 
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+const BUILD_GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 
 function loadGa(measurementId: string) {
+  if (!measurementId) return;
   if (document.querySelector(`script[src="https://www.googletagmanager.com/gtag/js?id=${measurementId}"]`)) return;
 
   const script = document.createElement('script');
@@ -27,8 +28,8 @@ function loadGa(measurementId: string) {
   window.gtag('config', measurementId, { send_page_view: false });
 }
 
-function sendEvent(name: string, label: string, path: string) {
-  if (!GA_ID || !window.gtag) return;
+function sendEvent(measurementId: string, name: string, label: string, path: string) {
+  if (!measurementId || !window.gtag) return;
   window.gtag('event', name, {
     event_label: label,
     page_path: path,
@@ -39,15 +40,31 @@ function sendEvent(name: string, label: string, path: string) {
 
 export default function AnalyticsManager() {
   const location = useLocation();
+  const [gaId, setGaId] = useState(BUILD_GA_ID);
 
   useEffect(() => {
-    if (!GA_ID) return;
-    loadGa(GA_ID);
+    if (BUILD_GA_ID) return;
+    let active = true;
+    fetch('/api/site-config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        const runtimeGaId = typeof json?.gaMeasurementId === 'string' ? json.gaMeasurementId : '';
+        if (active && runtimeGaId) setGaId(runtimeGaId);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
+    if (!gaId) return;
+    loadGa(gaId);
+  }, [gaId]);
+
+  useEffect(() => {
     const path = `${location.pathname}${location.search}`;
-    if (!GA_ID || !window.gtag) return;
+    if (!gaId || !window.gtag) return;
 
     window.gtag('event', 'page_view', {
       page_path: path,
@@ -55,11 +72,11 @@ export default function AnalyticsManager() {
       page_title: document.title,
     });
 
-    if (location.pathname === '/screener') sendEvent('screener_view', 'Screener opened', path);
-    if (location.pathname === '/pricing') sendEvent('pricing_view', 'Pricing opened', path);
-    if (location.pathname === '/contact') sendEvent('waitlist_view', 'Waitlist opened', path);
-    if (location.pathname === '/blog') sendEvent('growth_hub_view', 'Blog growth hub opened', path);
-  }, [location.pathname, location.search]);
+    if (location.pathname === '/screener') sendEvent(gaId, 'screener_view', 'Screener opened', path);
+    if (location.pathname === '/pricing') sendEvent(gaId, 'pricing_view', 'Pricing opened', path);
+    if (location.pathname === '/contact') sendEvent(gaId, 'waitlist_view', 'Waitlist opened', path);
+    if (location.pathname === '/blog') sendEvent(gaId, 'growth_hub_view', 'Blog growth hub opened', path);
+  }, [gaId, location.pathname, location.search]);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {
@@ -69,14 +86,14 @@ export default function AnalyticsManager() {
       const href = target instanceof HTMLAnchorElement ? target.getAttribute('href') || '' : '';
       const path = `${window.location.pathname}${window.location.search}`;
 
-      if (text.includes('waitlist') || href.includes('interest=')) sendEvent('waitlist_click', text.slice(0, 80) || href, path);
-      if (text.includes('pricing') || text.includes('plans')) sendEvent('pricing_click', text.slice(0, 80), path);
-      if (text.includes('screener') || text.includes('start free') || text.includes('open app')) sendEvent('tool_open_click', text.slice(0, 80), path);
+      if (text.includes('waitlist') || href.includes('interest=')) sendEvent(gaId, 'waitlist_click', text.slice(0, 80) || href, path);
+      if (text.includes('pricing') || text.includes('plans')) sendEvent(gaId, 'pricing_click', text.slice(0, 80), path);
+      if (text.includes('screener') || text.includes('start free') || text.includes('open app')) sendEvent(gaId, 'tool_open_click', text.slice(0, 80), path);
     };
 
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
-  }, []);
+  }, [gaId]);
 
   return null;
 }
