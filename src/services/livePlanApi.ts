@@ -27,7 +27,7 @@ export async function getLivePlanStatus(): Promise<LivePlanApiStatus> {
       status: 'free_delayed',
       priceInr: 299,
       dataMode: 'delayed',
-      message: 'Free delayed data is active. Payment verification is not connected yet.',
+      message: 'Free 15-minute delayed data is active. Live setup is not connected yet.',
     };
   }
 }
@@ -45,7 +45,7 @@ export async function createLivePlanOrder(): Promise<LivePlanOrderResponse> {
     return {
       status: 'setup_required',
       priceInr: 299,
-      message: 'Payment order creation is not connected yet. Configure backend payment verification before accepting live users.',
+      message: 'Live plan waitlist is recorded as setup-required until backend verification is connected.',
     };
   }
 }
@@ -64,7 +64,7 @@ export async function verifyLivePlanOrder(payload: Record<string, string>): Prom
       status: 'payment_required',
       priceInr: 299,
       dataMode: 'delayed',
-      message: 'Payment verification is not connected yet. Live data remains locked.',
+      message: 'Verification is not connected yet. Free 15-minute delayed data remains active.',
     };
   }
 }
