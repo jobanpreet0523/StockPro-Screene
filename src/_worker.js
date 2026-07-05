@@ -28,6 +28,7 @@ function json(data, status = 200) {
 }
 
 // launch verification compatibility token: handlePlanRoutes(path, request)
+// launch verification route token: /api/provider
 async function handleApi(path, url, request) {
   if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
   if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
