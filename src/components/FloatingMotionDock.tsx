@@ -21,7 +21,7 @@ export default function FloatingMotionDock({ activeTab, setActiveTab }: Floating
     <motion.div
       initial={{ opacity: 0, y: 24, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: 0.55, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ delay: 0.55, duration: 0.45, ease: 'easeOut' }}
       className="fixed bottom-5 left-1/2 z-40 hidden -translate-x-1/2 items-center gap-1 rounded-2xl border border-white/70 bg-white/80 p-1.5 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-slate-800/80 dark:bg-slate-950/75 dark:shadow-emerald-950/20 md:flex"
       id="floating_motion_dock"
     >
