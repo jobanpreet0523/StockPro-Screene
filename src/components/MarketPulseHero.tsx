@@ -32,9 +32,9 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
 
   const metrics = [
     {
-      label: 'Live Sync',
+      label: 'Data Sync',
       value: isLoadingStocks ? 'Syncing' : `${stocks.length || 0}`,
-      helper: 'NSE/BSE instruments',
+      helper: 'delayed/cached instruments',
       icon: Activity,
       accent: 'emerald',
     },
@@ -93,7 +93,7 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
             Faster market scanning with a cinematic analytics cockpit.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300 sm:text-base">
-            Upgraded UI layer for smarter first-glance decisions: live breadth, animated option intelligence, cleaner action hierarchy, and reduced visual clutter.
+            Upgraded UI layer for smarter first-glance decisions: market breadth, animated option intelligence, cleaner action hierarchy, and clear delayed/live data labeling.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
