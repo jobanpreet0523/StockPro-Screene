@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, LayoutDashboard, Sun, Moon, LogIn, LogOut, ExternalLink, Zap, Newspaper, Flame, SlidersHorizontal, ShieldCheck, Cpu, Landmark, BookOpen, Globe, Settings2, Calculator } from 'lucide-react';
+import { Search, TrendingUp, LayoutDashboard, Sun, Moon, LogIn, LogOut, ExternalLink, Zap, Newspaper, Flame, SlidersHorizontal, ShieldCheck, Cpu, Landmark, BookOpen, Globe, Settings2, Calculator, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
@@ -125,6 +125,7 @@ export default function Header({ indices, stocks, activeTab, setActiveTab, searc
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => navigate('/daily-brief')} className="hidden sm:flex bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-950 px-4 py-2 rounded-lg text-xs font-bold transition items-center gap-1.5 shadow-sm"><CalendarDays size={13} /> Daily Brief</button>
           <button onClick={() => navigate('/connect-broker')} className="hidden sm:flex bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition items-center gap-1.5 shadow-sm"><LogIn size={13} /> Setup</button>
           <button onClick={toggleTheme} className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition" aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-slate-600" />}</button>
           <button onClick={() => navigate('/')} className="hidden xl:flex bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition items-center gap-1.5 shadow-sm">Landing <ExternalLink size={12} /></button>
