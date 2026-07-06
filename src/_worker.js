@@ -6,7 +6,12 @@ export default {
     const path = url.pathname.length > 1 && url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
 
     if (request.method === 'OPTIONS') {
-      const headers = path === '/api/waitlist' || path.startsWith('/api/admin/') ? sameOriginCorsHeaders(request) : corsHeaders();
+      const protectedPath = path === '/api/waitlist'
+        || path.startsWith('/api/admin/')
+        || path.startsWith('/api/trial/')
+        || path.startsWith('/api/broker/')
+        || path.startsWith('/api/affiliate/');
+      const headers = protectedPath ? sameOriginCorsHeaders(request) : corsHeaders();
       return new Response(null, { status: 204, headers });
     }
     if (path.startsWith('/api/')) return handleApi(path, url, request, env);
@@ -109,10 +114,10 @@ async function handleLiveArticles() {
   }
 }
 
-function getWaitlistConfig(env) {
+function getSupabaseTableConfig(env, tableValue) {
   const supabaseUrl = cleanText(env?.SUPABASE_URL, 500).replace(/\/+$/, '');
   const serviceRoleKey = typeof env?.SUPABASE_SERVICE_ROLE_KEY === 'string' ? env.SUPABASE_SERVICE_ROLE_KEY.trim() : '';
-  const table = cleanText(env?.SUPABASE_WAITLIST_TABLE, 63);
+  const table = cleanText(tableValue, 63);
   let validUrl = false;
   try {
     const parsed = new URL(supabaseUrl);
@@ -120,6 +125,10 @@ function getWaitlistConfig(env) {
   } catch {}
   const validTable = /^[a-z_][a-z0-9_]{0,62}$/.test(table);
   return { supabaseUrl, serviceRoleKey, table, configured: validUrl && Boolean(serviceRoleKey) && validTable };
+}
+
+function getWaitlistConfig(env) {
+  return getSupabaseTableConfig(env, env?.SUPABASE_WAITLIST_TABLE);
 }
 
 function isAdminEnabled(env) {
@@ -268,6 +277,202 @@ async function handleAdminWaitlist(request, url, env) {
   }
 }
 
+const TRIAL_DISCLOSURE = '₹0 today. Auto-renews at ₹299/month after 7 days unless cancelled.';
+const BROKER_PROVIDERS = new Set(['dhan', 'upstox', 'angel', 'zerodha']);
+
+function getTrialConfig(env) {
+  const configured = Boolean(
+    cleanText(env?.RAZORPAY_KEY_ID, 200)
+    && cleanText(env?.RAZORPAY_KEY_SECRET, 500)
+    && cleanText(env?.RAZORPAY_PRO_PLAN_ID, 200)
+    && cleanText(env?.RAZORPAY_WEBHOOK_SECRET, 500)
+    && String(env?.TRIAL_DAYS || '7') === '7'
+    && String(env?.PRO_PRICE_INR || '299') === '299'
+  );
+  return { configured };
+}
+
+function trialSetupRequired(request, reason) {
+  return secureJson(request, {
+    status: 'setup_required',
+    plan: 'pro',
+    disclosure: TRIAL_DISCLOSURE,
+    paymentEnabled: false,
+    message: reason,
+  }, 503);
+}
+
+async function handleTrial(request, action, env) {
+  const expectedMethod = action === 'status' ? 'GET' : 'POST';
+  if (request.method !== expectedMethod) {
+    return secureJson(request, {
+      status: 'error',
+      plan: 'pro',
+      disclosure: TRIAL_DISCLOSURE,
+      paymentEnabled: false,
+      message: 'Method not allowed.',
+    }, 405, { Allow: expectedMethod });
+  }
+
+  if (action === 'start') {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return secureJson(request, {
+        status: 'error',
+        plan: 'pro',
+        disclosure: TRIAL_DISCLOSURE,
+        paymentEnabled: false,
+        message: 'A valid JSON request is required.',
+      }, 400);
+    }
+    if (body?.autoRenewConsent !== true) {
+      return secureJson(request, {
+        status: 'error',
+        plan: 'pro',
+        disclosure: TRIAL_DISCLOSURE,
+        paymentEnabled: false,
+        message: 'Explicit auto-renew consent is required before a trial can start.',
+      }, 400);
+    }
+  }
+
+  if (!getTrialConfig(env).configured) {
+    return trialSetupRequired(request, 'Trial billing requires server-side Razorpay subscription configuration. No trial or charge was created.');
+  }
+
+  return trialSetupRequired(
+    request,
+    action === 'cancel'
+      ? 'Trial cancellation requires authenticated per-user subscription storage. No active subscription was changed.'
+      : 'Recurring mandate authorization and authenticated per-user subscription storage are not enabled. No trial or charge was created.',
+  );
+}
+
+function getBrokerConfig(env, provider = 'none') {
+  const storage = String(env?.BROKER_TOKEN_STORAGE || '').trim().toLowerCase();
+  const supabase = getSupabaseTableConfig(env, 'broker_connections');
+  const encryptionReady = cleanText(env?.BROKER_ENCRYPTION_SECRET, 500).length >= 32;
+  const providerReady = provider === 'upstox'
+    ? Boolean(cleanText(env?.UPSTOX_CLIENT_ID, 200) && cleanText(env?.UPSTOX_CLIENT_SECRET, 500) && cleanText(env?.UPSTOX_REDIRECT_URI, 500))
+    : provider === 'dhan'
+    ? Boolean(cleanText(env?.DHAN_CLIENT_ID, 200))
+    : provider === 'none';
+  return { configured: storage === 'supabase' && supabase.configured && encryptionReady && providerReady };
+}
+
+function brokerSetupRequired(request, provider, message) {
+  return secureJson(request, {
+    status: 'setup_required',
+    provider,
+    isConnected: false,
+    dataAccess: 'none',
+    message,
+  }, 503);
+}
+
+async function handleBroker(request, action, provider, env) {
+  const expectedMethod = action === 'status' || action === 'upstox_start' || action === 'upstox_callback' ? 'GET' : 'POST';
+  if (request.method !== expectedMethod) {
+    return secureJson(request, {
+      status: 'error', provider, isConnected: false, dataAccess: 'none', message: 'Method not allowed.',
+    }, 405, { Allow: expectedMethod });
+  }
+
+  const relevantProvider = provider === 'none' ? 'none' : provider;
+  if (!getBrokerConfig(env, relevantProvider).configured) {
+    return brokerSetupRequired(
+      request,
+      provider,
+      'Per-user broker token storage, encryption, provider credentials, and authenticated user identity must be configured. No broker account is connected.',
+    );
+  }
+
+  return brokerSetupRequired(
+    request,
+    provider,
+    action === 'logout'
+      ? 'Authenticated per-user broker sessions are not enabled. No shared or owner token was changed.'
+      : 'Authenticated per-user authorization and encrypted token persistence are not enabled. No broker account is connected.',
+  );
+}
+
+function getAffiliateConfig(env, broker) {
+  const urlByBroker = {
+    dhan: env?.DHAN_AFFILIATE_URL,
+    upstox: env?.UPSTOX_AFFILIATE_URL,
+    angel: env?.ANGEL_AFFILIATE_URL,
+    zerodha: env?.ZERODHA_AFFILIATE_URL,
+  };
+  const destinationUrl = cleanText(urlByBroker[broker], 1000);
+  let validDestination = false;
+  try {
+    validDestination = new URL(destinationUrl).protocol === 'https:';
+  } catch {}
+  const storage = getSupabaseTableConfig(env, env?.SUPABASE_AFFILIATE_CLICKS_TABLE);
+  return {
+    destinationUrl,
+    storage,
+    configured: String(env?.AFFILIATE_TRACKING_ENABLED || '').trim().toLowerCase() === 'true' && validDestination && storage.configured,
+  };
+}
+
+async function handleAffiliateClick(request, env) {
+  if (request.method !== 'POST') return secureJson(request, { status: 'error', conversion: false, message: 'Method not allowed.' }, 405, { Allow: 'POST' });
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return secureJson(request, { status: 'error', conversion: false, message: 'A valid JSON request is required.' }, 400);
+  }
+
+  const broker = cleanText(body?.broker, 20).toLowerCase();
+  const sourcePage = cleanText(body?.sourcePage, 500);
+  const suppliedTimestamp = new Date(body?.timestamp || '');
+  if (!BROKER_PROVIDERS.has(broker)) return secureJson(request, { status: 'error', conversion: false, message: 'A supported broker is required.' }, 400);
+  if (!sourcePage) return secureJson(request, { status: 'error', conversion: false, message: 'sourcePage is required.' }, 400);
+  if (Number.isNaN(suppliedTimestamp.getTime())) return secureJson(request, { status: 'error', conversion: false, message: 'A valid timestamp is required.' }, 400);
+
+  const config = getAffiliateConfig(env, broker);
+  if (!config.configured) {
+    return secureJson(request, {
+      status: 'setup_required',
+      conversion: false,
+      message: 'Approved affiliate URL and server-side click storage are required. No click or conversion was recorded.',
+    }, 503);
+  }
+
+  try {
+    const response = await fetch(`${config.storage.supabaseUrl}/rest/v1/${encodeURIComponent(config.storage.table)}`, {
+      method: 'POST',
+      headers: {
+        apikey: config.storage.serviceRoleKey,
+        Authorization: `Bearer ${config.storage.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        broker,
+        source_page: sourcePage,
+        user_id: null,
+        clicked_at: new Date().toISOString(),
+      }),
+    });
+    if (!response.ok) return secureJson(request, { status: 'error', conversion: false, message: 'The affiliate click could not be stored. No conversion was recorded.' }, 502);
+    return secureJson(request, {
+      status: 'ok',
+      trackingStatus: 'click_recorded',
+      conversion: false,
+      destinationUrl: config.destinationUrl,
+      message: 'Partner-link click recorded. This is not an affiliate conversion.',
+    });
+  } catch {
+    return secureJson(request, { status: 'error', conversion: false, message: 'Affiliate tracking is temporarily unavailable. No conversion was recorded.' }, 502);
+  }
+}
+
 // launch verification compatibility token: handlePlanRoutes(path, request)
 // launch verification route token: /api/provider
 async function handleApi(path, url, request, env) {
@@ -276,6 +481,15 @@ async function handleApi(path, url, request, env) {
   if (path === '/api/waitlist/health') return handleWaitlistHealth(request, env);
   if (path === '/api/waitlist') return handleWaitlist(request, env);
   if (path === '/api/admin/waitlist') return handleAdminWaitlist(request, url, env);
+  if (path === '/api/trial/status') return handleTrial(request, 'status', env);
+  if (path === '/api/trial/start') return handleTrial(request, 'start', env);
+  if (path === '/api/trial/cancel') return handleTrial(request, 'cancel', env);
+  if (path === '/api/broker/status') return handleBroker(request, 'status', 'none', env);
+  if (path === '/api/broker/dhan/connect') return handleBroker(request, 'dhan_connect', 'dhan', env);
+  if (path === '/api/broker/upstox/start') return handleBroker(request, 'upstox_start', 'upstox', env);
+  if (path === '/api/broker/upstox/callback') return handleBroker(request, 'upstox_callback', 'upstox', env);
+  if (path === '/api/broker/logout') return handleBroker(request, 'logout', 'none', env);
+  if (path === '/api/affiliate/click') return handleAffiliateClick(request, env);
   if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
   if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
   if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'setup_required', dataMode: 'delayed', delayMinutes: 15, message: 'Payment verification is disabled until launch readiness is complete.' }, 503);
