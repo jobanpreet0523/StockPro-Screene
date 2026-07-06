@@ -4,7 +4,7 @@ export default {
     const path = url.pathname.length > 1 && url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
-    if (path.startsWith('/api/')) return handleApi(path, url, request);
+    if (path.startsWith('/api/')) return handleApi(path, url, request, env);
 
     try {
       const assetRes = await env.ASSETS.fetch(request.clone());
@@ -27,9 +27,79 @@ function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
 }
 
+function cleanText(value, maxLength) {
+  return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, maxLength) : '';
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function handleWaitlist(request, env) {
+  if (request.method !== 'POST') return json({ status: 'error', message: 'Method not allowed.' }, 405);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ status: 'error', message: 'A valid JSON request is required.' }, 400);
+  }
+
+  const name = cleanText(body?.name, 120);
+  const email = cleanText(body?.email, 254).toLowerCase();
+  const useCase = cleanText(body?.useCase, 2000);
+  const interest = cleanText(body?.interest, 120);
+  const sourcePage = cleanText(body?.sourcePage, 500);
+  const referrer = cleanText(body?.referrer || request.headers.get('Referer'), 500);
+
+  if (!name) return json({ status: 'error', message: 'Name is required.' }, 400);
+  if (!isValidEmail(email)) return json({ status: 'error', message: 'A valid email is required.' }, 400);
+
+  const supabaseUrl = cleanText(env?.SUPABASE_URL, 500).replace(/\/+$/, '');
+  const serviceRoleKey = typeof env?.SUPABASE_SERVICE_ROLE_KEY === 'string' ? env.SUPABASE_SERVICE_ROLE_KEY.trim() : '';
+  const table = cleanText(env?.SUPABASE_WAITLIST_TABLE, 120);
+
+  if (!supabaseUrl || !serviceRoleKey || !table) {
+    return json({
+      status: 'setup_required',
+      message: 'Waitlist storage is not configured yet. You can use the email fallback while setup is completed.',
+    }, 503);
+  }
+
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/${encodeURIComponent(table)}`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        use_case: useCase || null,
+        interest: interest || null,
+        source_page: sourcePage || null,
+        referrer: referrer || null,
+        created_at: new Date().toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      return json({ status: 'error', message: 'The waitlist could not be stored. Please try again or use the email fallback.' }, 502);
+    }
+
+    return json({ status: 'stored', message: 'Your waitlist request was stored successfully.' }, 201);
+  } catch {
+    return json({ status: 'error', message: 'The waitlist service is temporarily unavailable. Please try again or use the email fallback.' }, 502);
+  }
+}
+
 // launch verification compatibility token: handlePlanRoutes(path, request)
 // launch verification route token: /api/provider
-async function handleApi(path, url, request) {
+async function handleApi(path, url, request, env) {
+  if (path === '/api/waitlist') return handleWaitlist(request, env);
   if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
   if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
   if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'payment_required', dataMode: 'delayed', delayMinutes: 15, message: 'Verification is not active yet.' }, 501);
