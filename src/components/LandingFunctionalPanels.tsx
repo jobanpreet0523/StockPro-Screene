@@ -251,15 +251,12 @@ export default function LandingFunctionalPanels() {
     </section>
   );
 
-  const client = import.meta.env.VITE_ADSENSE_CLIENT as string | undefined;
-  const slot = import.meta.env.VITE_ADSENSE_SLOT as string | undefined;
-
   return (
     <>
       {targets['landing-nav-search-root'] && createPortal(searchControl, targets['landing-nav-search-root'])}
-      {targets['landing-hero-ad-root'] && createPortal(<div className="mx-auto max-w-7xl px-6 py-6"><AdSlot client={client} slot={slot} /></div>, targets['landing-hero-ad-root'])}
+      {targets['landing-hero-ad-root'] && createPortal(<div className="mx-auto max-w-7xl px-6 py-6"><AdSlot size="leaderboard" /></div>, targets['landing-hero-ad-root'])}
       {targets['landing-market-workspace-root'] && createPortal(workspace, targets['landing-market-workspace-root'])}
-      {targets['landing-live-news-root'] && createPortal(<div className="space-y-6"><LiveMarketReads landing /><AdSlot client={client} slot={slot} /></div>, targets['landing-live-news-root'])}
+      {targets['landing-live-news-root'] && createPortal(<div className="space-y-6"><LiveMarketReads landing /><AdSlot size="in_feed" label="Sponsored" /></div>, targets['landing-live-news-root'])}
     </>
   );
 }

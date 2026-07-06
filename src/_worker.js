@@ -473,10 +473,37 @@ async function handleAffiliateClick(request, env) {
   }
 }
 
+function handleAdConfig(request, env) {
+  if (request.method !== 'GET') return json({ status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET', 'Cache-Control': 'no-store' });
+  const enabled = String(env?.ADS_ENABLED || '').trim().toLowerCase() === 'true';
+  const sponsorMode = String(env?.SPONSOR_MODE || '').trim().toLowerCase() === 'enabled' ? 'enabled' : 'placeholder';
+  const clientId = cleanText(env?.ADSENSE_CLIENT_ID, 100);
+  const leaderboard = cleanText(env?.ADSENSE_SLOT_LEADERBOARD, 100);
+  const rectangle = cleanText(env?.ADSENSE_SLOT_RECTANGLE, 100);
+  const inFeed = cleanText(env?.ADSENSE_SLOT_IN_FEED, 100);
+  const adsConfigured = enabled
+    && /^ca-pub-\d+$/.test(clientId)
+    && /^\d+$/.test(leaderboard)
+    && /^\d+$/.test(rectangle)
+    && /^\d+$/.test(inFeed);
+  const configured = adsConfigured || sponsorMode === 'enabled';
+  return json({
+    status: configured ? 'ok' : 'setup_required',
+    ADS_ENABLED: adsConfigured,
+    ADSENSE_CLIENT_ID: adsConfigured ? clientId : '',
+    ADSENSE_SLOT_LEADERBOARD: adsConfigured ? leaderboard : '',
+    ADSENSE_SLOT_RECTANGLE: adsConfigured ? rectangle : '',
+    ADSENSE_SLOT_IN_FEED: adsConfigured ? inFeed : '',
+    SPONSOR_MODE: sponsorMode,
+    message: configured ? 'Advertising configuration is available.' : 'Advertising is not configured. Placeholder slots remain visible.',
+  }, configured ? 200 : 503, { 'Cache-Control': 'max-age=300' });
+}
+
 // launch verification compatibility token: handlePlanRoutes(path, request)
 // launch verification route token: /api/provider
 async function handleApi(path, url, request, env) {
   if (path === '/api/site-config') return json({ gaMeasurementId: env?.VITE_GA_MEASUREMENT_ID || env?.GA_MEASUREMENT_ID || 'G-KK6FYQQ6GV' }, 200, { 'Cache-Control': 'max-age=300' });
+  if (path === '/api/ad-config') return handleAdConfig(request, env);
   if (path === '/api/live-articles' || path === '/api/news/live') return handleLiveArticles();
   if (path === '/api/waitlist/health') return handleWaitlistHealth(request, env);
   if (path === '/api/waitlist') return handleWaitlist(request, env);

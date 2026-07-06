@@ -40,6 +40,10 @@ function sendEvent(measurementId: string, name: string, label: string, path: str
   });
 }
 
+export function emitAnalyticsEvent(name: string, label: string) {
+  window.dispatchEvent(new CustomEvent('stockpro:analytics', { detail: { name, label } }));
+}
+
 export default function AnalyticsManager() {
   const location = useLocation();
   const [gaId, setGaId] = useState(BUILD_GA_ID);
@@ -75,7 +79,21 @@ export default function AnalyticsManager() {
     if (location.pathname === '/contact') sendEvent(gaId, 'waitlist_view', 'Waitlist opened', path);
     if (location.pathname === '/blog') sendEvent(gaId, 'growth_hub_view', 'Blog growth hub opened', path);
     if (location.pathname === '/daily-brief') sendEvent(gaId, 'daily_brief_view', 'Daily Brief opened', path);
+    if (['/about', '/data-methodology', '/support-policy', '/refund-policy'].includes(location.pathname)) {
+      sendEvent(gaId, 'trust_page_view', `${location.pathname.slice(1)} opened`, path);
+    }
+    if (location.pathname === '/status') sendEvent(gaId, 'status_page_view', 'Service status opened', path);
   }, [gaId, location.pathname, location.search]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ name?: string; label?: string }>).detail;
+      if (!detail?.name) return;
+      sendEvent(gaId, detail.name, String(detail.label || detail.name).slice(0, 80), `${window.location.pathname}${window.location.search}`);
+    };
+    window.addEventListener('stockpro:analytics', handler);
+    return () => window.removeEventListener('stockpro:analytics', handler);
+  }, [gaId]);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {

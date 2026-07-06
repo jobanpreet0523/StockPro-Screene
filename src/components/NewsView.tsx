@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Newspaper, RefreshCw, Search, ArrowUpRight, Clock, Globe } from 'lucide-react';
 import { useMarketNews } from '../hooks/useMarketNews';
+import AdSlot from './AdSlot';
 
 export default function NewsView() {
   const { articles, loading, error, retry: fetchNews } = useMarketNews();
@@ -95,8 +96,8 @@ export default function NewsView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredArticles.map((art, idx) => (
+            <React.Fragment key={art.link || `${art.title}-${idx}`}>
             <a
-              key={idx}
               href={art.link}
               target="_blank"
               rel="noopener noreferrer nofollow"
@@ -133,6 +134,8 @@ export default function NewsView() {
                 <ArrowUpRight size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition duration-300" />
               </div>
             </a>
+            {idx === 2 && <AdSlot size="in_feed" label="Sponsored" className="md:col-span-2" />}
+            </React.Fragment>
           ))}
         </div>
       )}

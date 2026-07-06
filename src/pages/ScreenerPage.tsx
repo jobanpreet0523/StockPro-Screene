@@ -5,6 +5,7 @@ import StockScreener from '../components/StockScreener';
 import StockChart from '../components/StockChart';
 import ProductGrowthPanel from '../components/ProductGrowthPanel';
 import { useDashboard, TAB_TO_PATH, type DashboardTab } from '../components/Layout';
+import AdSlot from '../components/AdSlot';
 
 export default function ScreenerPage() {
   const navigate = useNavigate();
@@ -95,6 +96,10 @@ export default function ScreenerPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="lg:col-span-12">
+        <AdSlot size="leaderboard" />
       </div>
     </>
   );

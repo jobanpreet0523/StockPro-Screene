@@ -29,7 +29,7 @@ export default function PricingView() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card icon={Zap} title="Free" price="₹0" text="Best for first-time visitors and students exploring market research." items={freeFeatures} button="Use free workspace" onClick={() => navigate('/screener')} />
-        <Card icon={Bell} title="Pro" price="₹0 today" text="A 7-day trial foundation for repeat users who want saved workflows and cleaner daily research." items={proFeatures} button="Review Pro trial" onClick={() => navigate('/start-trial')} highlighted />
+        <Card icon={Bell} title="Pro" price="₹0 today" text="A 7-day trial foundation for repeat users who want saved workflows and cleaner daily research." items={proFeatures} button="Review Pro trial" onClick={() => navigate('/start-trial')} analyticsEvent="trial_cta_click" highlighted />
         <Card icon={Download} title="Premium" price="Request access" text="For power users who need a more complete research workspace." items={premiumFeatures} button="Request access" onClick={() => navigate('/contact?interest=premium')} dark />
       </div>
 
@@ -88,7 +88,7 @@ export default function PricingView() {
   );
 }
 
-function Card({ icon: Icon, title, price, text, items, button, onClick, dark = false, highlighted = false }: { icon: typeof Zap; title: string; price: string; text: string; items: string[]; button: string; onClick: () => void; dark?: boolean; highlighted?: boolean }) {
+function Card({ icon: Icon, title, price, text, items, button, onClick, analyticsEvent, dark = false, highlighted = false }: { icon: typeof Zap; title: string; price: string; text: string; items: string[]; button: string; onClick: () => void; analyticsEvent?: string; dark?: boolean; highlighted?: boolean }) {
   const shell = dark
     ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950 border-emerald-400'
     : highlighted
@@ -101,7 +101,7 @@ function Card({ icon: Icon, title, price, text, items, button, onClick, dark = f
       <p className="text-sm mt-2 leading-6 text-slate-500 dark:text-slate-400">{text}</p>
       <div className="my-6 text-4xl font-black text-emerald-500">{price}</div>
       <div className="grid gap-3 mb-8">{items.map((item) => <div key={item} className="flex items-start gap-3"><Check size={18} className="text-emerald-500 shrink-0 mt-0.5" /><span className="text-sm font-semibold">{item}</span></div>)}</div>
-      <button onClick={onClick} className="w-full rounded-2xl px-4 py-3 text-sm font-black bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition">{button}</button>
+      <button onClick={onClick} data-analytics-event={analyticsEvent} data-analytics-label={analyticsEvent ? `${title}:${button}` : undefined} className="w-full rounded-2xl px-4 py-3 text-sm font-black bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition">{button}</button>
     </div>
   );
 }

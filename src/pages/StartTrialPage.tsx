@@ -110,6 +110,8 @@ export default function StartTrialPage() {
             <button
               type="submit"
               disabled={state === 'submitting'}
+              data-analytics-event="trial_cta_click"
+              data-analytics-label="start-trial:submit"
               className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <CreditCard size={16} /> {state === 'submitting' ? 'Checking setup...' : 'Start trial'}

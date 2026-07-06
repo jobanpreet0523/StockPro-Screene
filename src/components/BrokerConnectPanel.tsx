@@ -96,6 +96,8 @@ export default function BrokerConnectPanel() {
                 type="button"
                 onClick={() => void connectExisting(broker)}
                 disabled={busy !== null}
+                data-analytics-event="broker_connect_click"
+                data-analytics-label={`connect:${broker}`}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200"
               >
                 <Link2 size={15} /> {busy === `connect-${broker}` ? 'Checking...' : `Connect ${brokerLabels[broker]}`}
@@ -117,6 +119,8 @@ export default function BrokerConnectPanel() {
                 type="button"
                 onClick={() => void openPartnerLink(broker)}
                 disabled={busy !== null}
+                data-analytics-event="affiliate_click"
+                data-analytics-label={`affiliate:${broker}`}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200"
               >
                 <ExternalLink size={15} /> {busy === `affiliate-${broker}` ? 'Checking...' : `Open ${brokerLabels[broker]} account`}
