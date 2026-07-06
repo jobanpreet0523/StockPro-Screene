@@ -17,7 +17,7 @@ import { Stock, IndexData } from '../types';
 export type DashboardTab =
   | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'
   | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator'
-  | 'heatmap' | 'fii-dii' | 'signals';
+  | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief';
 
 export const TAB_TO_PATH: Record<DashboardTab, string> = {
   screener: '/screener',
@@ -34,6 +34,7 @@ export const TAB_TO_PATH: Record<DashboardTab, string> = {
   pricing: '/pricing',
   blog: '/blog',
   signals: '/signals',
+  'daily-brief': '/daily-brief',
 };
 
 const PATH_TO_TAB: Record<string, DashboardTab> = Object.entries(TAB_TO_PATH).reduce(

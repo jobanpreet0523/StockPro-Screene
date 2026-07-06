@@ -17,10 +17,20 @@ export default function DailyBriefPage() {
           A daily workflow that combines live image-backed articles, screener entry points, and risk-first reminders.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link to="/screener" className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-black text-slate-950 transition hover:bg-emerald-400">
+          <Link
+            to="/screener"
+            data-analytics-event="tool_open_click"
+            data-analytics-label="Daily Brief open screener"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-black text-slate-950 transition hover:bg-emerald-400"
+          >
             Open Screener <Search size={14} />
           </Link>
-          <Link to="/contact?interest=daily-brief" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-800 transition hover:border-emerald-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
+          <Link
+            to="/contact?interest=daily-brief"
+            data-analytics-event="waitlist_click"
+            data-analytics-label="Daily Brief updates"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-800 transition hover:border-emerald-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+          >
             Get Updates <Bell size={14} />
           </Link>
         </div>

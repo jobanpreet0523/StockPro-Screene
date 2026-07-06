@@ -100,6 +100,8 @@ export default function NewsView() {
               href={art.link}
               target="_blank"
               rel="noopener noreferrer nofollow"
+              data-analytics-event="news_article_click"
+              data-analytics-label={`${art.source}: ${art.title}`}
               className="group bg-slate-50 hover:bg-white dark:bg-slate-900/40 dark:hover:bg-slate-900/90 border border-slate-100 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-750 p-4 rounded-xl shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-4 cursor-pointer text-inherit decoration-none"
             >
               <div className="flex flex-col gap-2">

@@ -74,6 +74,7 @@ export default function AnalyticsManager() {
     if (location.pathname === '/pricing') sendEvent(gaId, 'pricing_view', 'Pricing opened', path);
     if (location.pathname === '/contact') sendEvent(gaId, 'waitlist_view', 'Waitlist opened', path);
     if (location.pathname === '/blog') sendEvent(gaId, 'growth_hub_view', 'Blog growth hub opened', path);
+    if (location.pathname === '/daily-brief') sendEvent(gaId, 'daily_brief_view', 'Daily Brief opened', path);
   }, [gaId, location.pathname, location.search]);
 
   useEffect(() => {
@@ -83,6 +84,13 @@ export default function AnalyticsManager() {
       const text = (target.textContent || '').toLowerCase();
       const href = target instanceof HTMLAnchorElement ? target.getAttribute('href') || '' : '';
       const path = `${window.location.pathname}${window.location.search}`;
+      const explicitEvent = target.getAttribute('data-analytics-event');
+      const explicitLabel = target.getAttribute('data-analytics-label');
+
+      if (explicitEvent) {
+        sendEvent(gaId, explicitEvent, (explicitLabel || text || href).slice(0, 80), path);
+        return;
+      }
 
       if (text.includes('waitlist') || href.includes('interest=')) sendEvent(gaId, 'waitlist_click', text.slice(0, 80) || href, path);
       if (text.includes('pricing') || text.includes('plans')) sendEvent(gaId, 'pricing_click', text.slice(0, 80), path);

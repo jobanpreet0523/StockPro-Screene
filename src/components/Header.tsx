@@ -9,8 +9,8 @@ import { getMarketStatus } from '../utils/marketStatus';
 interface HeaderProps {
   indices: IndexData[];
   stocks: Stock[];
-  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals';
-  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals') => void;
+  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief';
+  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
@@ -25,6 +25,7 @@ const functionTabs: Array<{ tab: Tab; label: string; icon: React.ElementType }> 
   { tab: 'chartink', label: 'Scanner', icon: SlidersHorizontal },
   { tab: 'heatmap', label: 'Heatmap', icon: Flame },
   { tab: 'news', label: 'News', icon: Newspaper },
+  { tab: 'daily-brief', label: 'Daily Brief', icon: CalendarDays },
   { tab: 'pricing', label: 'Pricing', icon: ShieldCheck },
   { tab: 'fii-dii', label: 'FII/DII', icon: Globe },
   { tab: 'deals', label: 'Deals', icon: Landmark },
@@ -125,7 +126,6 @@ export default function Header({ indices, stocks, activeTab, setActiveTab, searc
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => navigate('/daily-brief')} className="hidden sm:flex bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-950 px-4 py-2 rounded-lg text-xs font-bold transition items-center gap-1.5 shadow-sm"><CalendarDays size={13} /> Daily Brief</button>
           <button onClick={() => navigate('/connect-broker')} className="hidden sm:flex bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition items-center gap-1.5 shadow-sm"><LogIn size={13} /> Setup</button>
           <button onClick={toggleTheme} className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition" aria-label="Toggle theme">{theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-slate-600" />}</button>
           <button onClick={() => navigate('/')} className="hidden xl:flex bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition items-center gap-1.5 shadow-sm">Landing <ExternalLink size={12} /></button>
@@ -139,6 +139,8 @@ export default function Header({ indices, stocks, activeTab, setActiveTab, searc
             <button
               key={tab}
               onClick={() => selectTab(tab)}
+              data-analytics-event={tab === 'daily-brief' ? 'daily_brief_click' : 'tool_open_click'}
+              data-analytics-label={`${label} navigation`}
               className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-black transition ${activeTab === tab ? 'bg-white text-slate-950 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:text-white dark:ring-slate-700' : 'text-slate-600 hover:bg-white/70 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'}`}
             >
               <Icon size={13} /> {label}
