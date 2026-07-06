@@ -13,6 +13,29 @@ export interface AccessCheck {
   upgradePath: string;
 }
 
+export const proFeatureDetails: Record<ProFeature, { name: string; description: string }> = {
+  saved_screens: {
+    name: 'Saved screens',
+    description: 'Keep reusable screening setups after account access rules are connected.',
+  },
+  expanded_watchlist: {
+    name: 'Expanded watchlist',
+    description: 'Follow a larger research list without changing the useful free watchlist.',
+  },
+  alerts: {
+    name: 'Research alerts',
+    description: 'Receive future screen and price observations after alert delivery is verified.',
+  },
+  exports: {
+    name: 'Advanced exports',
+    description: 'Unlock richer export workflows while basic free export previews remain available.',
+  },
+  advanced_research: {
+    name: 'Advanced research',
+    description: 'Use deeper educational analytics once Premium access controls are ready.',
+  },
+};
+
 const freeFeatures = new Set<ProFeature>();
 const proFeatures = new Set<ProFeature>(['saved_screens', 'expanded_watchlist', 'alerts', 'exports']);
 const premiumFeatures = new Set<ProFeature>(['saved_screens', 'expanded_watchlist', 'alerts', 'exports', 'advanced_research']);

@@ -1,6 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Check, Crown, Download, ShieldCheck, Users, Zap } from "lucide-react";
+import ProFeatureGate from './ProFeatureGate';
+import type { ProFeature } from '../core/proAccess';
+
+const futureProFeatures: ProFeature[] = ['saved_screens', 'expanded_watchlist', 'alerts', 'exports', 'advanced_research'];
 
 export default function PricingView() {
   const navigate = useNavigate();
@@ -30,6 +34,17 @@ export default function PricingView() {
         <InfoCard icon={Users} title="Free users" value="Trust first" text="Make the free product useful enough that users return to screen, watch, and learn." />
         <InfoCard icon={Bell} title="Pro users" value="Repeat workflow" text="Pro is for users who want saved screens, alerts, exports, and cleaner daily research." />
         <InfoCard icon={Crown} title="Premium users" value="Power workspace" text="Premium is the future path for custom dashboards and deeper research tools." />
+      </section>
+
+      <section className="mt-8 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
+        <div className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-600 dark:text-amber-300">Pro feature locks</div>
+        <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">Future tools stay gated until access is ready.</h3>
+        <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500 dark:text-slate-400">
+          Basic screening, news, education, and Daily Brief remain available. These future workflow upgrades use the waitlist path only.
+        </p>
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {futureProFeatures.map((feature) => <ProFeatureGate key={feature} plan="free" feature={feature} />)}
+        </div>
       </section>
 
       <section className="mt-8 rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950/75">
