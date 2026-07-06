@@ -13,7 +13,11 @@ function formatArticleDate(pubDate: string) {
   });
 }
 
-export default function LiveMarketReads() {
+interface LiveMarketReadsProps {
+  landing?: boolean;
+}
+
+export default function LiveMarketReads({ landing = false }: LiveMarketReadsProps) {
   const { articles, loading, error, retry } = useMarketNews();
   const liveReads = articles.slice(0, 6);
 
@@ -90,7 +94,7 @@ export default function LiveMarketReads() {
                 alt=""
                 loading="lazy"
                 referrerPolicy="no-referrer"
-                className="h-40 w-full bg-slate-200 object-cover dark:bg-slate-800"
+                className={`${landing ? 'h-56' : 'h-40'} w-full bg-slate-200 object-cover dark:bg-slate-800`}
               />
               <div className="p-4">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">

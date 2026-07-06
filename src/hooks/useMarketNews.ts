@@ -15,14 +15,14 @@ function parseArticleDate(value: string) {
     return new Date(`${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(8, 10)}:${value.slice(10, 12)}:${value.slice(12, 14)}Z`).toISOString();
   }
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString();
 }
 
 function normalizeArticle(item: any): MarketNewsItem {
   const pubDate = parseArticleDate(String(item?.pubDate || item?.seendate || ''));
   const title = String(item?.title || '').replace(/\s+/g, ' ').trim();
   const link = String(item?.link || item?.url || '');
-  const source = String(item?.source || item?.domain || 'Live source');
+  const source = String(item?.source || item?.domain || 'Source unavailable');
   const imageUrl = String(item?.imageUrl || item?.socialimage || '');
 
   return {
@@ -31,7 +31,7 @@ function normalizeArticle(item: any): MarketNewsItem {
     source,
     pubDate,
     imageUrl,
-    time: item?.time || new Date(pubDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+    time: item?.time || (pubDate ? new Date(pubDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : 'Time unavailable'),
     description: String(item?.description || title),
   };
 }
