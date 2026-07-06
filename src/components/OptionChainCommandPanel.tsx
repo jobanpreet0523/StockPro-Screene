@@ -310,7 +310,7 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
               Options Chain Command Center
             </h2>
             <p className="mt-1 max-w-4xl text-sm font-semibold text-slate-500 dark:text-slate-400">
-              Continue-from-last-state premium toolbar for support/resistance jumps, best/full view, local alerts, CSV export, refresh and live status controls.
+              Continue-from-last-state toolbar for support/resistance jumps, local alerts, CSV export, refresh, and provider-status controls.
             </p>
           </div>
 
@@ -417,7 +417,7 @@ export default function OptionChainCommandPanel({ stocks, selectedValue, current
             <ActionButton icon={Save} label="Save View" hint="V" onClick={saveView} />
             <ActionButton icon={Bell} label="Create Alert" hint="A" tone="amber" onClick={createAlert} />
             <ActionButton icon={Download} label="Download CSV" hint="CSV" tone="blue" onClick={downloadCsv} />
-            <ActionButton icon={Radio} label={streaming ? 'Stop Stream' : 'Start Stream'} hint="Live" tone={streaming ? 'emerald' : 'slate'} onClick={toggleStreaming} />
+            <ActionButton icon={Radio} label={streaming ? 'Stop Auto Refresh' : 'Start Auto Refresh'} hint="Local" tone={streaming ? 'emerald' : 'slate'} onClick={toggleStreaming} />
           </div>
         </div>
       </div>

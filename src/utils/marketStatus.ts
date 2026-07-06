@@ -1,4 +1,4 @@
-export type MarketStatusKey = 'LIVE' | 'PREOPEN' | 'POSTCLOSE' | 'CLOSED';
+export type MarketStatusKey = 'OPEN' | 'PREOPEN' | 'POSTCLOSE' | 'CLOSED';
 
 export interface MarketStatus {
   status: MarketStatusKey;
@@ -14,7 +14,7 @@ export function getMarketStatus(): MarketStatus {
   const isWeekday = day >= 1 && day <= 5;
 
   if (isWeekday && t >= 9.25 && t < 15.5)
-    return { status: 'LIVE', label: '🟢 MARKET LIVE', color: '#10b981', isOpen: true };
+    return { status: 'OPEN', label: '🟢 MARKET OPEN', color: '#10b981', isOpen: true };
   if (isWeekday && t >= 9.0 && t < 9.25)
     return { status: 'PREOPEN', label: '🟡 PRE-OPEN', color: '#f59e0b', isOpen: false };
   if (isWeekday && t >= 15.5 && t < 16.0)

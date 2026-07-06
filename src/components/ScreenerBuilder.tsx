@@ -1336,7 +1336,7 @@ export default function ScreenerBuilder({ stocks, stockData, onSelectStock, onSe
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-slate-850 dark:text-white">No Matching Equities Extracted</h4>
                   <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-                    None of our 25+ real-time tracked indices met your set values. Try reducing values, loosening timeframe margins, or using <strong>OR</strong> logical operator parameters instead of AND.
+                    None of the provider-backed indices met your set values. Try reducing values, loosening timeframe margins, or using <strong>OR</strong> logical operator parameters instead of AND.
                   </p>
                 </div>
               </div>

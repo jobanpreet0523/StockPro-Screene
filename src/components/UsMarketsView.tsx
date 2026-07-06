@@ -59,7 +59,7 @@ export default function UsMarketsView() {
   const { theme } = useTheme();
   const [stocks, setStocks] = useState<UsStock[]>([]);
   const [indices, setIndices] = useState<IndexQuote[]>([]);
-  const [usdInrRate, setUsdInrRate] = useState<number>(83.50); // reliable fallback
+  const [usdInrRate, setUsdInrRate] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -83,7 +83,8 @@ export default function UsMarketsView() {
 
       // 1. Get USD/INR cross rate
       const forexQuote = quotes.find((q: any) => q.symbol === 'USDINR=X');
-      const currentRate = forexQuote?.regularMarketPrice || 83.55;
+      const currentRate = Number(forexQuote?.regularMarketPrice);
+      if (!Number.isFinite(currentRate) || currentRate <= 0) throw new Error('USD/INR provider quote is unavailable');
       setUsdInrRate(currentRate);
 
       // 2. Parse major index bar markers
@@ -217,10 +218,10 @@ export default function UsMarketsView() {
 
         {/* Currency cross rate ticker widget */}
         <div className="p-3 bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-855 rounded-xl shadow-xs transition hover:scale-[1.01] duration-150 relative">
-          <span className="text-[10px] font-bold text-slate-400 uppercase font-mono tracking-wide">Live FX Rate (USD/INR)</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase font-mono tracking-wide">Provider FX Rate (USD/INR)</span>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-sm font-extrabold text-[#38bdf8] font-mono">
-              ₹{typeof usdInrRate === 'number' ? usdInrRate.toFixed(4) : Number(usdInrRate || 83.5).toFixed(4)}
+              {typeof usdInrRate === 'number' ? `₹${usdInrRate.toFixed(4)}` : 'Unavailable'}
             </span>
             <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1 rounded font-black uppercase border border-emerald-500/10">Connected</span>
           </div>
@@ -411,7 +412,7 @@ export default function UsMarketsView() {
 
       {/* Tiny disclaimer */}
       <p className="text-[10px] text-slate-500 dark:text-slate-400 font-sans leading-relaxed text-center italic mt-1">
-        * Wall Street pricing data and forex cross rates are feed proxies fetched from Yahoo Finance. Equivalent INR calculation is mathematically converted using the live exchange price ticker.
+        * Wall Street and FX values are shown only when the selected provider returns them. INR conversion is unavailable without a provider-supplied USD/INR quote.
       </p>
     </div>
   );

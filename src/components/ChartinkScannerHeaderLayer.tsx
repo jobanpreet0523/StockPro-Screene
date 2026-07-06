@@ -22,7 +22,7 @@ export default function ChartinkScannerHeaderLayer() {
               <span className="text-xs font-bold text-slate-500">by StockPro</span>
               <ExternalLink size={14} className="text-blue-500" />
             </div>
-            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Chartink-style technical scan workspace with live StockPro data.</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Chartink-style technical scan workspace using the selected StockPro provider.</p>
           </div>
 
           <div className="relative md:w-80">
@@ -44,7 +44,7 @@ export default function ChartinkScannerHeaderLayer() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-violet-50 px-4 py-3 text-sm font-bold text-violet-700 dark:bg-violet-950/20 dark:text-violet-200">
-        <span className="inline-flex items-center gap-2"><Sparkles size={16} /> New LIVE alerts are available in StockPro Free Access.</span>
+        <span className="inline-flex items-center gap-2"><Sparkles size={16} /> Educational scanner alerts use delayed/sample data until provider setup.</span>
         <span className="text-xs font-black uppercase tracking-widest">Scanner Guide · Examples · Feedback</span>
       </div>
     </section>

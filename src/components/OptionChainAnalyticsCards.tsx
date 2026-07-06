@@ -67,7 +67,7 @@ export default function OptionChainAnalyticsCards({ selectedValue, currentPrice 
           <div className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-600 dark:text-blue-400">Option Analytics Cards</div>
           <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Fast read on OI buildup, volume spike, PCR trend, IV movement, and support/resistance zones.</p>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:bg-slate-900 dark:text-slate-300">Live derived view</span>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:bg-slate-900 dark:text-slate-300">Synthetic educational view</span>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
