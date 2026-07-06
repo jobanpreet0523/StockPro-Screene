@@ -3024,14 +3024,18 @@ export default function LandingPage() {
           </p>
           <div class="flex flex-col md:flex-row md:items-center justify-between text-[11px] text-gray-500 font-mono gap-4">
             <span>&copy; 2026 StockPro ProPicks Analytics — F&O Services. All Sovereign Rights Reserved.</span>
-            <div class="flex items-center gap-4 text-xs font-sans">
+            <div class="flex flex-wrap items-center gap-4 text-xs font-sans">
               <a href="/privacy" class="hover:text-slate-800 transition font-semibold text-blue-600">Privacy Policy</a>
               <span>•</span>
               <a href="/terms" class="hover:text-slate-800 transition">Terms of Use</a>
               <span>•</span>
-              <a href="/disclaimer" class="hover:text-slate-800 transition">Legal Disclaimers</a>
+              <a href="/about" class="hover:text-slate-800 transition">About</a>
               <span>•</span>
-              <a href="/sebi-disclosure" class="hover:text-slate-800 transition">SEBI Disclosure</a>
+              <a href="/data-methodology" class="hover:text-slate-800 transition">Data Methodology</a>
+              <span>•</span>
+              <a href="/support-policy" class="hover:text-slate-800 transition">Support</a>
+              <span>•</span>
+              <a href="/status" class="hover:text-slate-800 transition">Status</a>
             </div>
           </div>
         </div>

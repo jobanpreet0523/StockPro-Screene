@@ -73,8 +73,28 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     description: 'Explore scanner alerts, observations, and educational workspace intelligence.',
   },
   '/connect-broker': {
-    title: 'Verified Setup Path — StockPro',
-    description: 'Prepare the verified setup path after server-side checks and authorization wiring are connected.',
+    title: 'Connect Your Broker for Data — StockPro',
+    description: 'Review the per-user broker connection foundation for future data access. StockPro does not place trades or share broker tokens between users.',
+  },
+  '/about': {
+    title: 'About StockPro — Educational Market Analytics',
+    description: 'Learn how StockPro approaches educational analytics, honest market-data labels, per-user broker authorization, and non-advisory research tools.',
+  },
+  '/data-methodology': {
+    title: 'Market-Data Methodology — StockPro',
+    description: 'Understand StockPro delayed and sample data, external provider mode, broker-connected mode, timestamps, staleness, and provider-status labels.',
+  },
+  '/support-policy': {
+    title: 'Support Policy — StockPro',
+    description: 'Read StockPro support channels, response expectations, security guidance, and limits on emergency trading or investment-advice support.',
+  },
+  '/refund-policy': {
+    title: 'Refund Policy — StockPro Launch Placeholder',
+    description: 'Review the StockPro pre-launch refund-policy placeholder. Real payment and checkout remain disabled until a final policy is published.',
+  },
+  '/status': {
+    title: 'Service Status — StockPro',
+    description: 'Check current StockPro market-data, waitlist, trial, broker, and news-service setup or availability states.',
   },
   '/privacy': {
     title: 'Privacy Policy — StockPro',

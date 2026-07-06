@@ -45,7 +45,7 @@ const PATH_TO_TAB: Record<string, DashboardTab> = Object.entries(TAB_TO_PATH).re
   {} as Record<string, DashboardTab>,
 );
 
-const utilityRoutes = new Set(['/start-trial', '/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact']);
+const utilityRoutes = new Set(['/start-trial', '/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/status']);
 
 export interface DashboardContext {
   stocks: Stock[];
@@ -241,17 +241,20 @@ export default function Layout() {
             <Link to="/privacy" className={footerLinkClass}>Privacy Policy</Link>
             <Link to="/terms" className={footerLinkClass}>Terms of Use</Link>
             <Link to="/risk-disclosure" className={footerLinkClass}>Risk Disclosure</Link>
+            <Link to="/refund-policy" className={footerLinkClass}>Refund Policy</Link>
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Data Source</h4>
             <Link to="/connect-broker" className={footerLinkClass}>Broker live setup</Link>
+            <Link to="/data-methodology" className={footerLinkClass}>Data Methodology</Link>
+            <Link to="/status" className={footerLinkClass}>Service Status</Link>
             <p className="leading-relaxed">Free public mode uses 15-minute delayed data. Broker mode activates only after payment verification and secure setup.</p>
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Support</h4>
             <Link to="/contact" className={footerLinkClass}>Contact Us</Link>
-            <Link to="/privacy" className={footerLinkClass}>Privacy Policy</Link>
-            <Link to="/terms" className={footerLinkClass}>Terms</Link>
+            <Link to="/support-policy" className={footerLinkClass}>Support Policy</Link>
+            <Link to="/about" className={footerLinkClass}>About StockPro</Link>
           </div>
         </div>
       </footer>

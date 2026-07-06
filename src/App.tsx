@@ -27,6 +27,12 @@ import RiskDisclosurePage from './pages/RiskDisclosurePage';
 import ContactPage from './pages/ContactPage';
 import AdminWaitlistPage from './pages/AdminWaitlistPage';
 import StartTrialPage from './pages/StartTrialPage';
+import AboutPage from './pages/AboutPage';
+import DataMethodologyPage from './pages/DataMethodologyPage';
+import SupportPolicyPage from './pages/SupportPolicyPage';
+import RefundPolicyPage from './pages/RefundPolicyPage';
+import StatusPage from './pages/StatusPage';
+import StructuredData from './components/StructuredData';
 
 interface ErrorBoundaryProps { children: ReactNode; }
 interface ErrorBoundaryState { hasError: boolean; error: Error | null; }
@@ -64,6 +70,7 @@ export default function App() {
       <BrowserRouter>
         <RouteSeo />
         <AnalyticsManager />
+        <StructuredData />
         <ParticleBackground />
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -91,6 +98,11 @@ export default function App() {
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/risk-disclosure" element={<RiskDisclosurePage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/data-methodology" element={<DataMethodologyPage />} />
+            <Route path="/support-policy" element={<SupportPolicyPage />} />
+            <Route path="/refund-policy" element={<RefundPolicyPage />} />
+            <Route path="/status" element={<StatusPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>
