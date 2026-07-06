@@ -5,7 +5,10 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.length > 1 && url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
 
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
+    if (request.method === 'OPTIONS') {
+      const headers = path === '/api/waitlist' || path.startsWith('/api/admin/') ? sameOriginCorsHeaders(request) : corsHeaders();
+      return new Response(null, { status: 204, headers });
+    }
     if (path.startsWith('/api/')) return handleApi(path, url, request, env);
 
     try {
@@ -27,6 +30,20 @@ function corsHeaders() {
 
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...corsHeaders(), ...headers } });
+}
+
+function sameOriginCorsHeaders(request) {
+  const targetOrigin = new URL(request.url).origin;
+  const requestOrigin = request.headers.get('Origin');
+  return {
+    ...corsHeaders(),
+    'Access-Control-Allow-Origin': requestOrigin === targetOrigin ? requestOrigin : targetOrigin,
+    Vary: 'Origin',
+  };
+}
+
+function secureJson(request, data, status = 200, headers = {}) {
+  return json(data, status, { ...sameOriginCorsHeaders(request), 'Cache-Control': 'no-store', ...headers });
 }
 
 function cleanText(value, maxLength) {
@@ -92,14 +109,42 @@ async function handleLiveArticles() {
   }
 }
 
+function getWaitlistConfig(env) {
+  const supabaseUrl = cleanText(env?.SUPABASE_URL, 500).replace(/\/+$/, '');
+  const serviceRoleKey = typeof env?.SUPABASE_SERVICE_ROLE_KEY === 'string' ? env.SUPABASE_SERVICE_ROLE_KEY.trim() : '';
+  const table = cleanText(env?.SUPABASE_WAITLIST_TABLE, 63);
+  let validUrl = false;
+  try {
+    const parsed = new URL(supabaseUrl);
+    validUrl = parsed.protocol === 'https:' || (parsed.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(parsed.hostname));
+  } catch {}
+  const validTable = /^[a-z_][a-z0-9_]{0,62}$/.test(table);
+  return { supabaseUrl, serviceRoleKey, table, configured: validUrl && Boolean(serviceRoleKey) && validTable };
+}
+
+function isAdminEnabled(env) {
+  return String(env?.WAITLIST_ADMIN_ENABLED || '').trim().toLowerCase() === 'true';
+}
+
+function safeTokenEquals(left, right) {
+  const leftBytes = new TextEncoder().encode(left);
+  const rightBytes = new TextEncoder().encode(right);
+  if (leftBytes.length !== rightBytes.length || leftBytes.length === 0) return false;
+  let difference = 0;
+  for (let index = 0; index < leftBytes.length; index += 1) difference |= leftBytes[index] ^ rightBytes[index];
+  return difference === 0;
+}
+
 async function handleWaitlist(request, env) {
-  if (request.method !== 'POST') return json({ status: 'error', message: 'Method not allowed.' }, 405);
+  if (request.method !== 'POST') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'POST' });
+  const contentLength = Number(request.headers.get('Content-Length') || 0);
+  if (contentLength > 12_000) return secureJson(request, { status: 'error', message: 'Request body is too large.' }, 413);
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return json({ status: 'error', message: 'A valid JSON request is required.' }, 400);
+    return secureJson(request, { status: 'error', message: 'A valid JSON request is required.' }, 400);
   }
 
   const name = cleanText(body?.name, 120);
@@ -109,26 +154,24 @@ async function handleWaitlist(request, env) {
   const sourcePage = cleanText(body?.sourcePage, 500);
   const referrer = cleanText(body?.referrer || request.headers.get('Referer'), 500);
 
-  if (!name) return json({ status: 'error', message: 'Name is required.' }, 400);
-  if (!isValidEmail(email)) return json({ status: 'error', message: 'A valid email is required.' }, 400);
+  if (!name) return secureJson(request, { status: 'error', message: 'Name is required.' }, 400);
+  if (!isValidEmail(email)) return secureJson(request, { status: 'error', message: 'A valid email is required.' }, 400);
 
-  const supabaseUrl = cleanText(env?.SUPABASE_URL, 500).replace(/\/+$/, '');
-  const serviceRoleKey = typeof env?.SUPABASE_SERVICE_ROLE_KEY === 'string' ? env.SUPABASE_SERVICE_ROLE_KEY.trim() : '';
-  const table = cleanText(env?.SUPABASE_WAITLIST_TABLE, 120);
+  const config = getWaitlistConfig(env);
 
-  if (!supabaseUrl || !serviceRoleKey || !table) {
-    return json({
+  if (!config.configured) {
+    return secureJson(request, {
       status: 'setup_required',
       message: 'Waitlist storage is not configured yet. You can use the email fallback while setup is completed.',
     }, 503);
   }
 
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/${encodeURIComponent(table)}`, {
+    const response = await fetch(`${config.supabaseUrl}/rest/v1/${encodeURIComponent(config.table)}`, {
       method: 'POST',
       headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
         'Content-Type': 'application/json',
         Prefer: 'return=minimal',
       },
@@ -144,12 +187,84 @@ async function handleWaitlist(request, env) {
     });
 
     if (!response.ok) {
-      return json({ status: 'error', message: 'The waitlist could not be stored. Please try again or use the email fallback.' }, 502);
+      let errorCode = '';
+      try {
+        const errorBody = await response.json();
+        errorCode = String(errorBody?.code || '');
+      } catch {}
+      if (response.status === 409 && errorCode === '23505') {
+        return secureJson(request, { status: 'already_joined', message: 'You are already on this waitlist.' }, 200);
+      }
+      return secureJson(request, { status: 'error', message: 'The waitlist could not be stored. Please try again or use the email fallback.' }, 502);
     }
 
-    return json({ status: 'stored', message: 'Your waitlist request was stored successfully.' }, 201);
+    return secureJson(request, { status: 'stored', message: 'Your waitlist request was stored successfully.' }, 201);
   } catch {
-    return json({ status: 'error', message: 'The waitlist service is temporarily unavailable. Please try again or use the email fallback.' }, 502);
+    return secureJson(request, { status: 'error', message: 'The waitlist service is temporarily unavailable. Please try again or use the email fallback.' }, 502);
+  }
+}
+
+function handleWaitlistHealth(request, env) {
+  if (request.method !== 'GET') return json({ status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET', 'Cache-Control': 'no-store' });
+  const config = getWaitlistConfig(env);
+  if (!config.configured) {
+    return json({ status: 'setup_required', message: 'Waitlist storage requires server-side Supabase configuration.' }, 503, { 'Cache-Control': 'no-store' });
+  }
+  return json({ status: 'ok', message: 'Waitlist storage bindings appear configured.' }, 200, { 'Cache-Control': 'no-store' });
+}
+
+function readAdminFilter(url, name, maxLength) {
+  const value = cleanText(url.searchParams.get(name), maxLength);
+  if (!value) return { value: '' };
+  if (!/^[a-zA-Z0-9 _.\/-]+$/.test(value)) return { error: `${name} filter contains unsupported characters.` };
+  return { value };
+}
+
+async function handleAdminWaitlist(request, url, env) {
+  if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
+
+  const config = getWaitlistConfig(env);
+  const adminToken = typeof env?.ADMIN_ACCESS_TOKEN === 'string' ? env.ADMIN_ACCESS_TOKEN.trim() : '';
+  if (!config.configured || !isAdminEnabled(env) || !adminToken) {
+    return secureJson(request, { status: 'setup_required', message: 'Waitlist admin access requires server-side Supabase and admin configuration.' }, 503);
+  }
+
+  const authorization = request.headers.get('Authorization') || '';
+  const suppliedToken = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+  if (!safeTokenEquals(suppliedToken, adminToken)) {
+    return secureJson(request, { status: 'unauthorized', message: 'A valid admin access token is required.' }, 401);
+  }
+
+  const statusFilter = readAdminFilter(url, 'status', 40);
+  const interestFilter = readAdminFilter(url, 'interest', 120);
+  if (statusFilter.error || interestFilter.error) {
+    return secureJson(request, { status: 'error', message: statusFilter.error || interestFilter.error }, 400);
+  }
+
+  const requestedLimit = Number.parseInt(url.searchParams.get('limit') || '50', 10);
+  const limit = Number.isFinite(requestedLimit) ? Math.min(200, Math.max(1, requestedLimit)) : 50;
+  const params = new URLSearchParams({
+    select: 'id,name,email,interest,use_case,source_page,referrer,status,created_at,updated_at',
+    order: 'created_at.desc',
+    limit: String(limit),
+  });
+  if (statusFilter.value) params.set('status', `eq.${statusFilter.value}`);
+  if (interestFilter.value) params.set('interest', `eq.${interestFilter.value}`);
+
+  try {
+    const response = await fetch(`${config.supabaseUrl}/rest/v1/${encodeURIComponent(config.table)}?${params.toString()}`, {
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        Accept: 'application/json',
+      },
+    });
+    if (!response.ok) return secureJson(request, { status: 'error', message: 'Waitlist records could not be loaded.' }, 502);
+    const rows = await response.json();
+    if (!Array.isArray(rows)) return secureJson(request, { status: 'error', message: 'Waitlist storage returned an invalid response.' }, 502);
+    return secureJson(request, { status: 'ok', message: 'Waitlist records loaded.', count: rows.length, data: rows }, 200);
+  } catch {
+    return secureJson(request, { status: 'error', message: 'Waitlist admin storage is temporarily unavailable.' }, 502);
   }
 }
 
@@ -158,7 +273,9 @@ async function handleWaitlist(request, env) {
 async function handleApi(path, url, request, env) {
   if (path === '/api/site-config') return json({ gaMeasurementId: env?.VITE_GA_MEASUREMENT_ID || env?.GA_MEASUREMENT_ID || 'G-KK6FYQQ6GV' }, 200, { 'Cache-Control': 'max-age=300' });
   if (path === '/api/live-articles' || path === '/api/news/live') return handleLiveArticles();
+  if (path === '/api/waitlist/health') return handleWaitlistHealth(request, env);
   if (path === '/api/waitlist') return handleWaitlist(request, env);
+  if (path === '/api/admin/waitlist') return handleAdminWaitlist(request, url, env);
   if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
   if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
   if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'setup_required', dataMode: 'delayed', delayMinutes: 15, message: 'Payment verification is disabled until launch readiness is complete.' }, 503);
