@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMarketStatus } from '../utils/marketStatus';
+import LandingFunctionalPanels from './LandingFunctionalPanels';
 
 interface LiveIndex {
   symbol: string;
@@ -62,15 +63,16 @@ export default function LandingPage() {
   }, [fetchLiveData]);
 
   // Helper to get index data
-  const getNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEI') || { price: 24892.50, change: 145.30, changePercent: 0.58, isPositive: true };
-  const getBankNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEBANK') || { price: 52341.20, change: -62.80, changePercent: -0.12, isPositive: false };
-  const getFinNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEFN' || i.name?.includes('FIN')) || { price: 21450.00, change: 45.20, changePercent: 0.21, isPositive: true };
+  const unavailableIndex = { price: Number.NaN, change: Number.NaN, changePercent: Number.NaN, isPositive: false };
+  const getNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEI') || unavailableIndex;
+  const getBankNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEBANK') || unavailableIndex;
+  const getFinNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEFN' || i.name?.includes('FIN')) || unavailableIndex;
 
   const nifty = getNifty();
   const banknifty = getBankNifty();
   const finnifty = getFinNifty();
-  const pcr = liveChain?.pcr || liveChain?.records?.underlyingValue ? (liveChain.records.data?.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) / Math.max(1, liveChain.records.data?.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0))) : 1.34;
-  const maxPain = liveChain?.maxPain || 24900;
+  const pcr = liveChain?.pcr || (liveChain?.records?.data ? (liveChain.records.data.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) / Math.max(1, liveChain.records.data.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0))) : 0);
+  const maxPain = liveChain?.maxPain || 0;
   const spotPrice = nifty.price;
   const totalCallOi = liveChain?.totalCallOi || liveChain?.records?.data?.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0) || 0;
   const totalPutOi = liveChain?.totalPutOi || liveChain?.records?.data?.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) || 0;
@@ -83,14 +85,14 @@ export default function LandingPage() {
   })) || [];
   const atmStrike = Math.round(spotPrice / 50) * 50;
   const step = 50;
-  const atmIv = options.length > 0 ? (options.find((o:any) => o.strikePrice === atmStrike)?.callIv || options[Math.floor(options.length/2)]?.callIv || 12.8) : 12.8;
+  const atmIv = options.length > 0 ? (options.find((o:any) => o.strikePrice === atmStrike)?.callIv || options[Math.floor(options.length/2)]?.callIv || 0) : 0;
   const nearAtmOi = options.filter((o:any) => Math.abs(o.strikePrice - atmStrike) <= step*2);
   const topCallOi = nearAtmOi.reduce((max:number,o:any) => o.callOi > max ? o.callOi : max, 0);
   const topPutOi = nearAtmOi.reduce((max:number,o:any) => o.putOi > max ? o.putOi : max, 0);
   const topCallStrike = nearAtmOi.find((o:any) => o.callOi === topCallOi)?.strikePrice || atmStrike + step*2;
   const topPutStrike = nearAtmOi.find((o:any) => o.putOi === topPutOi)?.strikePrice || atmStrike - step*2;
 
-  const fmtPrice = (n: number) => (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtPrice = (n: number) => Number.isFinite(n) ? n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Unavailable';
   const fmtOI = (n: number) => {
     const val = n ?? 0;
     if (!val || isNaN(val)) return '0';
@@ -99,19 +101,21 @@ export default function LandingPage() {
     if (val >= 1000) return (typeof val === 'number' ? (val / 1000).toFixed(1) : Number(val / 1000).toFixed(1)) + 'K';
     return String(Math.round(val));
   };
-  const chgBadge = (pct: number) => (pct ?? 0) >= 0
+  const chgBadge = (pct: number) => !Number.isFinite(pct)
+    ? `<span class="bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded">Unavailable</span>`
+    : pct >= 0
     ? `<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▲ +${typeof pct === 'number' ? pct.toFixed(2) : Number(pct || 0).toFixed(2)}%</span>`
     : `<span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">▼ ${typeof pct === 'number' ? pct.toFixed(2) : Number(pct || 0).toFixed(2)}%</span>`;
 
   useEffect(() => {
     // Intercept vanilla links in the injected HTML to use React Router
     const handleNavigation = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement).closest('a');
+      const target = (e.target as HTMLElement).closest('a, button');
       if (target) {
-        const href = target.getAttribute('href');
-        if (href === '/screener' || href === '/screener.html') {
+        const href = target.getAttribute('data-route') || target.getAttribute('href');
+        if (href && href.startsWith('/') && !href.startsWith('//')) {
           e.preventDefault();
-          navigate('/screener');
+          navigate(href === '/screener.html' ? '/screener' : href);
         }
       }
     };
@@ -206,21 +210,12 @@ export default function LandingPage() {
         </a>
 
         <!-- Central Search Bar with wide, modern light-gray text input -->
-        <div class="hidden lg:flex items-center relative w-96 max-w-lg">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-            <i data-lucide="search" class="w-3.5 h-3.5 text-gray-400"></i>
-          </span>
-          <input 
-            type="text" 
-            placeholder="Search indices, derivatives, options strike..." 
-            class="w-full pl-9 pr-3.5 py-1.5 bg-gray-100 border border-gray-200 rounded text-xs font-medium text-slate-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-blue-500 transition-all font-mono"
-          />
-        </div>
+        <div id="landing-nav-search-root" class="hidden lg:block w-96 max-w-lg"></div>
       </div>
 
       <!-- Right Side Actions & Real-Time Status -->
       <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2 px-3 py-1 rounded border" style="background:${market.color}1a;border-color:${market.color}55;" title="Live NSE market status">
+        <div class="flex items-center gap-2 px-3 py-1 rounded border" style="background:${market.color}1a;border-color:${market.color}55;" title="Scheduled NSE market-hours status">
           <span class="relative flex h-1.5 w-1.5">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background:${market.color}"></span>
             <span class="relative inline-flex rounded-full h-1.5 w-1.5" style="background:${market.color}"></span>
@@ -263,7 +258,7 @@ export default function LandingPage() {
         <div>11:45 AM</div>
         <div>01:00 PM</div>
         <div>02:15 PM</div>
-        <div class="text-[#38bdf8] font-bold">03:30 PM (Live Feed)</div>
+        <div class="text-[#38bdf8] font-bold">03:30 PM (Market Close)</div>
       </div>
 
       <!-- Absolute Watermarked Active Candlestick Series & Moving Average Indicators (Glowing Neon) -->
@@ -332,13 +327,13 @@ export default function LandingPage() {
             
             <!-- Long editorial descriptives - legible crisp grey -->
             <p class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              F&O Analytics Pro synthesizes over 12 million global daily contracts into instantly actionable volatility trends, option pricing models, and high-frequency sentiment markers. Built specifically on dynamic high-density grids to support modern portfolio execution.
+              StockPro brings delayed market context, option-chain analytics, and educational screening workflows into one focused research workspace. It is designed for learning and analysis, not investment advice or trade execution.
             </p>
             
             <!-- Actions matching image layout perfectly with strong contrasting layout -->
             <div class="flex flex-wrap items-center gap-3.5 pt-3">
               <a 
-                href="#pricing-section"
+                href="/pricing"
                 class="bg-transparent hover:bg-white/5 border border-slate-600 text-slate-300 font-extrabold text-xs px-6 py-3.5 rounded transition-all duration-300 hover:scale-105 hover:brightness-110 font-mono tracking-wider text-center backdrop-blur-sm"
               >
                 VIEW PRICING
@@ -364,7 +359,7 @@ export default function LandingPage() {
                   <span class="w-2 h-2 rounded-full bg-green-400"></span>
                   <span class="ml-1 text-slate-300 font-bold">ANALYTICS TERMINAL v3.0</span>
                 </span>
-                <span>Active Channels: 16 (NSE_FEED)</span>
+                <span>ILLUSTRATIVE INTERFACE PREVIEW</span>
               </div>
               
               <!-- Realistic High-density trading interface content -->
@@ -378,7 +373,7 @@ export default function LandingPage() {
                 <!-- Corner Labels and badges overlay to increase StockPro authenticity -->
                 <div class="absolute bottom-2 left-2 bg-slate-950/95 border border-slate-700 text-[9px] text-blue-400 font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1">
                   <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                  <span>PCR STREAMER: LIVE</span>
+                  <span>PCR VIEW: DELAYED / SAMPLE</span>
                 </div>
                 <div class="absolute top-2 right-2 bg-emerald-950/95 border border-emerald-700 text-[9px] text-emerald-400 font-mono font-bold px-2 py-0.5 rounded">
                   IV SKEW: +${typeof atmIv === 'number' ? (atmIv * 0.33).toFixed(2) : Number((atmIv || 0) * 0.33).toFixed(2)}%
@@ -398,15 +393,18 @@ export default function LandingPage() {
             <span class="text-gray-300">|</span>
             <a href="#analytical-dashboard" class="text-[10px] uppercase font-bold text-gray-500 tracking-wider hover:text-[#111827] transition">Products</a>
             <span class="text-gray-300">|</span>
-            <a href="/" class="text-[10px] uppercase font-bold text-gray-500 tracking-wider hover:text-[#111827] transition">Terminal in Action</a>
+            <a href="#terminal-in-action" class="text-[10px] uppercase font-bold text-gray-500 tracking-wider hover:text-[#111827] transition">Terminal in Action</a>
             <span class="text-gray-300">|</span>
-            <a href="#news-grid" class="text-[10px] uppercase font-bold text-gray-500 tracking-wider hover:text-[#111827] transition">Top Industry Challenges</a>
+            <a href="#news-grid" class="text-[10px] uppercase font-bold text-gray-500 tracking-wider hover:text-[#111827] transition">Live Market Reads</a>
             <span class="text-gray-300">|</span>
             <a href="#insights-section" class="text-[10px] uppercase font-bold text-gray-550 tracking-wider hover:text-[#111827] transition">Insights</a>
           </div>
         </div>
       </div>
     </header>
+
+    <div id="landing-hero-ad-root" class="bg-white"></div>
+    <div id="landing-market-workspace-root"></div>
 
     <!-- 3. TOP ANALYTICAL DASHBOARD ROW (Enhanced Premium Style, Gray Section Block) -->
     <main id="overview" class="bg-gray-50/50 border-b border-gray-200 py-10">
@@ -416,7 +414,7 @@ export default function LandingPage() {
         <div class="mb-8 flex items-center justify-between bg-white border border-gray-200 rounded p-3 text-[11px] font-mono shadow-sm">
           <div class="flex items-center gap-2">
             <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded font-bold text-[9px]">SYSTEM FEED</span>
-            <span class="text-slate-600">Dynamic Open Interest clustering identified near ${fmtPrice(atmStrike)} Strikes. Put writing accelerated.</span>
+            <span class="text-slate-600">${options.length > 0 ? 'Delayed/sample open-interest rows loaded for educational analysis.' : 'Option-chain data unavailable. No substitute values are shown.'}</span>
           </div>
           <span class="text-slate-400 font-semibold uppercase hidden sm:inline">PULSE ID: FOP-099X</span>
         </div>
@@ -492,7 +490,7 @@ export default function LandingPage() {
               </div>
 
               <p class="text-xs text-gray-500 mb-4 leading-relaxed font-normal">
-                Synthesized from active open interest contracts across major call & put series strike rates. The current positioning indicates structural bullish support with substantial accumulation across weekly protective strikes.
+                A directional visualization of the delayed/sample put-call ratio. It describes observed positioning only and is not a recommendation or prediction.
               </p>
 
               <!-- Track block and labels -->
@@ -543,8 +541,8 @@ export default function LandingPage() {
             </div>
 
             <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-              <span>Sentiment Weighted Matrix: <strong class="text-emerald-600 font-bold">${pcr > 1.2 ? 'Strong Buy Protective Moat' : pcr >= 0.8 ? 'Neutral Consolidation' : 'Bearish Resistance Zone'}</strong></span>
-              <span>Daily Update Complete</span>
+              <span>PCR classification: <strong class="text-emerald-600 font-bold">${pcr > 1.2 ? 'Higher put OI ratio' : pcr >= 0.8 ? 'Balanced OI ratio' : 'Higher call OI ratio'}</strong></span>
+              <span>Delayed/sample educational view</span>
             </div>
           </div>
 
@@ -583,7 +581,7 @@ export default function LandingPage() {
             </p>
             <div class="pt-2">
               <span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 font-mono tracking-wider bg-orange-50 px-2 py-1 rounded">
-                <i data-lucide="line-chart" class="w-3 h-3"></i> LIVE CO-INTEGRATION ACTIVE
+                <i data-lucide="line-chart" class="w-3 h-3"></i> ILLUSTRATIVE ANALYTICS VIEW
               </span>
             </div>
           </div>
@@ -831,7 +829,7 @@ export default function LandingPage() {
                   <!-- Header details -->
                   <div class="flex items-center justify-between text-slate-500 pt-1 pb-1 text-[7px] border-b border-slate-900">
                     <span>ANALYTICS_MOBILE</span>
-                    <span class="text-emerald-400 font-bold">● 9:15 AM LIVE</span>
+                    <span class="text-amber-300 font-bold">DELAYED / SAMPLE VIEW</span>
                   </div>
 
                   <!-- Live core stats -->
@@ -898,7 +896,7 @@ export default function LandingPage() {
           <div class="space-y-1">
             <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">Market Heat Analysis</span>
             <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight uppercase font-sans leading-none">
-              Live Open Interest (OI) Sector Heatmap
+              Illustrative Open Interest (OI) Sector Heatmap
             </h2>
             <p class="text-xs text-gray-500 font-sans">
               Real-time cross-sector derivatives position buildup map. High intensity colors represent extreme contract accumulation.
@@ -1351,7 +1349,7 @@ export default function LandingPage() {
             </p>
           </div>
           <span class="text-[9px] font-mono text-slate-500 border border-slate-200 bg-white px-2.5 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5">
-            <span class="inline-block w-2 h-2 rounded-full bg-emerald-550 animate-ping"></span> Live Secured FII_FEED Active
+            <span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span> Illustrative delayed feed preview
           </span>
         </div>
 
@@ -1670,7 +1668,7 @@ export default function LandingPage() {
           },
           'sideways': {
             name: "SHORT IRON CONDOR",
-            maxprofit: "₹6,800 (Guaranteed Max)",
+            maxprofit: "₹6,800 (Illustrative cap)",
             maxloss: "₹3,200 (Capped Wall)",
             delta: "Neutral Theta Bias (+24.5)",
             horizon: "15 to 30 Days to Expiry",
@@ -1734,7 +1732,7 @@ export default function LandingPage() {
     </script>
 
     <!-- 4. REAL FINANCIAL NEWS & IMAGES SECTION (StockPro Layout Grid) -->
-    <section id="news-grid" class="max-w-7xl mx-auto px-6 py-12 bg-white">
+    <section aria-hidden="true" class="hidden">
       <div class="border-b border-gray-200 pb-4 mb-8 flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
         <div class="space-y-1">
           <h2 class="text-lg font-black text-[#111827] uppercase tracking-wider flex items-center gap-2">
@@ -1859,6 +1857,10 @@ export default function LandingPage() {
       </div>
     </section>
 
+    <section id="news-grid" class="max-w-7xl mx-auto px-6 py-12 bg-white">
+      <div id="landing-live-news-root"></div>
+    </section>
+
     <!-- 3d. ADDITIONAL PREMIUM STRUCTURAL BLOCKS (LIGHT THEME) -->
 
     <!-- SECTION 5: MULTI-DEVICE RESPONSIVE CANVAS (Trade Seamlessly Across Hardware) -->
@@ -1872,7 +1874,7 @@ export default function LandingPage() {
             Trade Seamlessly Across Hardware
           </h2>
           <p class="text-xs text-gray-500 mt-2 font-sans">
-            Your custom graphics setups, derivatives calculators, and live alert tickers synchronized with high-frequency accuracy across sovereign systems.
+            Explore responsive educational dashboards, derivatives calculators, and delayed/sample analytics across devices.
           </p>
         </div>
 
@@ -1972,7 +1974,7 @@ export default function LandingPage() {
                       <circle cx="200" cy="8" r="3.5" fill="#10b981"/>
                     </svg>
                   </div>
-                  <span class="text-[7.5px] text-gray-400 font-mono tracking-wide">Sync State: Coordinated real-time breakout patterns</span>
+                  <span class="text-[7.5px] text-gray-400 font-mono tracking-wide">Preview state: illustrative breakout-pattern layout</span>
                 </div>
 
                 <!-- Live Strike spreads ledger representation -->
@@ -2059,11 +2061,11 @@ export default function LandingPage() {
               Lightning-Fast Execution Option Matrix
             </h2>
             <p class="text-xs text-gray-500 font-sans">
-              Dynamic derivatives execution panel with real-time volatility estimates split by strike nodes. Highlights represent active trading ranges.
+              Educational derivatives panel with delayed/sample volatility estimates split by strike nodes. Highlights illustrate analytical ranges.
             </p>
           </div>
           <span class="text-[9.5px] font-mono text-slate-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-550 animate-ping"></span> Live Nifty Expiry June Active
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span> Delayed/sample option-chain preview
           </span>
         </div>
 
@@ -2109,10 +2111,10 @@ export default function LandingPage() {
         <div class="border-b border-gray-200 pb-5 mb-10 max-w-2xl">
           <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">Automated Intelligence Stream</span>
           <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-            Real-Time AI Signal Intelligence
+            Illustrative Signal-Analysis Workspace
           </h2>
           <p class="text-xs text-gray-500 mt-2 font-sans">
-            Algorithmic execution signals and multi-strike consolidation alerts generated server-side by our high-performance scanners.
+            Static interface examples showing how analytical observations may be organized. These are not current signals, recommendations, or investment advice.
           </p>
         </div>
 
@@ -2135,13 +2137,13 @@ export default function LandingPage() {
                   </span>
                   <span class="font-extrabold text-blue-600 font-mono tracking-wider">SYSTEM DETECTOR N9</span>
                 </div>
-                <span class="text-gray-500 font-mono font-bold uppercase transition-colors group-hover:text-gray-800">10:52:14 IST • ACTIVE NOW</span>
+                <span class="text-gray-500 font-mono font-bold uppercase transition-colors group-hover:text-gray-800">ILLUSTRATIVE EXAMPLE</span>
               </div>
               <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-blue-600 transition">
-                NIFTY Strike ${fmtPrice(atmStrike)} Call OI Buildup Exceeds Maximum Threshold Limits (${fmtOI(topCallOi)} Contracts)
+                Example: compare call open interest across nearby strikes
               </h4>
               <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                Automated open interest scanners confirm aggressive cross-participant derivatives writing. Short-term price breakout probabilities above the 24,940 Spot bounds rise to <strong>74.2%</strong>. Active spread adjustments recommended.
+                A research workflow can compare strike-level open interest and surface unusual concentrations for further study. No trade action is suggested.
               </p>
             </div>
           </div>
@@ -2159,13 +2161,13 @@ export default function LandingPage() {
                   </span>
                   <span class="font-extrabold text-indigo-600 font-mono tracking-wider">PROPICKS SYSTEM CORES</span>
                 </div>
-                <span class="text-gray-500 font-mono font-bold uppercase">09:12:45 IST • 1.5H AGO</span>
+                <span class="text-gray-500 font-mono font-bold uppercase">ILLUSTRATIVE EXAMPLE</span>
               </div>
               <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-indigo-600 transition">
-                RELIANCE MACD Confirmative Bullish Crossover Registered at Spot ₹2,460.10
+                Example: review a moving-average crossover alongside volume
               </h4>
               <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                System processors index massive institutional call protections. Blocks recorded at the bottom 2,455 Put reference node suggests solid downside support is now locked under momentum trends.
+                Technical indicators can be reviewed as historical context, with their assumptions and limitations clearly separated from investment decisions.
               </p>
             </div>
           </div>
@@ -2183,13 +2185,13 @@ export default function LandingPage() {
                   </span>
                   <span class="font-extrabold text-slate-700 font-mono tracking-wider">VOL SMILE MONITOR</span>
                 </div>
-                <span class="text-gray-500 font-mono font-bold uppercase">09:02:11 IST • 2H AGO</span>
+                <span class="text-gray-500 font-mono font-bold uppercase">ILLUSTRATIVE EXAMPLE</span>
               </div>
               <h4 class="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-slate-800 transition">
-                Option Smile Skew Index registers Out-of-Bounds Pricing Deviation of 14.1%
+                Example: compare implied volatility across strike prices
               </h4>
               <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                Aggressive call premiums trigger skew variances. Decisive ATM volatility remains compressed at ${typeof atmIv === 'number' ? atmIv.toFixed(1) : Number(atmIv || 0).toFixed(1)}%. Algorithmic guidance adjusts recommended strategies from condors to long-running straddle models.
+                A volatility-smile view can help explain relative option pricing. The sample does not prescribe or recommend an options strategy.
               </p>
             </div>
           </div>
@@ -2205,7 +2207,7 @@ export default function LandingPage() {
         
         <!-- Elegant typography tracking block description label -->
         <span class="text-[9.5px] font-black uppercase text-gray-400 tracking-widest font-mono block mb-6">
-          Powering Data Discovery for Institutional Traders Global-Wide
+          Educational market-reference interface — no exchange affiliation implied
         </span>
         
         <!-- Interactive vector grayscale institutional logo placeholders -->
@@ -2516,14 +2518,14 @@ export default function LandingPage() {
           <div class="space-y-1">
             <span class="text-xs font-black uppercase text-blue-600 tracking-widest font-mono">High Frequency Scanning Feed</span>
             <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
-              Live Institutional Block Trades & Volume Spikes
+              Illustrative Institutional Flow & Volume Board
             </h2>
             <p class="text-xs text-gray-500 font-sans">
               Instantaneous tracking matrix filtering registered FII/DII block orders and excessive multi-strike volume accumulators.
             </p>
           </div>
           <span class="text-[9.5px] font-mono text-slate-500 border border-slate-200 bg-white px-2.5 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5 animate-pulse">
-            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span> Ledger Stream active (0.1ms tick)
+            <span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span> Sample interface — no live ledger connected
           </span>
         </div>
 
@@ -2719,7 +2721,7 @@ export default function LandingPage() {
             Frequently Asked Questions
           </h2>
           <p class="text-xs text-gray-500 mt-2 font-sans">
-            Get instant answers regarding data feed compliance, real-time pipeline integration, and high-frequency algorithms from our engineers.
+            Ask about educational analytics, delayed data-source setup, and product access. StockPro does not provide investment advice.
           </p>
         </div>
 
@@ -2790,7 +2792,7 @@ export default function LandingPage() {
             Select Your Analytical Edge
           </h2>
           <p class="text-xs text-gray-500 mt-2 font-sans">
-            Clear structural pricing models adapted for independent retail participants up to full high-frequency institutional trading desks.
+            Product tiers are shown for comparison only. Checkout is disabled; contact the waitlist for future access.
           </p>
         </div>
 
@@ -2834,11 +2836,11 @@ export default function LandingPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  <span>Live FII / DII Desk Ledgers</span>
+                  <span>FII / DII desk ledgers (not connected)</span>
                 </li>
               </ul>
             </div>
-            <button class="w-full py-2.5 px-4 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow-sm">
+            <button data-route="/screener" class="w-full py-2.5 px-4 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow-sm">
               Activate Basic Account
             </button>
           </div>
@@ -2870,13 +2872,13 @@ export default function LandingPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>Live Option Greek Terminals (0.1ms)</span>
+                  <span>Option Greek workspace (planned)</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>Live FII / DII Block Ledgers</span>
+                  <span>FII / DII block ledgers (planned)</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -2888,12 +2890,12 @@ export default function LandingPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>Real-Time IV vs HV Volatility Curves</span>
+                  <span>IV vs HV volatility curves (planned)</span>
                 </li>
               </ul>
             </div>
-            <button class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow">
-              Select Pro Trader Elite
+            <button data-route="/contact?interest=landing" data-analytics-event="waitlist_click" data-analytics-label="landing:pro-tier" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow">
+              Join the access waitlist
             </button>
           </div>
 
@@ -2938,8 +2940,8 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-            <button class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow-sm">
-              Inquire Enterprise Licensing
+            <button data-route="/contact?interest=landing" data-analytics-event="waitlist_click" data-analytics-label="landing:enterprise-tier" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-black uppercase tracking-wide font-mono transition-colors shadow-sm">
+              Join the access waitlist
             </button>
           </div>
 
@@ -2960,7 +2962,7 @@ export default function LandingPage() {
               StockPro Screener <span class="bg-blue-600 text-white text-[8px] font-mono px-1.5 py-0.5 rounded tracking-wide">Elite</span>
             </span>
             <p class="text-xs text-gray-550 font-normal leading-relaxed">
-              Premium high-frequency derivatives screening analytics. We coordinate continuous strike-wise derivatives tracking engines, open interest smile diagnostics, and algorithmic ProPicks models for corporate desks.
+              Educational derivatives-screening analytics with delayed/sample market context. StockPro provides research tools, not investment advice or trade execution.
             </p>
           </div>
 
@@ -2999,15 +3001,15 @@ export default function LandingPage() {
         <div class="border-t border-gray-250 pt-8 mt-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-[10.5px] text-gray-500 font-mono">
           <div>
             <span class="font-extrabold uppercase text-slate-700 block mb-1">NSE DATA FEED</span>
-            <span>OK (LIVE)</span>
+            <span>DELAYED / SAMPLE UNTIL PROVIDER SETUP</span>
           </div>
           <div>
-            <span class="font-extrabold uppercase text-slate-700 block mb-1">REGULATORY SECURED</span>
-            <span>TLS-256 SECURED VERIFICATION</span>
+            <span class="font-extrabold uppercase text-slate-700 block mb-1">CONNECTION SECURITY</span>
+            <span>HTTPS TRANSPORT WHEN DEPLOYED</span>
           </div>
           <div>
             <span class="font-extrabold uppercase text-slate-700 block mb-1">EXCHANGES DISK</span>
-            <span>NSE/BSE AUTHORIZED AGENT</span>
+            <span>NO EXCHANGE-AUTHORIZED FEED CONNECTED</span>
           </div>
           <div>
             <span class="font-extrabold uppercase text-slate-700 block mb-1">SYSTEM CORES</span>
@@ -3047,5 +3049,6 @@ export default function LandingPage() {
     </script>
     <script src="/live-data.js"></script>
   ` }} />
+    <LandingFunctionalPanels />
   </>;
 }
