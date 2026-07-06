@@ -18,16 +18,22 @@ function parseArticleDate(value: string) {
   return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
 }
 
-function liveArticleUrl() {
-  const params = new URLSearchParams({
-    query: 'India business finance market',
-    mode: 'ArtList',
-    format: 'json',
-    maxrecords: '18',
-    sort: 'DateDesc',
-    timespan: '48h',
-  });
-  return `https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`;
+function normalizeArticle(item: any): MarketNewsItem {
+  const pubDate = parseArticleDate(String(item?.pubDate || item?.seendate || ''));
+  const title = String(item?.title || '').replace(/\s+/g, ' ').trim();
+  const link = String(item?.link || item?.url || '');
+  const source = String(item?.source || item?.domain || 'Live source');
+  const imageUrl = String(item?.imageUrl || item?.socialimage || '');
+
+  return {
+    title,
+    link,
+    source,
+    pubDate,
+    imageUrl,
+    time: item?.time || new Date(pubDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+    description: String(item?.description || title),
+  };
 }
 
 export function useMarketNews() {
@@ -38,26 +44,18 @@ export function useMarketNews() {
   const fetchNews = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(liveArticleUrl(), { signal: AbortSignal.timeout(15000) });
-      if (!res.ok) throw new Error('Live article feed failed');
+      setError(null);
+
+      // Same-origin Worker proxy avoids browser CORS failures from external news providers.
+      const res = await fetch('/api/live-articles', { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) throw new Error('Live article proxy failed');
+
       const json = await res.json();
-      const raw = Array.isArray(json?.articles) ? json.articles : [];
+      const raw = Array.isArray(json?.data) ? json.data : Array.isArray(json?.articles) ? json.articles : [];
       const seen = new Set<string>();
 
       const parsed = raw
-        .map((item: any) => {
-          const pubDate = parseArticleDate(String(item.seendate || ''));
-          const title = String(item.title || '').replace(/\s+/g, ' ').trim();
-          return {
-            title,
-            link: String(item.url || ''),
-            time: new Date(pubDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
-            source: String(item.domain || 'Live source'),
-            pubDate,
-            imageUrl: String(item.socialimage || ''),
-            description: title,
-          };
-        })
+        .map(normalizeArticle)
         .filter((item: MarketNewsItem) => item.title && item.link && item.imageUrl)
         .filter((item: MarketNewsItem) => {
           if (seen.has(item.link)) return false;
