@@ -25,6 +25,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import RiskDisclosurePage from './pages/RiskDisclosurePage';
 import ContactPage from './pages/ContactPage';
+import AdminWaitlistPage from './pages/AdminWaitlistPage';
 
 interface ErrorBoundaryProps { children: ReactNode; }
 interface ErrorBoundaryState { hasError: boolean; error: Error | null; }
@@ -66,6 +67,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
+          <Route path="/admin/waitlist" element={<AdminWaitlistPage />} />
           <Route element={<Layout />}>
             <Route path="/screener" element={<ScreenerPage />} />
             <Route path="/scanner" element={<ScannerPage />} />

@@ -56,7 +56,6 @@ export default function ContactPage() {
       interest: interest.trim() || 'general',
       sourcePage: `${location.pathname}${location.search}`,
       referrer: document.referrer || undefined,
-      createdAt: new Date().toISOString(),
     };
 
     setSubmitState('submitting');
@@ -73,7 +72,7 @@ export default function ContactPage() {
         message: 'The waitlist service returned an unreadable response.',
       })) as WaitlistApiResponse;
 
-      if (response.ok && result.status === 'stored') {
+      if (response.ok && (result.status === 'stored' || result.status === 'already_joined')) {
         setSubmitState('success');
         setStatusMessage(result.message || 'Your waitlist request was stored successfully.');
         return;
