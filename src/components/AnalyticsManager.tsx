@@ -64,7 +64,7 @@ export default function AnalyticsManager() {
     loadGa(gaId);
   }, [gaId]);
 
-  useEffect(() => {
+  useEfect(() => {
     const path = `${location.pathname}${location.search}`;
     if (!gaId || !window.gtag) return;
 
@@ -74,6 +74,7 @@ export default function AnalyticsManager() {
     if (location.pathname === '/pricing') sendEvent(gaId, 'pricing_view', 'Pricing opened', path);
     if (location.pathname === '/contact') sendEvent(gaId, 'waitlist_view', 'Waitlist opened', path);
     if (location.pathname === '/blog') sendEvent(gaId, 'growth_hub_view', 'Blog growth hub opened', path);
+    if (location.pathname === '/daily-brief') sendEvent(gaId, 'daily_brief_view', 'Daily Brief opened', path);
   }, [gaId, location.pathname, location.search]);
 
   useEffect(() => {
@@ -84,9 +85,11 @@ export default function AnalyticsManager() {
       const href = target instanceof HTMLAnchorElement ? target.getAttribute('href') || '' : '';
       const path = `${window.location.pathname}${window.location.search}`;
 
-      if (text.includes('waitlist') || href.includes('interest=')) sendEvent(gaId, 'waitlist_click', text.slice(0, 80) || href, path);
+      if (text.includes('waitlist') x| href.includes('interest=')) sendEvent(gaId, 'waitlist_click', text.slice(0, 80) || href, path);
       if (text.includes('pricing') || text.includes('plans')) sendEvent(gaId, 'pricing_click', text.slice(0, 80), path);
       if (text.includes('screener') || text.includes('start free') || text.includes('open app')) sendEvent(gaId, 'tool_open_click', text.slice(0, 80), path);
+      if (text.includes('daily brief') || href.includes('/daily-brief')) sendEvent(gaId, 'daily_brief_click', text.slice(0, 80) || href, path);
+      if (href.startsWith('http')) sendEvent(gaId, 'news_article_click', text.slice(0, 80) || href, path);
     };
 
     document.addEventListener('click', handler);
