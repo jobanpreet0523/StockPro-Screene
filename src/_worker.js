@@ -23,8 +23,8 @@ function corsHeaders() {
   };
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
+function json(data, status = 200, headers = {}) {
+  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...corsHeaders(), ...headers } });
 }
 
 function cleanText(value, maxLength) {
@@ -33,6 +33,61 @@ function cleanText(value, maxLength) {
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function parseProviderDate(value) {
+  const text = String(value || '');
+  if (/^\d{14}$/.test(text)) {
+    return new Date(`${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}T${text.slice(8, 10)}:${text.slice(10, 12)}:${text.slice(12, 14)}Z`).toISOString();
+  }
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+}
+
+async function handleLiveArticles() {
+  const params = new URLSearchParams({
+    query: 'India business finance market NSE Nifty stocks',
+    mode: 'ArtList',
+    format: 'json',
+    maxrecords: '24',
+    sort: 'DateDesc',
+    timespan: '48h',
+  });
+
+  try {
+    const response = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) return json({ status: 'error', message: 'Live article provider failed. Please retry shortly.', data: [] }, 502, { 'Cache-Control': 'no-store' });
+
+    const payload = await response.json();
+    const raw = Array.isArray(payload?.articles) ? payload.articles : [];
+    const seen = new Set();
+    const data = raw.map((item) => {
+      const pubDate = parseProviderDate(item?.seendate);
+      const title = cleanText(item?.title, 220);
+      const link = cleanText(item?.url, 900);
+      const imageUrl = cleanText(item?.socialimage, 900);
+      const source = cleanText(item?.domain || 'Live source', 120);
+      return {
+        title,
+        link,
+        source,
+        imageUrl,
+        pubDate,
+        time: new Date(pubDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+        description: title,
+      };
+    }).filter((article) => article.title && article.link && article.imageUrl).filter((article) => {
+      if (seen.has(article.link)) return false;
+      seen.add(article.link);
+      return true;
+    }).slice(0, 12);
+
+    return json({ status: data.length ? 'ok' : 'empty', source: 'live_proxy', updatedAt: new Date().toISOString(), data, message: data.length ? 'Live articles loaded.' : 'No image-backed articles are available right now.' }, 200, { 'Cache-Control': 'max-age=300' });
+  } catch {
+    return json({ status: 'error', message: 'Live article proxy timed out. Please retry shortly.', data: [] }, 502, { 'Cache-Control': 'no-store' });
+  }
 }
 
 async function handleWaitlist(request, env) {
@@ -99,6 +154,8 @@ async function handleWaitlist(request, env) {
 // launch verification compatibility token: handlePlanRoutes(path, request)
 // launch verification route token: /api/provider
 async function handleApi(path, url, request, env) {
+  if (path === '/api/site-config') return json({ gaMeasurementId: env?.VITE_GA_MEASUREMENT_ID || env?.GA_MEASUREMENT_ID || 'G-KK6FYQQ6GV' }, 200, { 'Cache-Control': 'max-age=300' });
+  if (path === '/api/live-articles' || path === '/api/news/live') return handleLiveArticles();
   if (path === '/api/waitlist') return handleWaitlist(request, env);
   if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
   if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
@@ -116,7 +173,7 @@ async function handleApi(path, url, request, env) {
   if (path.startsWith('/api/option-chain/')) return json({ status: 'ok', source: '15_min_delayed', delayMinutes: 15, data: optionChain(path.split('/')[3] || 'NIFTY') });
   if (path === '/api/data') return json(simpleChain(url.searchParams.get('underlying') || 'NIFTY'));
   if (path === '/api/market-status') return json({ status: 'ok', market: 'OPEN', delayMinutes: 15, ist: new Date().toISOString() });
-  if (path === '/api/news' || path === '/api/market-news') return json({ status: 'ok', data: [] });
+  if (path === '/api/news' || path === '/api/market-news') return handleLiveArticles();
   if (path === '/api/block-deals' || path === '/api/bulk-deals') return json({ status: 'ok', data: [] });
   if (path === '/api/nse/fiidii') return json({ status: 'ok', source: '15_min_delayed', data: [] });
   if (path === '/api/chart') return json({ status: 'ok', data: [] });
