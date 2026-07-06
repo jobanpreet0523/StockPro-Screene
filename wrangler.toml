@@ -6,6 +6,9 @@ main = "src/_worker.js"
 directory = "./dist"
 binding = "ASSETS"
 
+[vars]
+MARKET_DATA_PROVIDER = "delayed"
+
 # KV namespace for caching NSE data (60s TTL)
 # To enable: run `npx wrangler kv namespace create STOCKPRO_KV`
 # Then add the id below and uncomment
