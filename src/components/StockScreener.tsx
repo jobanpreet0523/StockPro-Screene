@@ -8,6 +8,8 @@ import GreeksCalculator from './GreeksCalculator';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { fetchMarketData } from '../core/marketDataClient';
+import type { MarketQuote } from '../core/marketDataProvider';
 
 interface ScreenerRowProps {
   key?: string;
@@ -251,11 +253,9 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
     const fetchStockData = async (symbol: string) => {
       try {
         setLoadingStocks(prev => ({ ...prev, [symbol]: true }));
-        const response = await fetch(`/api/yahoo-finance/${symbol}`, {
-          signal: AbortSignal.timeout(15000)
-        });
-        if (response.ok) {
-          const data = await response.json();
+        const response = await fetchMarketData<MarketQuote>(`/api/live/quote/${encodeURIComponent(symbol)}`, AbortSignal.timeout(15000));
+        if (response.status === 'ok' && response.data) {
+          const data = response.data;
           setRealStockData(prev => ({
             ...prev,
             [symbol]: data
@@ -695,7 +695,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
                   <Lock size={32} className="mx-auto text-slate-400 dark:text-slate-505 mb-3" />
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Watchlist is Locked</h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-4">
-                    Get real-time market sync and track your preferred Indian equities by signing in first.
+                    Sign in to track preferred Indian equities. Data timing follows the selected provider status.
                   </p>
                   <button 
                     onClick={loginWithGoogle}

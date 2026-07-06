@@ -1,33 +1,30 @@
-import { useState, useEffect } from 'react';
-import { IndexData } from '../types';
-import { INITIAL_INDICES } from '../data';
-
-const API_BASE = ''; // Same origin — Cloudflare Worker Functions handle /api/*
+import { useEffect, useState } from 'react';
+import type { IndexData } from '../types';
+import type { MarketDataStatus, MarketIndex } from '../core/marketDataProvider';
+import { fetchMarketData } from '../core/marketDataClient';
 
 export function useMarketIndices() {
-  const [indices, setIndices] = useState<IndexData[]>(INITIAL_INDICES);
+  const [indices, setIndices] = useState<IndexData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [providerStatus, setProviderStatus] = useState<MarketDataStatus | null>(null);
 
   const fetchIndices = async (isManual = false) => {
     try {
-      if (!isManual) {
-        // If not a manual retry, check if we already have data to avoid flicker/red banner
-        // though in this simple hook we'll just proceed but with a longer timeout if needed.
-      }
-      const res = await fetch(`${API_BASE}/api/indices`, { signal: AbortSignal.timeout(15000) });
-      if (!res.ok) throw new Error('API fetch failed');
-      const json = await res.json();
+      if (isManual) setLoading(true);
+      const response = await fetchMarketData<MarketIndex[]>('/api/live/indices', AbortSignal.timeout(15000));
+      setProviderStatus(response);
 
-      if (json.data && json.data.length > 0) {
-        setIndices(json.data);
-        setError(null);
-      } else {
-        throw new Error('Empty data from API');
+      if (response.status !== 'ok' || !Array.isArray(response.data) || response.data.length === 0) {
+        setIndices([]);
+        throw new Error(response.message || 'Market index data is unavailable.');
       }
+
+      setIndices(response.data as IndexData[]);
+      setError(null);
     } catch (err: any) {
       console.error('fetchIndices error:', err);
-      setError(err.message || 'Failed to fetch indices');
+      setError(err.message || 'Market index data is unavailable.');
     } finally {
       setLoading(false);
     }
@@ -35,9 +32,9 @@ export function useMarketIndices() {
 
   useEffect(() => {
     fetchIndices();
-    const interval = setInterval(fetchIndices, 60000); // Refresh every 60s
-    return () => clearInterval(interval);
+    const interval = window.setInterval(fetchIndices, 60_000);
+    return () => window.clearInterval(interval);
   }, []);
 
-  return { indices, loading, error, retry: () => fetchIndices(true) };
+  return { indices, loading, error, providerStatus, retry: () => fetchIndices(true) };
 }

@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { HelpCircle, RefreshCw, Calculator, ArrowUpRight, ArrowDownRight, ShieldCheck, PlayCircle, PlusCircle, Trash2, TrendingUp, Search, Download, Presentation, Lock } from 'lucide-react';
 import { OptionChain, OptionData, Position } from '../types';
-import { generateOptionChain } from '../data';
 import { useTheme } from './ThemeContext';
 import StockChart from './StockChart';
 import { useAuth } from '../contexts/AuthContext';
+import { fetchMarketData, providerLabel } from '../core/marketDataClient';
+import type { MarketDataStatus, OptionChainResponse } from '../core/marketDataProvider';
 
 interface OptionChainViewProps {
   symbol: string;
@@ -18,6 +19,9 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
   const { isPro } = useAuth();
   const [chain, setChain] = useState<OptionChain | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [chainError, setChainError] = useState<string | null>(null);
+  const [providerStatus, setProviderStatus] = useState<MarketDataStatus | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedStrike, setSelectedStrike] = useState<OptionData | null>(null);
   const [simPositions, setSimPositions] = useState<Position[]>([]);
   const [simDirection, setSimDirection] = useState<'BUY' | 'SELL'>('BUY');
@@ -180,132 +184,24 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
       const cleanSymbol = symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol;
 
       const upperSym = cleanSymbol.toUpperCase();
-      const lookupSymbol = upperSym === 'RELIANCE' ? 'NIFTY' : (upperSym.includes('BANKNIFTY') || upperSym.includes('BANK') ? 'BANKNIFTY' : upperSym);
+      const lookupSymbol = upperSym === '^NSEI' ? 'NIFTY' : upperSym === '^NSEBANK' ? 'BANKNIFTY' : upperSym;
 
       try {
-        // Fetch from our server-side API (which handles NSE + Yahoo server-side)
-        const res = await fetch(`/api/option-chain/${lookupSymbol}`, { signal: AbortSignal.timeout(15000) });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.status === 'ok' && json.data && json.data.options && json.data.options.length > 0) {
-            const chainData: OptionChain = {
-              symbol: json.data.symbol || lookupSymbol,
-              spotPrice: json.data.spotPrice,
-              pcr: json.data.pcr,
-              totalCallOi: json.data.totalCallOi,
-              totalPutOi: json.data.totalPutOi,
-              maxPain: json.data.maxPain,
-              expiryDate: json.data.expiryDate || 'Current',
-              options: json.data.options,
-            };
-            setChain(chainData);
-            setSelectedStrike(chainData.options[Math.floor(chainData.options.length / 2)]);
-            setLoading(false);
-            return;
-          }
-        }
-
-        throw new Error('Option chain API returned no data');
-      } catch (err) {
-        console.error("Option live sync error:", err);
-        // Fallback option chain generation for serverless edge / static deploys
-        let spotPrice = 1500;
-        const isIndex = lookupSymbol === 'NIFTY' || lookupSymbol === 'BANKNIFTY' || lookupSymbol === 'FINNIFTY' || lookupSymbol.startsWith('^');
-        if (isIndex) {
-          if (lookupSymbol.includes('BANKNIFTY') || lookupSymbol.includes('BANK') || lookupSymbol === '^NSEBANK') spotPrice = 49812.60;
-          else if (lookupSymbol.includes('FIN')) spotPrice = 21450.00;
-          else spotPrice = 24892.50;
-        } else {
-          if (currentPrice) spotPrice = currentPrice;
-        }
-
-        const fallbackChain = generateOptionChain(lookupSymbol, spotPrice);
-        setChain(fallbackChain);
-        if (fallbackChain.options && fallbackChain.options.length > 10) {
-          setSelectedStrike(fallbackChain.options[Math.floor(fallbackChain.options.length / 2)]);
-        }
+        setChainError(null);
+        const response = await fetchMarketData<OptionChainResponse>(`/api/live/option-chain/${encodeURIComponent(lookupSymbol)}`, AbortSignal.timeout(15000));
+        setProviderStatus(response);
+        if (response.status !== 'ok' || !response.data || response.data.options.length === 0) throw new Error(response.message || 'Option-chain provider returned no data.');
+        const chainData: OptionChain = response.data;
+        setChain(chainData);
+        setSelectedStrike(chainData.options[Math.floor(chainData.options.length / 2)]);
+      } catch (err: any) {
+        console.error('Option-chain provider error:', err);
+        setChain(null);
+        setSelectedStrike(null);
+        setChainError(err?.message || 'Option-chain provider is unavailable.');
       } finally {
         setLoading(false);
       }
-    }
-
-    // Direct parser of standard NSE F&O responses
-    function parseNseOptionChain(json: any, targetSymbol: string): OptionChain | null {
-      const records = json.records || json;
-      if (!records || !records.data) return null;
-
-      const spotPrice = records.underlyingValue || records.index?.lastPrice || (records.data?.[0]?.CE?.underlyingValue) || (records.data?.[0]?.PE?.underlyingValue) || 24892.50;
-      const expiryDate = records.expiryDates?.[0] || records.data?.[0]?.expiryDate || "Current";
-
-      const rawList = records.data;
-      const options: OptionData[] = rawList
-        .filter((row: any) => row.expiryDate === expiryDate || !row.expiryDate)
-        .map((row: any) => {
-          const strikePrice = row.strikePrice;
-          const ce = row.CE || {};
-          const pe = row.PE || {};
-
-          return {
-            strikePrice: strikePrice,
-            callLtp: ce.lastPrice || ce.ltp || ce.lastPrice || 0,
-            callChange: ce.change || ce.pchange || 0,
-            callVol: ce.totalTradedVolume || ce.volume || 0,
-            callOi: ce.openInterest || ce.oi || 0,
-            callOiChg: ce.changeinOpenInterest || ce.oiChange || 0,
-            callIv: ce.impliedVolatility || ce.iv || 0,
-            callDelta: ce.delta || 0.5,
-            putLtp: pe.lastPrice || pe.ltp || pe.lastPrice || 0,
-            putChange: pe.change || pe.pchange || 0,
-            putVol: pe.totalTradedVolume || pe.volume || 0,
-            putOi: pe.openInterest || pe.oi || 0,
-            putOiChg: pe.changeinOpenInterest || pe.oiChange || 0,
-            putIv: pe.impliedVolatility || pe.iv || 0,
-            putDelta: pe.delta || -0.5
-          };
-        })
-        .filter((opt: OptionData) => opt.callLtp > 0 || opt.putLtp > 0)
-        .sort((a: any, b: any) => a.strikePrice - b.strikePrice);
-
-      let totalCallOi = 0;
-      let totalPutOi = 0;
-      options.forEach(opt => {
-        totalCallOi += opt.callOi;
-        totalPutOi += opt.putOi;
-      });
-
-      const pcr = totalCallOi > 0 ? Number((typeof totalPutOi === 'number' && typeof totalCallOi === 'number' ? (totalPutOi / totalCallOi).toFixed(2) : Number((totalPutOi || 0) / (totalCallOi || 1)).toFixed(2))) : 1.0;
-
-      // Pain matrix minimization algorithm
-      let maxPain = spotPrice;
-      if (options.length > 0) {
-        let minPain = Infinity;
-        options.forEach(targetOpt => {
-          let pain = 0;
-          options.forEach(opt => {
-            if (targetOpt.strikePrice > opt.strikePrice) {
-              pain += (targetOpt.strikePrice - opt.strikePrice) * opt.callOi;
-            }
-            if (targetOpt.strikePrice < opt.strikePrice) {
-              pain += (opt.strikePrice - targetOpt.strikePrice) * opt.putOi;
-            }
-          });
-          if (pain < minPain) {
-            minPain = pain;
-            maxPain = targetOpt.strikePrice;
-          }
-        });
-      }
-
-      return {
-        symbol: targetSymbol,
-        spotPrice: spotPrice,
-        pcr: pcr,
-        totalCallOi: totalCallOi,
-        totalPutOi: totalPutOi,
-        maxPain: maxPain,
-        expiryDate: expiryDate,
-        options: options
-      };
     }
 
     fetchChain();
@@ -313,10 +209,10 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
     // Index options refresh every 3 minutes (180000ms), standard stocks are normal polling intervals
     const cleanSym = symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol;
     const isIndexStr = cleanSym === 'NIFTY' || cleanSym === 'BANKNIFTY' || cleanSym === 'FINNIFTY' || cleanSym.startsWith('^');
-    const pollInterval = isIndexStr ? 180000 : (isPro ? 15000 : 15 * 60 * 1000);
+    const pollInterval = isIndexStr ? 60_000 : 15 * 60 * 1000;
     const timer = setInterval(fetchChain, pollInterval);
     return () => clearInterval(timer);
-  }, [symbol, isPro]);
+  }, [symbol, reloadKey]);
 
   // Calculations for Option payoff diagrams
   const minStrategyPrice = chain ? chain.spotPrice * 0.88 : 0;
@@ -421,8 +317,9 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
 
   if (!chain) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
-        Failed to compile Option dataset
+      <div className="h-[400px] flex flex-col gap-3 items-center justify-center px-6 text-center text-xs text-slate-500 dark:text-slate-400 font-mono bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+        <span>{loading ? 'Loading option-chain provider…' : chainError || 'Option-chain data is unavailable.'}</span>
+        {!loading && <button type="button" onClick={() => setReloadKey((value) => value + 1)} className="rounded-lg bg-slate-900 px-4 py-2 font-bold text-white dark:bg-white dark:text-slate-900">Retry provider</button>}
       </div>
     );
   }
@@ -452,13 +349,13 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
           <span className="text-base font-extrabold text-slate-900 dark:text-white mt-1 block font-mono">
             ₹{spot.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
-          {isPro ? (
+          {providerStatus?.isLive === true ? (
             <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 mt-0.5 font-bold animate-pulse" title="Real-time PRO Feed">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" /> Ticking Live (PRO)
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" /> Live provider connected
             </span>
           ) : (
-            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 mt-0.5 font-bold" title="Upgrade to PRO for real-time rates">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50 dark:bg-amber-400/50" /> Delayed by 15 mins
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono flex items-center gap-1 mt-0.5 font-bold" title={providerStatus?.message}>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500/50 dark:bg-amber-400/50" /> {providerLabel(providerStatus)}
             </span>
           )}
         </div>
@@ -509,14 +406,14 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
           <div className="flex items-center gap-2">
             <Presentation size={14} className="text-indigo-600 dark:text-indigo-400" />
             <h3 className="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider font-mono">
-              Live Advanced Technical Chart: {stockName}
+              Technical Chart: {stockName}
             </h3>
           </div>
           <button 
             type="button"
             className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 font-mono px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/85 rounded transition active:scale-95 cursor-pointer"
           >
-            {showChart ? 'COLLAPSE CHART [-]' : 'SHOW LIVE CHART [+]'}
+            {showChart ? 'COLLAPSE CHART [-]' : 'SHOW CHART [+]'}
           </button>
         </div>
 
@@ -575,7 +472,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
 
             <button
               disabled={!isPro}
-              title={isPro ? "View Real-time Block Trades" : "Upgrade to Pro to view Block Trades"}
+              title={isPro ? "View Block Trade workspace" : "Upgrade to Pro to view Block Trades"}
               className={`w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-1 border rounded text-xs font-semibold transition shrink-0 ${
                 isPro
                   ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer'

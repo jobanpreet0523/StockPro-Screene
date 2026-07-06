@@ -7,11 +7,11 @@ import OptionChainView from '../components/OptionChainView';
 import SectionErrorBoundary from '../components/SectionErrorBoundary';
 import { useDashboard } from '../components/Layout';
 
-const indexMeta: Record<string, { name: string; fallback: number }> = {
-  '^NSEI': { name: 'NIFTY 50 Index', fallback: 24270.85 },
-  '^NSEBANK': { name: 'BANK NIFTY Index', fallback: 57938.5 },
-  'FINNIFTY': { name: 'FINNIFTY Index', fallback: 23550.0 },
-  'MIDCPNIFTY': { name: 'MIDCPNIFTY Index', fallback: 12550.0 },
+const indexMeta: Record<string, { name: string }> = {
+  '^NSEI': { name: 'NIFTY 50 Index' },
+  '^NSEBANK': { name: 'BANK NIFTY Index' },
+  'FINNIFTY': { name: 'FINNIFTY Index' },
+  'MIDCPNIFTY': { name: 'MIDCPNIFTY Index' },
 };
 
 export default function OptionChainPage() {
@@ -30,12 +30,13 @@ export default function OptionChainPage() {
   }, [searchParams, stocks.length]);
 
   const isIndex = selectedStockSymbol === '^NSEI' || selectedStockSymbol === '^NSEBANK' || selectedStockSymbol === 'FINNIFTY' || selectedStockSymbol === 'MIDCPNIFTY';
-  const selectValue = isIndex ? selectedStockSymbol : activeStock ? activeStock.symbol : selectedStockSymbol;
-  const indexInfo = indexMeta[selectedStockSymbol];
-  const indexMarket = indices.find(i => i.symbol === selectedStockSymbol || i.name.toUpperCase().includes(indexInfo?.name.split(' ')[0] || ''));
-  const optionSymbol = isIndex ? selectedStockSymbol : activeStock?.symbol;
-  const optionPrice = isIndex ? (indexMarket?.price || indexInfo?.fallback || 24270.85) : activeStock?.price;
-  const optionName = isIndex ? (indexMarket?.name || indexInfo?.name || selectedStockSymbol) : activeStock?.name;
+  const resolvedSymbol = isIndex ? selectedStockSymbol : activeStock?.symbol || '^NSEI';
+  const selectValue = resolvedSymbol;
+  const indexInfo = indexMeta[resolvedSymbol];
+  const indexMarket = indices.find(i => i.symbol === resolvedSymbol || i.name.toUpperCase().includes(indexInfo?.name.split(' ')[0] || ''));
+  const optionSymbol = resolvedSymbol;
+  const optionPrice = isIndex ? indexMarket?.price : activeStock?.price;
+  const optionName = isIndex ? (indexMarket?.name || indexInfo?.name || resolvedSymbol) : activeStock?.name || 'NIFTY 50 Index';
 
   return (
     <div className="lg:col-span-12 flex flex-col gap-6">
@@ -84,7 +85,7 @@ export default function OptionChainPage() {
         />
       )}
 
-      {optionSymbol && optionPrice && (
+      {optionSymbol && (
         <SectionErrorBoundary>
           <OptionChainView
             symbol={optionSymbol}

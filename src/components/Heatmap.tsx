@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Grid, BarChart3, Clock, X, TrendingUp } from 'lucide-react';
+import { fetchMarketData, providerLabel } from '../core/marketDataClient';
+import type { MarketDataStatus, MarketQuote } from '../core/marketDataProvider';
 
 const NIFTY50_SYMBOLS = 'RELIANCE.NS,TCS.NS,INFY.NS,HDFCBANK.NS,ICICIBANK.NS,HINDUNILVR.NS,ITC.NS,SBIN.NS,BHARTIARTL.NS,KOTAKBANK.NS,LT.NS,AXISBANK.NS,ASIANPAINT.NS,MARUTI.NS,WIPRO.NS,SUNPHARMA.NS,TITAN.NS,BAJFINANCE.NS,NESTLEIND.NS,ULTRACEMCO.NS,POWERGRID.NS,NTPC.NS,TECHM.NS,ONGC.NS,COALINDIA.NS,JSWSTEEL.NS,TATASTEEL.NS,TATAMOTORS.NS,BAJAJFINSV.NS,HDFCLIFE.NS,SBILIFE.NS,DRREDDY.NS,CIPLA.NS,DIVISLAB.NS,EICHERMOT.NS,HEROMOTOCO.NS,BRITANNIA.NS,GRASIM.NS,HINDALCO.NS,INDUSINDBK.NS,ADANIENT.NS,ADANIPORTS.NS,APOLLOHOSP.NS,BPCL.NS,IOC.NS,SHREECEM.NS,TATACONSUM.NS,UPL.NS,VEDL.NS,M%26M.NS';
 
@@ -68,41 +70,28 @@ interface StockData {
 export default function Heatmap() {
   const [stocks, setStocks] = useState<StockData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [providerStatus, setProviderStatus] = useState<MarketDataStatus | null>(null);
   const [groupSector, setGroupSector] = useState(false);
-  const [timeframe, setTimeframe] = useState<'Day' | 'Week' | 'Month'>('Day');
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/yahoo-finance/quotes?symbols=${NIFTY50_SYMBOLS}`, {
-        signal: AbortSignal.timeout(15000)
-      });
-      const data = await response.json();
-      
-      const parsed: StockData[] = data.quoteResponse.result.map((item: any) => {
-        let sym = item.symbol;
-        if (sym === 'M%26M.NS') sym = 'M&M.NS';
+      setError(null);
+      const response = await fetchMarketData<MarketQuote[]>('/api/live/stocks', AbortSignal.timeout(15000));
+      setProviderStatus(response);
+      if (response.status !== 'ok' || !Array.isArray(response.data)) throw new Error(response.message || 'Heatmap provider is unavailable.');
 
-        // Approximate week/month using 50DayAvg if actual week/month is not available, 
-        // since we only reliably have daily from the quotes endpoint easily.
-        // We will simulate week/month for demo if needed, but we'll use daily as true.
-
-        let changePct = item.regularMarketChangePercent || 0;
-        if (timeframe === 'Week') {
-          // just simulating for UI purposes if real data not present
-          changePct = changePct * 2.5 + (Math.random() * 2 - 1);
-        } else if (timeframe === 'Month') {
-          changePct = changePct * 5 + (Math.random() * 4 - 2);
-        }
-
+      const parsed: StockData[] = response.data.map((item) => {
+        const sym = item.symbol;
         return {
           symbol: sym.replace('.NS', ''),
-          name: item.shortName || sym,
-          price: item.regularMarketPrice || 0,
-          change: item.regularMarketChange || 0,
-          changePercent: changePct,
-          marketCap: item.marketCap || 1000000000, // fallback to ensure box sizing
+          name: item.name || sym,
+          price: item.price,
+          change: item.change,
+          changePercent: item.changePercent,
+          marketCap: item.marketCap || 0,
           sector: SECTOR_MAP[sym] || 'Other'
         };
       });
@@ -110,6 +99,8 @@ export default function Heatmap() {
       setStocks(parsed);
     } catch (error) {
       console.error('Failed to fetch heatmap data:', error);
+      setStocks([]);
+      setError(error instanceof Error ? error.message : 'Heatmap provider is unavailable.');
     } finally {
       setLoading(false);
     }
@@ -119,7 +110,7 @@ export default function Heatmap() {
     fetchData();
     const interval = setInterval(fetchData, 120000); // 2 minutes
     return () => clearInterval(interval);
-  }, [timeframe]);
+  }, []);
 
 
   const getColor = (pct: number) => {
@@ -158,7 +149,7 @@ export default function Heatmap() {
       // Base size computation. We'll use percentage of container.
       // Since CSS grid treemap is complex, we will approximate a flex layout 
       // with varying widths/flex-grow to mimic a heatmap structure.
-      const weight = ((stock.marketCap ?? 0) / totalCap) * 100;
+      const weight = totalCap > 0 ? ((stock.marketCap ?? 0) / totalCap) * 100 : 100 / Math.max(1, stockList.length);
       const minWeight = 1; // minimum size
 
       return (
@@ -192,7 +183,7 @@ export default function Heatmap() {
             NIFTY 50 Heatmap
           </h1>
           <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-            <Clock size={12} /> Auto-updates every 2m • Size = Market Cap
+            <Clock size={12} /> {providerLabel(providerStatus)} · Day change · Size = Market Cap
           </p>
         </div>
 
@@ -209,18 +200,7 @@ export default function Heatmap() {
             </div>
           )}
 
-          {/* Timeframe Toggle */}
-          <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
-            {['Day', 'Week', 'Month'].map(t => (
-              <button
-                key={t}
-                onClick={() => setTimeframe(t as 'Day' | 'Week' | 'Month')}
-                className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${timeframe === t ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700"><span className="bg-slate-700 px-3 py-1 text-xs font-bold text-white shadow-sm rounded-md">Day</span></div>
 
           <div className="w-px h-6 bg-slate-800"></div>
 
@@ -241,6 +221,11 @@ export default function Heatmap() {
              <div className="w-8 h-8 rounded-full border-2 border-emerald-500/30 border-t-emerald-500 animate-spin"></div>
              <div className="text-sm font-mono font-bold">Loading Heatmap Data...</div>
           </div>
+        ) : error ? (
+          <div className="w-full h-[400px] flex items-center justify-center flex-col gap-3 text-amber-300 text-center px-6">
+            <div className="text-sm font-mono font-bold">{error}</div>
+            <button type="button" onClick={fetchData} className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-black text-slate-950">Retry provider</button>
+          </div>
         ) : groupSector ? (
           /* Sector View */
           stocks.length > 0 ? (
@@ -255,7 +240,7 @@ export default function Heatmap() {
               .map(([sector, sectorStocks]) => {
                 const totalCap = sectorStocks.reduce((sum, s) => sum + s.marketCap, 0);
                 return (
-                  <div key={sector} className="flex flex-col gap-1 w-full bg-slate-800/50 p-2 rounded-lg border border-slate-700/50" style={{ flexGrow: Math.max(1, (totalCap / stocks.reduce((sum, s) => sum + s.marketCap, 0)) * 20) }}>
+                  <div key={sector} className="flex flex-col gap-1 w-full bg-slate-800/50 p-2 rounded-lg border border-slate-700/50" style={{ flexGrow: Math.max(1, (totalCap / Math.max(1, stocks.reduce((sum, s) => sum + s.marketCap, 0))) * 20) }}>
                     <div className="text-[10px] uppercase font-bold text-slate-400 font-mono flex justify-between">
                        <span>{sector}</span>
                        <span>{sectorStocks.length}</span>

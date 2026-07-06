@@ -25,12 +25,13 @@ interface FiiDiiData {
 export default function FiiDiiTracker() {
   const [data, setData] = useState<FiiDiiData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await fetch('/api/nse/fiidii', { signal: AbortSignal.timeout(15000) });
         const json = await response.json();
         
@@ -59,62 +60,12 @@ export default function FiiDiiTracker() {
           }
         }
 
-        // NSE API blocks quite often, or doesn't return 30 day history in this endpoint.
-        // We will generate 30 days of mock historical data for the chart, 
-        // using the real data for "today" if available.
-        const mockHistory: FiiDiiData[] = [];
-        const todayReal = parsedData.length > 0 ? parsedData[0] : {
-          date: new Date().toLocaleDateString('en-IN'),
-          fiiBuy: 12500,
-          fiiSell: 14200,
-          fiiNet: -1700,
-          diiBuy: 9500,
-          diiSell: 7200,
-          diiNet: 2300
-        };
-
-        if (parsedData.length === 0) {
-          setError(true);
-        }
-
-        let currentVal = todayReal.fiiNet;
-        for (let i = 29; i >= 1; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          // random walk simulation for history
-          currentVal = currentVal + (Math.random() * 4000 - 2000);
-          mockHistory.push({
-            date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-            fiiBuy: 0, fiiSell: 0,
-            fiiNet: currentVal,
-            diiBuy: 0, diiSell: 0,
-            diiNet: -currentVal * 0.8 // DII often opposite
-          });
-        }
-        
-        mockHistory.push({
-           ...todayReal,
-           date: 'Today'
-        });
-
-        setData(mockHistory);
+        if (parsedData.length === 0) throw new Error(json.message || 'FII/DII provider data is unavailable.');
+        setData(parsedData);
       } catch (err) {
         console.error('Failed to fetch FII/DII data:', err);
-        setError(true);
-        // Fallback mock data if completely fails
-        const fallback: FiiDiiData[] = [];
-        for (let i = 29; i >= 0; i--) {
-           const d = new Date();
-           d.setDate(d.getDate() - i);
-           fallback.push({
-              date: i === 0 ? 'Today' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-              fiiBuy: 9000, fiiSell: 11000,
-              fiiNet: (Math.random() * 6000) - 3000,
-              diiBuy: 8000, diiSell: 6000,
-              diiNet: (Math.random() * 4000) - 1000
-           });
-        }
-        setData(fallback);
+        setData([]);
+        setError(err instanceof Error ? err.message : 'FII/DII provider data is unavailable.');
       } finally {
         setLoading(false);
       }
@@ -147,7 +98,7 @@ export default function FiiDiiTracker() {
         
         {error && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg text-xs font-bold whitespace-nowrap">
-            <AlertCircle size={14} /> Data may be delayed
+            <AlertCircle size={14} /> Provider unavailable
           </div>
         )}
       </div>
@@ -275,7 +226,13 @@ export default function FiiDiiTracker() {
           </div>
 
         </div>
-      ) : null}
+      ) : (
+        <div className="w-full min-h-64 flex flex-col items-center justify-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-6 text-center text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+          <AlertCircle size={24} />
+          <span className="text-sm font-bold">{error || 'FII/DII provider data is unavailable.'}</span>
+          <span className="text-xs">No substitute or simulated institutional-flow values are shown.</span>
+        </div>
+      )}
     </div>
   );
 }

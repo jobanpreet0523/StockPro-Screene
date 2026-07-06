@@ -34,8 +34,8 @@ export default function LandingPage() {
       // To resolve ticker sync red banner issues on other pages,
       // we'll keep this but ensure it doesn't interfere.
       const [indicesRes, chainRes] = await Promise.allSettled([
-        fetch('/api/indices', { signal: AbortSignal.timeout(10000) }),
-        fetch('/api/option-chain/NIFTY', { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/live/indices', { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/live/option-chain/NIFTY', { signal: AbortSignal.timeout(10000) }),
       ]);
 
       if (indicesRes.status === 'fulfilled' && indicesRes.value.ok) {
@@ -149,7 +149,7 @@ export default function LandingPage() {
           <td class="py-3 px-4 text-center ${putBg} ${peOichgColor} font-bold font-mono">${(opt.putOiChg || 0) >= 0 ? '+' : ''}${fmtOI(opt.putOiChg || 0)}</td>
         </tr>`;
       }).join('')
-    : `<tr><td colspan="9" class="py-8 text-center text-slate-400 font-mono text-xs">Loading live option chain data...</td></tr>`;
+    : `<tr><td colspan="9" class="py-8 text-center text-slate-400 font-mono text-xs">Loading provider option-chain data...</td></tr>`;
 
   // Build heatmap HTML from top stocks
   const heatmapStocks = [
@@ -473,7 +473,7 @@ export default function LandingPage() {
             </div>
 
             <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-              <span>Dynamic calculations live</span>
+              <span>Delayed/sample calculations</span>
               <span class="text-gray-400">FUT Expiry: 25-JUN</span>
             </div>
           </div>
@@ -802,7 +802,7 @@ export default function LandingPage() {
               Never miss a beat.
             </h3>
             <p class="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              Access your derivative positions and live PCR volatility parameters right on your mobile device whether you are in transit or on the move.
+              Access educational derivative layouts and delayed/sample PCR parameters across devices.
             </p>
             <div class="pt-2">
               <span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 font-mono tracking-wider bg-orange-50 px-2 py-1 rounded">
@@ -899,7 +899,7 @@ export default function LandingPage() {
               Illustrative Open Interest (OI) Sector Heatmap
             </h2>
             <p class="text-xs text-gray-500 font-sans">
-              Real-time cross-sector derivatives position buildup map. High intensity colors represent extreme contract accumulation.
+              Illustrative cross-sector derivatives-position map. High-intensity colors demonstrate the interface using sample values.
             </p>
           </div>
           
@@ -1267,7 +1267,7 @@ export default function LandingPage() {
               <div class="relative z-10 flex items-center justify-between border-b border-slate-900 pb-3.5 mb-5 font-mono text-[9px] text-slate-450">
                 <span class="flex items-center gap-1.5">
                   <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                  <span class="font-bold text-slate-200 text-[10px]">PAYOFF MODEL DIAGRAM (REAL-TIME ESTIMATION)</span>
+                  <span class="font-bold text-slate-200 text-[10px]">PAYOFF MODEL DIAGRAM (ILLUSTRATIVE ESTIMATION)</span>
                 </span>
                 <span class="text-cyan-400 uppercase font-black" id="blueprint-badge">BULLISH STRUCTURE v4.1</span>
               </div>
@@ -2731,7 +2731,7 @@ export default function LandingPage() {
           <details class="group bg-gray-50 rounded-xl border border-gray-200 p-5 [&_summary::-webkit-details-marker]:hidden transition-all duration-300 [&[open]]:bg-white [&[open]]:shadow-sm [&[open]]:border-blue-300">
             <summary class="flex items-center justify-between cursor-pointer focus:outline-none">
               <h3 class="text-xs sm:text-sm font-black text-[#111827] uppercase tracking-wide font-sans">
-                Where does your live derivatives data originate?
+                Where does your market data originate?
               </h3>
               <span class="flex-shrink-0 ml-1.5 p-1 text-slate-400 group-open:rotate-180 transition-transform duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -2740,7 +2740,7 @@ export default function LandingPage() {
               </span>
             </summary>
             <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              Our platform uses NSE's official data APIs and Yahoo Finance feeds to deliver real, live market data. Prices, indices and option chains refresh automatically throughout the trading session.
+              StockPro uses a central provider layer. The default mode is explicitly delayed/sample; a real live feed requires licensed provider credentials and reports its own status and timestamp.
             </p>
           </details>
 
@@ -2756,7 +2756,7 @@ export default function LandingPage() {
               </span>
             </summary>
             <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              Yes, the Basic plan is free forever with live market data. Pro Trader at ₹999/month adds advanced analytics, alerts and priority data feeds.
+              The Basic workspace uses delayed/sample data until a licensed provider is configured. Checkout remains disabled; displayed tiers do not enable a live feed.
             </p>
           </details>
 

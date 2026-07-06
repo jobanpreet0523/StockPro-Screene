@@ -1,32 +1,30 @@
-import { useState, useEffect } from 'react';
-import { Stock } from '../types';
-import { INITIAL_STOCKS } from '../data';
-
-const API_BASE = ''; // Same origin — Cloudflare Worker Functions handle /api/*
+import { useEffect, useState } from 'react';
+import type { Stock } from '../types';
+import type { MarketDataStatus, MarketQuote } from '../core/marketDataProvider';
+import { fetchMarketData } from '../core/marketDataClient';
 
 export function useLiveStocks() {
-  const [stocks, setStocks] = useState<Stock[]>(INITIAL_STOCKS);
+  const [stocks, setStocks] = useState<Stock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [providerStatus, setProviderStatus] = useState<MarketDataStatus | null>(null);
 
   const fetchLiveStocks = async (isManual = false) => {
     try {
-      if (isManual) {
-        setLoading(true);
-      }
-      const res = await fetch(`${API_BASE}/api/stocks`, { signal: AbortSignal.timeout(15000) });
-      if (!res.ok) throw new Error('API fetch failed');
-      const json = await res.json();
+      if (isManual) setLoading(true);
+      const response = await fetchMarketData<MarketQuote[]>('/api/live/stocks', AbortSignal.timeout(15000));
+      setProviderStatus(response);
 
-      if (json.data && json.data.length > 0) {
-        setStocks(json.data);
-        setError(null);
-      } else {
-        throw new Error('Empty data from API');
+      if (response.status !== 'ok' || !Array.isArray(response.data) || response.data.length === 0) {
+        setStocks([]);
+        throw new Error(response.message || 'Market stock data is unavailable.');
       }
+
+      setStocks(response.data as Stock[]);
+      setError(null);
     } catch (err: any) {
       console.error('fetchLiveStocks error:', err);
-      setError(err.message || 'Failed to fetch live data');
+      setError(err.message || 'Market stock data is unavailable.');
     } finally {
       setLoading(false);
     }
@@ -34,9 +32,9 @@ export function useLiveStocks() {
 
   useEffect(() => {
     fetchLiveStocks();
-    const interval = setInterval(fetchLiveStocks, 60000); // Refresh every 60s
-    return () => clearInterval(interval);
+    const interval = window.setInterval(fetchLiveStocks, 60_000);
+    return () => window.clearInterval(interval);
   }, []);
 
-  return { stocks, loading, error, retry: () => fetchLiveStocks(true) };
+  return { stocks, loading, error, providerStatus, retry: () => fetchLiveStocks(true) };
 }

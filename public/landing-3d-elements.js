@@ -5,7 +5,7 @@
   const marketItems = [
     { label: 'NIFTY 50', value: '24,270.85', change: '+1.35%' },
     { label: 'BANK NIFTY', value: '57,038.50', change: '+1.10%' },
-    { label: 'PCR', value: '1.34', change: 'LIVE' },
+    { label: 'PCR', value: '1.34', change: 'SAMPLE' },
     { label: 'MAX PAIN', value: '24,250', change: 'ACTIVE' },
   ];
 

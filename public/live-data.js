@@ -1,12 +1,12 @@
 /**
- * StockPro Live Data Engine v3.0
- * Patches all hardcoded values in LandingPage with live data from Worker API.
+ * StockPro Market Data Engine v4.0
+ * Patches landing values only when the selected Worker provider returns data.
  */
 (function () {
   "use strict";
 
   const API = window.location.origin;
-  const REFRESH_MS = 5000;
+  const REFRESH_MS = 60000;
 
   function fmtNum(n) { return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function fmtOI(n) {
@@ -29,6 +29,8 @@
     putOI:     0,
     chain:     [],
     backendOk: false,
+    isLive: false,
+    providerLabel: "Provider unavailable",
   };
 
   function extractChainOptions(apiData) {
@@ -50,9 +52,9 @@
 
   async function fetchLiveData() {
     try {
-      const r = await fetch(`${API}/api/indices`, { signal: AbortSignal.timeout(10000) });
+      const r = await fetch(`${API}/api/live/indices`, { signal: AbortSignal.timeout(10000) });
       const d = await r.json();
-      if (d.data) {
+      if (d.status === "ok" && Array.isArray(d.data)) {
         const nifty = d.data.find(i => i.symbol === '^NSEI');
         const banknifty = d.data.find(i => i.symbol === '^NSEBANK');
         const finnifty = d.data.find(i => i.symbol === '^NSEFN' || i.name?.includes('FIN'));
@@ -64,7 +66,14 @@
         if (vix) { state.vix = vix.price; }
 
         state.backendOk = true;
-        showStatus("● LIVE", true);
+        state.isLive = d.isLive === true;
+        state.providerLabel = state.isLive ? "LIVE PROVIDER CONNECTED" : "15-MIN DELAYED / SAMPLE";
+        showStatus(state.providerLabel, state.isLive);
+      } else {
+        state.backendOk = false;
+        state.isLive = false;
+        state.providerLabel = d.status === "setup_required" ? "LIVE PROVIDER SETUP REQUIRED" : "PROVIDER UNAVAILABLE";
+        showStatus(state.providerLabel, false);
       }
     } catch {
       state.backendOk = false;
@@ -73,7 +82,7 @@
 
     // Fetch option chain
     try {
-      const oRes = await fetch(`${API}/api/option-chain/NIFTY`, { signal: AbortSignal.timeout(12000) });
+      const oRes = await fetch(`${API}/api/live/option-chain/NIFTY`, { signal: AbortSignal.timeout(12000) });
       if (oRes.ok) {
         const oData = await oRes.json();
         if (oData.status === 'ok') {
@@ -83,10 +92,10 @@
           const spot = chainData.spotPrice || chainData.records?.underlyingValue || state.nifty.spot;
           let totalCallOI = chainData.totalCallOi || chainData.records?.data?.reduce((s,d) => s + (d.CE?.openInterest||0), 0) || 0;
           let totalPutOI = chainData.totalPutOi || chainData.records?.data?.reduce((s,d) => s + (d.PE?.openInterest||0), 0) || 0;
-          const pcr = chainData.pcr || (totalCallOI > 0 ? totalPutOI / totalCallOI : 1.0);
+          const pcr = chainData.pcr || (totalCallOI > 0 ? totalPutOI / totalCallOI : 0);
 
           // Calculate max pain
-          let maxPain = chainData.maxPain || Math.round(spot / 50) * 50;
+          let maxPain = chainData.maxPain || 0;
           if (options.length > 0 && !chainData.maxPain) {
             let minPain = Infinity;
             for (const t of options) {
@@ -103,7 +112,7 @@
           state.maxPain = maxPain;
           state.callOI = totalCallOI;
           state.putOI = totalPutOI;
-          state.iv = options[Math.floor(options.length / 2)]?.callIv || 14.2;
+          state.iv = options[Math.floor(options.length / 2)]?.callIv || 0;
           state.chain = options.map(o => ({
             strike: o.strikePrice,
             ce: { ltp: o.callLtp, chg: o.callChange, iv: o.callIv, oi: o.callOi, oiChg: o.callOiChg, vol: o.callVol },
@@ -172,8 +181,8 @@
     const text = document.getElementById("sp-live-text");
     const time = document.getElementById("sp-live-time");
     if (text) {
-      text.textContent = state.backendOk ? "● LIVE NSE" : "⚡ RECONNECTING";
-      text.style.color = state.backendOk ? "#00ff80" : "#fac516";
+      text.textContent = state.backendOk ? state.providerLabel : "PROVIDER UNAVAILABLE";
+      text.style.color = state.isLive ? "#00ff80" : "#fac516";
     }
     if (time) time.textContent = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 
@@ -225,7 +234,7 @@
     const badge = document.createElement("div");
     badge.id = "sp-live-badge";
     badge.style.cssText = "position:fixed;bottom:20px;left:20px;z-index:9999;background:rgba(0,0,0,.85);border:1px solid rgba(0,255,128,.3);border-radius:8px;padding:7px 13px;font-size:11px;font-weight:600;color:#00ff80;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.4);";
-    badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#00ff80;animation:livePulse 1.5s infinite;display:inline-block"></span><span id="sp-live-text">CONNECTING…</span><span id="sp-live-time" style="color:#8b949e;margin-left:4px">—</span>';
+    badge.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#fac516;display:inline-block"></span><span id="sp-live-text">CHECKING PROVIDER…</span><span id="sp-live-time" style="color:#8b949e;margin-left:4px">—</span>';
     const style = document.createElement("style");
     style.textContent = "@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.6)}}";
     document.head.appendChild(style);

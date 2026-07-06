@@ -71,7 +71,7 @@ export default function Layout() {
   const navigate = useNavigate();
 
   const { indices } = useMarketIndices();
-  const { stocks, loading: isLoadingStocks, error: stocksError, retry: retryStocks } = useLiveStocks();
+  const { stocks, loading: isLoadingStocks, error: stocksError, providerStatus, retry: retryStocks } = useLiveStocks();
 
   const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('RELIANCE.NS');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -79,7 +79,7 @@ export default function Layout() {
   const activeTab: DashboardTab = PATH_TO_TAB[location.pathname] || 'screener';
   const setActiveTab = (tab: DashboardTab) => navigate(TAB_TO_PATH[tab] || '/screener');
   const isUtilityRoute = utilityRoutes.has(location.pathname);
-  const marketDataStatus = useMemo(() => getMarketDataStatus(Boolean(stocksError)), [stocksError, location.pathname]);
+  const marketDataStatus = useMemo(() => getMarketDataStatus(Boolean(stocksError), providerStatus), [stocksError, providerStatus, location.pathname]);
 
   const activeStock = useMemo(() => {
     return (
@@ -177,7 +177,7 @@ export default function Layout() {
                   <Activity size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Loaded {stocks.length} stocks</span>
                   <DataSourceBadge status={marketDataStatus} compact />
-                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Free mode uses 15-minute delayed data</span>
+                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">{marketDataStatus.message}</span>
                 </>
               )}
             </motion.div>
