@@ -26,6 +26,7 @@ import TermsPage from './pages/TermsPage';
 import RiskDisclosurePage from './pages/RiskDisclosurePage';
 import ContactPage from './pages/ContactPage';
 import AdminWaitlistPage from './pages/AdminWaitlistPage';
+import StartTrialPage from './pages/StartTrialPage';
 
 interface ErrorBoundaryProps { children: ReactNode; }
 interface ErrorBoundaryState { hasError: boolean; error: Error | null; }
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="/deals" element={<DealsPage />} />
             <Route path="/news" element={<NewsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/start-trial" element={<StartTrialPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/daily-brief" element={<DailyBriefPage />} />
             <Route path="/signals" element={<SignalsPage />} />

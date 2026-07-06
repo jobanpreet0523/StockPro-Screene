@@ -45,7 +45,7 @@ const PATH_TO_TAB: Record<string, DashboardTab> = Object.entries(TAB_TO_PATH).re
   {} as Record<string, DashboardTab>,
 );
 
-const utilityRoutes = new Set(['/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact']);
+const utilityRoutes = new Set(['/start-trial', '/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact']);
 
 export interface DashboardContext {
   stocks: Stock[];

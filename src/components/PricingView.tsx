@@ -29,7 +29,7 @@ export default function PricingView() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card icon={Zap} title="Free" price="₹0" text="Best for first-time visitors and students exploring market research." items={freeFeatures} button="Use free workspace" onClick={() => navigate('/screener')} />
-        <Card icon={Bell} title="Pro" price="Waitlist" text="Designed for repeat users who want saved workflows and cleaner daily research." items={proFeatures} button="Join Pro waitlist" onClick={() => navigate('/contact?interest=pro')} highlighted />
+        <Card icon={Bell} title="Pro" price="₹0 today" text="A 7-day trial foundation for repeat users who want saved workflows and cleaner daily research." items={proFeatures} button="Review Pro trial" onClick={() => navigate('/start-trial')} highlighted />
         <Card icon={Download} title="Premium" price="Request access" text="For power users who need a more complete research workspace." items={premiumFeatures} button="Request access" onClick={() => navigate('/contact?interest=premium')} dark />
       </div>
 
@@ -81,7 +81,7 @@ export default function PricingView() {
       <div className="mt-6 rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 p-4 flex items-start gap-3">
         <ShieldCheck size={20} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
-          Payment is not enabled yet. Pro and Premium requests use the waitlist only.
+          Payment is not enabled yet. The Pro trial page collects disclosure consent only; Premium requests use the contact path.
         </p>
       </div>
     </div>

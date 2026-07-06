@@ -60,6 +60,10 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     title: 'StockPro Upgrade Center — Free, Pro, Premium',
     description: 'Compare the free delayed workspace with Pro and Premium roadmap features including saved screens, alerts, exports, and advanced research workflows.',
   },
+  '/start-trial': {
+    title: '7-Day Pro Trial Disclosure — StockPro',
+    description: 'Review the StockPro Pro trial price, duration, cancellation timing, and explicit auto-renew consent disclosure. Payment remains disabled until setup is complete.',
+  },
   '/blog': {
     title: 'StockPro Education Hub — Screener, Option Chain, Risk Guides',
     description: 'Learn market-screening workflows, option-chain basics, watchlist routines, risk discipline, and how to use StockPro tools for educational research.',
