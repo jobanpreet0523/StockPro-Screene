@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, CalendarDays, LineChart, Mail, Search, ShieldCheck, Target, TrendingUp } from 'lucide-react';
 import BlogView from '../components/BlogView';
+import LiveMarketReads from '../components/LiveMarketReads';
 
 const clusters = [
   { title: 'Nifty screener hub', text: 'Route visitors from search content into the live screener workflow.', to: '/screener', icon: Search },
@@ -64,6 +65,8 @@ export default function BlogPage() {
           </div>
         </div>
       </section>
+
+      <LiveMarketReads />
 
       <BlogView />
     </div>
