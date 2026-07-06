@@ -18,6 +18,7 @@ import DealsPage from './pages/DealsPage';
 import NewsPage from './pages/NewsPage';
 import PricingPage from './pages/PricingPage';
 import BlogPage from './pages/BlogPage';
+import DailyBriefPage from './pages/DailyBriefPage';
 import SignalsPage from './pages/SignalsPage';
 import ConnectBrokerPage from './pages/ConnectBrokerPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/news" element={<NewsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/blog" element={<BlogPage />} />
+            <Route path="/daily-brief" element={<DailyBriefPage />} />
             <Route path="/signals" element={<SignalsPage />} />
             <Route path="/connect-broker" element={<ConnectBrokerPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
