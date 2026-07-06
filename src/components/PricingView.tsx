@@ -1,13 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Check, Crown, Download, ShieldCheck, Users, Zap } from "lucide-react";
+import { Bell, Check, CircleCheckBig, Crown, Download, LockKeyhole, ShieldCheck, Users, Zap } from "lucide-react";
 import ProFeatureGate from './ProFeatureGate';
 import type { ProFeature } from '../core/proAccess';
+import { canEnableCheckout, launchChecklist, paidAccessEnabled } from '../core/launchChecklist';
 
 const futureProFeatures: ProFeature[] = ['saved_screens', 'expanded_watchlist', 'alerts', 'exports', 'advanced_research'];
 
 export default function PricingView() {
   const navigate = useNavigate();
+  const paymentEnabled = paidAccessEnabled();
+  const checkoutReady = canEnableCheckout();
   const freeFeatures = ["15-minute delayed dashboard", "Basic screener presets", "Limited watchlist", "Education tools", "CSV export preview"];
   const proFeatures = ["Saved screens roadmap", "Watchlist expansion", "Alert center roadmap", "Advanced F&O workspace", "Cleaner export workflow"];
   const premiumFeatures = ["Custom dashboards roadmap", "Priority alert roadmap", "Sector and options desk", "Research notebook roadmap", "Founder pricing access"];
@@ -26,8 +29,8 @@ export default function PricingView() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card icon={Zap} title="Free" price="₹0" text="Best for first-time visitors and students exploring market research." items={freeFeatures} button="Use free workspace" onClick={() => navigate('/screener')} />
-        <Card icon={Bell} title="Pro" price="₹799/mo" text="Designed for repeat users who want saved workflows and cleaner daily research." items={proFeatures} button="Join Pro waitlist" onClick={() => navigate('/contact?interest=pro')} highlighted />
-        <Card icon={Download} title="Premium" price="₹1,999/mo" text="For power users who need a more complete research workspace." items={premiumFeatures} button="Request access" onClick={() => navigate('/contact?interest=premium')} dark />
+        <Card icon={Bell} title="Pro" price="Waitlist" text="Designed for repeat users who want saved workflows and cleaner daily research." items={proFeatures} button="Join Pro waitlist" onClick={() => navigate('/contact?interest=pro')} highlighted />
+        <Card icon={Download} title="Premium" price="Request access" text="For power users who need a more complete research workspace." items={premiumFeatures} button="Request access" onClick={() => navigate('/contact?interest=premium')} dark />
       </div>
 
       <section className="mt-8 grid gap-4 lg:grid-cols-3">
@@ -51,21 +54,34 @@ export default function PricingView() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">Launch readiness</div>
-            <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">Collect demand before turning on paid access.</h3>
+            <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">Payment is not enabled yet.</h3>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500 dark:text-slate-400">
-              Use the waitlist first. Turn on real paid access only after plan limits, support, policy pages, and backend access checks are ready.
+              Paid access will be activated only after support, policy, account, and access checks are ready.
             </p>
           </div>
-          <button onClick={() => navigate('/contact?interest=waitlist')} className="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-400">
-            Join waitlist
-          </button>
+          <div className="flex flex-col items-start gap-2 lg:items-end">
+            <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              <LockKeyhole size={12} /> {checkoutReady && paymentEnabled ? 'Checkout ready' : 'Checkout disabled'}
+            </span>
+            <button onClick={() => navigate('/contact?interest=waitlist')} className="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-400">
+              Join waitlist
+            </button>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {launchChecklist.map((item) => (
+            <div key={item.key} className={`rounded-2xl border p-3 text-xs font-black ${item.ready ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-200' : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-300'}`}>
+              {item.ready ? <CircleCheckBig size={14} className="mr-2 inline" /> : <LockKeyhole size={14} className="mr-2 inline" />}
+              {item.label}
+            </div>
+          ))}
         </div>
       </section>
 
       <div className="mt-6 rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 p-4 flex items-start gap-3">
         <ShieldCheck size={20} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
-          Stage 3 keeps paid features on waitlist until billing, access rules, and support workflow are ready.
+          Payment is not enabled yet. Pro and Premium requests use the waitlist only.
         </p>
       </div>
     </div>

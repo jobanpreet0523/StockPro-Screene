@@ -30,11 +30,11 @@ export async function handlePlanRoutes(path, request, env) {
 
   if (path === '/api/live-plan/verify-payment' && request.method === 'POST') {
     return respond({
-      status: 'payment_required',
+      status: 'setup_required',
       priceInr: PRICE_INR,
       dataMode: 'delayed',
-      message: 'Verification route exists but live mode remains locked.',
-    }, 501);
+      message: 'Payment verification is disabled until launch readiness is complete.',
+    }, 503);
   }
 
   const match = path.match(/^\/api\/provider\/(upstox|zerodha)\/(start|callback)$/);

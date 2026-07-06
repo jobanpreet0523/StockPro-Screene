@@ -102,7 +102,7 @@ async function handleApi(path, url, request, env) {
   if (path === '/api/waitlist') return handleWaitlist(request, env);
   if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
   if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
-  if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'payment_required', dataMode: 'delayed', delayMinutes: 15, message: 'Verification is not active yet.' }, 501);
+  if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'setup_required', dataMode: 'delayed', delayMinutes: 15, message: 'Payment verification is disabled until launch readiness is complete.' }, 503);
   if (path === '/api/live-feed/status') return json({ status: 'disabled', dataMode: 'delayed', delayMinutes: 15, message: 'Advanced feed is not active.' });
 
   const providerMatch = path.match(/^\/api\/provider\/(upstox|zerodha)\/(start|callback)$/);

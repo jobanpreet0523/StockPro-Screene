@@ -1,4 +1,4 @@
-export type LivePlanStatus = 'free_delayed' | 'payment_required' | 'setup_pending' | 'live_ready';
+export type LivePlanStatus = 'free_delayed' | 'setup_required' | 'setup_pending' | 'live_ready';
 
 export interface LivePlanApiStatus {
   status: LivePlanStatus;
@@ -61,10 +61,10 @@ export async function verifyLivePlanOrder(payload: Record<string, string>): Prom
     return await response.json();
   } catch {
     return {
-      status: 'payment_required',
+      status: 'setup_required',
       priceInr: 299,
       dataMode: 'delayed',
-      message: 'Verification is not connected yet. Free 15-minute delayed data remains active.',
+      message: 'Payment verification is disabled until launch readiness is complete. Free 15-minute delayed data remains active.',
     };
   }
 }
