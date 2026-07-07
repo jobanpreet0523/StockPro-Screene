@@ -3,6 +3,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMarketStatus } from '../utils/marketStatus';
 import LandingFunctionalPanels from './LandingFunctionalPanels';
+import { dataRealityMessage, formatTimestamp, getDataLabel, isRealProviderData } from '../core/dataReality';
+import type { MarketDataEnvelope, MarketDataStatus } from '../core/marketDataProvider';
 
 interface LiveIndex {
   symbol: string;
@@ -18,6 +20,8 @@ export default function LandingPage() {
   const [market, setMarket] = useState(() => getMarketStatus());
   const [liveIndices, setLiveIndices] = useState<LiveIndex[]>([]);
   const [liveChain, setLiveChain] = useState<any>(null);
+  const [indicesStatus, setIndicesStatus] = useState<MarketDataStatus | null>(null);
+  const [chainStatus, setChainStatus] = useState<MarketDataStatus | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
@@ -25,32 +29,33 @@ export default function LandingPage() {
     return () => clearInterval(id);
   }, []);
 
-  // Fetch live data from our API
+  // Fetch provider data from the central market-data API
   const fetchLiveData = useCallback(async () => {
     try {
-      // Landing page now relies on global indices if possible,
-      // but for pure landing experience we can keep a local fetch OR
-      // just rely on the public/live-data.js patcher.
-      // To resolve ticker sync red banner issues on other pages,
-      // we'll keep this but ensure it doesn't interfere.
       const [indicesRes, chainRes] = await Promise.allSettled([
         fetch('/api/live/indices', { signal: AbortSignal.timeout(10000) }),
         fetch('/api/live/option-chain/NIFTY', { signal: AbortSignal.timeout(10000) }),
       ]);
 
-      if (indicesRes.status === 'fulfilled' && indicesRes.value.ok) {
-        const indicesJson = await indicesRes.value.json();
-        if (indicesJson.data) setLiveIndices(indicesJson.data);
+      if (indicesRes.status === 'fulfilled') {
+        const indicesJson = await indicesRes.value.json().catch(() => null) as MarketDataEnvelope<LiveIndex[]> | null;
+        if (indicesJson?.status) setIndicesStatus(indicesJson);
+        if (indicesJson?.status === 'ok' && Array.isArray(indicesJson.data)) setLiveIndices(indicesJson.data);
+        else setLiveIndices([]);
       }
 
-      if (chainRes.status === 'fulfilled' && chainRes.value.ok) {
-        const chainJson = await chainRes.value.json();
-        if (chainJson.data) setLiveChain(chainJson.data);
+      if (chainRes.status === 'fulfilled') {
+        const chainJson = await chainRes.value.json().catch(() => null) as MarketDataEnvelope<any> | null;
+        if (chainJson?.status) setChainStatus(chainJson);
+        if (chainJson?.status === 'ok' && chainJson.data) setLiveChain(chainJson.data);
+        else setLiveChain(null);
       }
 
       setDataLoaded(true);
     } catch (e) {
-      console.warn('Landing page live data fetch error:', e);
+      console.warn('Landing page provider data fetch error:', e);
+      setLiveIndices([]);
+      setLiveChain(null);
       setDataLoaded(true);
     }
   }, []);
@@ -62,6 +67,29 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, [fetchLiveData]);
 
+  useEffect(() => {
+    if (document.getElementById('stockpro-landing-3d-script')) return;
+    const load = () => {
+      if (document.getElementById('stockpro-landing-3d-script')) return;
+      const script = document.createElement('script');
+      script.id = 'stockpro-landing-3d-script';
+      script.src = '/landing-3d-elements.js';
+      script.defer = true;
+      document.body.appendChild(script);
+    };
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const idleId = idleWindow.requestIdleCallback
+      ? idleWindow.requestIdleCallback(load, { timeout: 1800 })
+      : window.setTimeout(load, 900);
+    return () => {
+      if (idleWindow.cancelIdleCallback && typeof idleId === 'number') idleWindow.cancelIdleCallback(idleId);
+      if (!idleWindow.cancelIdleCallback && typeof idleId === 'number') window.clearTimeout(idleId);
+    };
+  }, []);
+
   // Helper to get index data
   const unavailableIndex = { price: Number.NaN, change: Number.NaN, changePercent: Number.NaN, isPositive: false };
   const getNifty = () => liveIndices.find((i: LiveIndex) => i.symbol === '^NSEI') || unavailableIndex;
@@ -71,8 +99,13 @@ export default function LandingPage() {
   const nifty = getNifty();
   const banknifty = getBankNifty();
   const finnifty = getFinNifty();
-  const pcr = liveChain?.pcr || (liveChain?.records?.data ? (liveChain.records.data.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) / Math.max(1, liveChain.records.data.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0))) : 0);
-  const maxPain = liveChain?.maxPain || 0;
+  const indicesRealityLabel = getDataLabel(indicesStatus);
+  const chainRealityLabel = getDataLabel(chainStatus);
+  const indicesRealityMessage = indicesStatus ? dataRealityMessage(indicesStatus) : 'Checking provider status. No substitute market numbers are shown.';
+  const chainRealityMessage = chainStatus ? dataRealityMessage(chainStatus) : 'Checking option-chain provider. No substitute OI numbers are shown.';
+  const providerLiveBadge = isRealProviderData(indicesStatus) ? 'LIVE PROVIDER CONNECTED' : indicesRealityLabel.toUpperCase();
+  const pcr = liveChain?.pcr || (liveChain?.records?.data ? (liveChain.records.data.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) / Math.max(1, liveChain.records.data.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0))) : null);
+  const maxPain = liveChain?.maxPain || null;
   const spotPrice = nifty.price;
   const totalCallOi = liveChain?.totalCallOi || liveChain?.records?.data?.reduce((s:number,d:any) => s + (d.CE?.openInterest||0), 0) || 0;
   const totalPutOi = liveChain?.totalPutOi || liveChain?.records?.data?.reduce((s:number,d:any) => s + (d.PE?.openInterest||0), 0) || 0;
@@ -83,7 +116,7 @@ export default function LandingPage() {
     putLtp: d.PE?.lastPrice||0, putChange: d.PE?.change||0, putVol: d.PE?.totalTradedVolume||0,
     putOi: d.PE?.openInterest||0, putOiChg: d.PE?.changeinOpenInterest||0, putIv: d.PE?.impliedVolatility||0,
   })) || [];
-  const atmStrike = Math.round(spotPrice / 50) * 50;
+  const atmStrike = Number.isFinite(spotPrice) ? Math.round(spotPrice / 50) * 50 : Number.NaN;
   const step = 50;
   const atmIv = options.length > 0 ? (options.find((o:any) => o.strikePrice === atmStrike)?.callIv || options[Math.floor(options.length/2)]?.callIv || 0) : 0;
   const nearAtmOi = options.filter((o:any) => Math.abs(o.strikePrice - atmStrike) <= step*2);
@@ -91,6 +124,10 @@ export default function LandingPage() {
   const topPutOi = nearAtmOi.reduce((max:number,o:any) => o.putOi > max ? o.putOi : max, 0);
   const topCallStrike = nearAtmOi.find((o:any) => o.callOi === topCallOi)?.strikePrice || atmStrike + step*2;
   const topPutStrike = nearAtmOi.find((o:any) => o.putOi === topPutOi)?.strikePrice || atmStrike - step*2;
+  const pcrLabel = typeof pcr === 'number' && Number.isFinite(pcr) ? pcr.toFixed(2) : 'Unavailable';
+  const pcrClassification = typeof pcr === 'number' && Number.isFinite(pcr)
+    ? pcr > 1.2 ? 'Higher put OI ratio' : pcr >= 0.8 ? 'Balanced OI ratio' : 'Higher call OI ratio'
+    : 'Provider setup required';
 
   const fmtPrice = (n: number) => Number.isFinite(n) ? n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Unavailable';
   const fmtOI = (n: number) => {
@@ -124,7 +161,7 @@ export default function LandingPage() {
     return () => document.removeEventListener('click', handleNavigation);
   }, [navigate]);
 
-  // Build option chain rows HTML from live data
+  // Build option chain rows HTML from provider data
   const chainRowsHtml = options.length > 0
     ? options.filter(o => o.strikePrice >= atmStrike - 300 && o.strikePrice <= atmStrike + 300).map((opt: any) => {
         const isATM = opt.strikePrice === atmStrike;
@@ -164,38 +201,6 @@ export default function LandingPage() {
   return <>
     <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
 
-    <!-- Brand Page Loader Overlay (1.5 seconds) -->
-    <div id="page-loader">
-      <div class="loader-logo-container">
-        <div class="loader-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-        </div>
-        <div class="loader-text"></div>
-        <div class="loader-subtext">Pro Derivatives Terminal</div>
-      </div>
-      <div class="loader-track">
-        <div class="loader-bar"></div>
-      </div>
-    </div>
-
-    <script>
-      // Manage Brand Loader active cycle
-      setTimeout(function() {
-        var loader = document.getElementById('page-loader');
-        if (loader) {
-          loader.style.opacity = '0';
-          loader.style.pointerEvents = 'none';
-          setTimeout(function() {
-            loader.style.display = 'none';
-          }, 400);
-        }
-      }, 1500);
-    </script>
-
     <!-- 1. GLOBAL NAVIGATION BAR -->
     <nav class="sticky top-0 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between z-50 shadow-sm">
       <div class="flex items-center gap-6">
@@ -222,6 +227,10 @@ export default function LandingPage() {
           </span>
           <span class="font-extrabold tracking-wider text-[10px] font-mono" style="color:${market.color}">${market.label}</span>
         </div>
+        <div class="hidden xl:flex flex-col rounded border border-amber-300/50 bg-amber-50 px-3 py-1" title="${indicesRealityMessage}">
+          <span class="text-[8px] font-black uppercase tracking-[0.2em] text-amber-700">${providerLiveBadge}</span>
+          <span class="text-[8px] font-bold text-amber-700">${formatTimestamp(indicesStatus?.timestamp)}</span>
+        </div>
         
         <!-- Primary Blue Button to launch the react screen -->
         <a 
@@ -242,13 +251,13 @@ export default function LandingPage() {
       <div class="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:50px_50px] opacity-[0.45] pointer-events-none"></div>
 
       <!-- Right Edge price axis column simulation for dark mode terminal -->
-      <div class="absolute right-0 top-0 bottom-0 w-20 border-l border-slate-800 bg-slate-950/80 pointer-events-none hidden xl:flex flex-col justify-around py-12 px-2 text-right font-mono text-[9px] text-[#38bdf8] select-none">
-        <div>25,480.00</div>
-        <div>25,260.00</div>
-        <div>25,040.00</div>
+      <div class="absolute right-0 top-0 bottom-0 w-20 border-l border-slate-800 bg-slate-950/80 pointer-events-none hidden xl:flex flex-col justify-around py-12 px-2 text-right font-mono text-[9px] text-[#38bdf8] select-none" title="Decorative chart axis. Only the highlighted provider value is data-backed.">
+        <div>Axis high</div>
+        <div>Range</div>
+        <div>Range</div>
         <div class="text-[#38bdf8] font-bold bg-[#38bdf8]/10 border border-[#38bdf8]/30 rounded px-1">${fmtPrice(nifty.price)}</div>
-        <div>24,620.00</div>
-        <div>24,400.00</div>
+        <div>Range</div>
+        <div>Axis low</div>
       </div>
 
       <!-- Bottom Edge timeline axis simulation to look like a hardware monitor frame -->
@@ -376,7 +385,7 @@ export default function LandingPage() {
                   <span>PCR VIEW: DELAYED / SAMPLE</span>
                 </div>
                 <div class="absolute top-2 right-2 bg-emerald-950/95 border border-emerald-700 text-[9px] text-emerald-400 font-mono font-bold px-2 py-0.5 rounded">
-                  IV SKEW: +${typeof atmIv === 'number' ? (atmIv * 0.33).toFixed(2) : Number((atmIv || 0) * 0.33).toFixed(2)}%
+                  IV SKEW: ${options.length > 0 ? `+${(Number(atmIv || 0) * 0.33).toFixed(2)}%` : 'Unavailable'}
                 </div>
               </div>
             </div>
@@ -414,7 +423,7 @@ export default function LandingPage() {
         <div class="mb-8 flex items-center justify-between bg-white border border-gray-200 rounded p-3 text-[11px] font-mono shadow-sm">
           <div class="flex items-center gap-2">
             <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded font-bold text-[9px]">SYSTEM FEED</span>
-            <span class="text-slate-600">${options.length > 0 ? 'Delayed/sample open-interest rows loaded for educational analysis.' : 'Option-chain data unavailable. No substitute values are shown.'}</span>
+            <span class="text-slate-600">${options.length > 0 ? `${chainRealityLabel}. ${chainRealityMessage}` : `Option-chain data unavailable. ${chainRealityMessage}`}</span>
           </div>
           <span class="text-slate-400 font-semibold uppercase hidden sm:inline">PULSE ID: FOP-099X</span>
         </div>
@@ -448,7 +457,7 @@ export default function LandingPage() {
                   </div>
                   <div class="mt-2 flex items-center justify-between text-[9.5px] font-mono text-slate-400">
                     <span>Bid/Ask: <strong class="text-slate-700">${fmtPrice(nifty.price - 1)} / ${fmtPrice(nifty.price + 1)}</strong></span>
-                    <span>OI Vol: <strong class="text-slate-700">${totalCallOi > 0 ? fmtOI(totalCallOi) + ' Cr' : '421K Cr'}</strong></span>
+                    <span>OI Vol: <strong class="text-slate-700">${totalCallOi > 0 ? fmtOI(totalCallOi) : 'Unavailable'}</strong></span>
                   </div>
                 </div>
                 
@@ -466,7 +475,7 @@ export default function LandingPage() {
                   </div>
                   <div class="mt-2 flex items-center justify-between text-[9.5px] font-mono text-slate-400">
                     <span>Bid/Ask: <strong class="text-slate-700">${fmtPrice(banknifty.price - 2)} / ${fmtPrice(banknifty.price + 2)}</strong></span>
-                    <span>OI Vol: <strong class="text-slate-700">${totalPutOi > 0 ? fmtOI(totalPutOi) + ' Cr' : '198K Cr'}</strong></span>
+                    <span>OI Vol: <strong class="text-slate-700">${totalPutOi > 0 ? fmtOI(totalPutOi) : 'Unavailable'}</strong></span>
                   </div>
                 </div>
               </div>
@@ -532,7 +541,7 @@ export default function LandingPage() {
                   <!-- Put Call ratio tag badge -->
                   <div class="bg-[#111827] text-white rounded px-3 py-1 font-mono text-[11px] font-bold tracking-tight inline-flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Put-Call Ratio (PCR): <span class="text-emerald-400 font-black">${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</span>
+                    Put-Call Ratio (PCR): <span class="text-emerald-400 font-black">${pcrLabel}</span>
                   </div>
                   
                   <span class="text-gray-400 font-mono">Bull threshold (1.8)</span>
@@ -541,7 +550,7 @@ export default function LandingPage() {
             </div>
 
             <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-              <span>PCR classification: <strong class="text-emerald-600 font-bold">${pcr > 1.2 ? 'Higher put OI ratio' : pcr >= 0.8 ? 'Balanced OI ratio' : 'Higher call OI ratio'}</strong></span>
+              <span>PCR classification: <strong class="text-emerald-600 font-bold">${pcrClassification}</strong></span>
               <span>Delayed/sample educational view</span>
             </div>
           </div>
@@ -624,7 +633,7 @@ export default function LandingPage() {
                   </div>
                   <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
                     <div class="text-[8px] text-slate-500 font-bold">COMBINED PCR</div>
-                    <div class="text-[11px] font-black text-emerald-400 mt-0.5">${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</div>
+                    <div class="text-[11px] font-black text-emerald-400 mt-0.5">${pcrLabel}</div>
                   </div>
                   <div class="bg-slate-950/80 border border-slate-900 p-2 rounded">
                     <div class="text-[8px] text-slate-500 font-bold">OI STRIKE COLD</div>
@@ -735,7 +744,7 @@ export default function LandingPage() {
                     <circle cx="320" cy="25" r="3" fill="#22d3ee" class="animate-pulse" />
                   </svg>
                   
-                  <!-- Floating live value flag -->
+                  <!-- Floating illustrative value flag -->
                   <div class="absolute top-2 left-3 border border-slate-800 bg-[#0c101b]/95 rounded px-2 py-0.5 text-[8px] select-none">
                     <span class="text-slate-500 uppercase font-bold">PEAK SKEW:</span> <strong class="text-cyan-400 font-bold">+${typeof atmIv === 'number' ? (atmIv * 0.33).toFixed(2) : Number((atmIv || 0) * 0.33).toFixed(2)}% L-IV</strong>
                   </div>
@@ -745,7 +754,7 @@ export default function LandingPage() {
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between text-[7.5px] text-slate-500 uppercase font-black tracking-wider px-0.5">
                     <span>INSTITUTIONAL BBO volume profile</span>
-                    <span>BULLS: 62% vs BEARS: 38%</span>
+                    <span>Sample split — provider setup required</span>
                   </div>
                   
                   <div class="grid grid-cols-12 gap-1.5 h-10 items-end px-1 bg-slate-950/60 p-2 rounded border border-slate-900 select-none">
@@ -778,7 +787,7 @@ export default function LandingPage() {
               Make fast decisions with a customized workspace.
             </h3>
             <p class="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              Our advanced layout framework delivers dynamic multi-strike security monitors, powerful alerting engines, and sophisticated option chain visualization tools that move markets.
+              Our advanced layout framework delivers dynamic multi-strike educational monitors, alerting workflows, and option-chain visualization tools for research.
             </p>
             <div class="pt-2">
               <span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 font-mono tracking-wider bg-orange-50 px-2 py-1 rounded">
@@ -847,7 +856,7 @@ export default function LandingPage() {
                       <!-- Blue active wave -->
                       <path d="M 0 32 L 20 22 L 40 28 L 60 12 L 80 18 L 100 3" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" />
                     </svg>
-                    <div class="text-[7px] text-slate-500 z-10 font-bold uppercase absolute bottom-1 right-1.5">PCR RATE: ${typeof pcr === 'number' ? pcr.toFixed(2) : Number(pcr || 0).toFixed(2)}</div>
+                    <div class="text-[7px] text-slate-500 z-10 font-bold uppercase absolute bottom-1 right-1.5">PCR RATE: ${pcrLabel}</div>
                   </div>
 
                   <!-- Compact OI Options Chain elements -->
@@ -862,7 +871,7 @@ export default function LandingPage() {
                     
                     <div class="bg-slate-900 border border-slate-950 p-1 rounded flex items-center justify-between">
                       <span class="text-[8px] text-rose-400 font-extrabold">${fmtPrice(topCallStrike)} CE</span>
-                      <span class="text-slate-300">198K contract</span>
+                      <span class="text-slate-300">${totalPutOi > 0 ? fmtOI(totalPutOi) : 'Provider setup required'}</span>
                       <span class="text-slate-500 text-[6.5px]">▼ -12%</span>
                     </div>
                   </div>
@@ -1280,7 +1289,7 @@ export default function LandingPage() {
                   Zero Breakeven Reference Axis (Premium Line)
                 </div>
 
-                <!-- Live Vector Plot -->
+                <!-- Illustrative payoff vector plot -->
                 <svg class="w-full h-full" id="payoff-curve-svg" viewBox="0 0 500 176" preserveAspectRatio="none">
                   <!-- Axis baseline -->
                   <line x1="0" y1="88" x2="500" y2="88" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 3" />
@@ -2039,7 +2048,7 @@ export default function LandingPage() {
                   <span class="py-1 bg-blue-650 text-white rounded shadow-sm">BUY CALL</span>
                   <span class="py-1 bg-rose-650 text-white rounded shadow-sm">BUY PUT</span>
                 </div>
-                <span class="text-[6px] text-center block text-gray-400 font-mono uppercase tracking-widest leading-none">Active Ledger Sync Mode</span>
+                <span class="text-[6px] text-center block text-gray-400 font-mono uppercase tracking-widest leading-none">Educational ledger preview</span>
               </div>
             </div>
           </div>
@@ -2049,7 +2058,7 @@ export default function LandingPage() {
       </div>
     </section>
 
-    <!-- SECTION 6: SIMPLIFIED LIVE OPTION CHAIN PREVIEW (Lightning-Fast Execution Option Matrix) -->
+    <!-- SECTION 6: DELAYED/SAMPLE OPTION CHAIN PREVIEW (Lightning-Fast Execution Option Matrix) -->
     <section id="option-matrix" class="bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
@@ -2241,7 +2250,7 @@ export default function LandingPage() {
             <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">NSE CONNECT</span>
           </div>
 
-          <!-- Logo 4: BSE LIVE FEED -->
+          <!-- Logo 4: BSE reference feed badge -->
           <div class="flex items-center gap-2 select-none grayscale cursor-default hover:scale-105 transition-all">
             <svg class="w-5 h-5 text-gray-650" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -2500,7 +2509,7 @@ export default function LandingPage() {
 
             <div class="p-3 bg-blue-50 text-[10px] text-blue-700 leading-normal font-medium rounded border border-blue-100">
               <span class="font-extrabold uppercase font-mono block mb-1">TRADING SYSTEM INSIGHT</span>
-              The IV/HV divergence implies a premium surge on June 25 options. Writing strategies (iron condors/calendar-spreads) benefit optimally from impending IV crushing mechanisms.
+              Educational scenario only: IV/HV divergence can change option-premium sensitivity, so compare risk, payoff, and liquidity before evaluating any strategy.
             </div>
           </div>
 
@@ -2509,7 +2518,7 @@ export default function LandingPage() {
       </div>
     </section>
 
-    <!-- SECTION 11: LIVE INSTITUTIONAL BLOCK TRADE PULSE BOARD -->
+    <!-- SECTION 11: SAMPLE INSTITUTIONAL FLOW & VOLUME BOARD -->
     <section id="block-trades" class="bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
@@ -2521,7 +2530,7 @@ export default function LandingPage() {
               Illustrative Institutional Flow & Volume Board
             </h2>
             <p class="text-xs text-gray-500 font-sans">
-              Instantaneous tracking matrix filtering registered FII/DII block orders and excessive multi-strike volume accumulators.
+              Sample tracking matrix for educational FII/DII and multi-strike volume concepts. Configure a licensed provider for live flow data.
             </p>
           </div>
           <span class="text-[9.5px] font-mono text-slate-500 border border-slate-200 bg-white px-2.5 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5 animate-pulse">
@@ -2681,8 +2690,8 @@ export default function LandingPage() {
             <div>
               <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">5,420.25</div>
               <div class="text-[8.5px] text-gray-400 font-mono mt-1 flex justify-between uppercase">
-                <span>Volume: 1.84M</span>
-                <span>Trend: Expansion</span>
+                <span>Volume: Provider required</span>
+                <span>Trend: Sample only</span>
               </div>
             </div>
           </div>
@@ -2694,13 +2703,13 @@ export default function LandingPage() {
                 <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Commodity Spreads</span>
                 <h4 class="text-xs font-black text-[#111827] uppercase mt-0.5 font-sans leading-none">Brent Crude Option LTP</h4>
               </div>
-              <span class="text-[9px] px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-mono font-black uppercase">-1.24%</span>
+              <span class="text-[9px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-black uppercase">Sample</span>
             </div>
             <div>
-              <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">₹6,840.00</div>
+              <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">Unavailable</div>
               <div class="text-[8.5px] text-gray-400 font-mono mt-1 flex justify-between uppercase">
                 <span>Premium Spread</span>
-                <span>Bias: Moderate Sell</span>
+                <span>Provider setup required</span>
               </div>
             </div>
           </div>
@@ -2989,10 +2998,10 @@ export default function LandingPage() {
           <div>
             <h4 class="text-slate-900 text-xs font-black tracking-widest uppercase mb-4 font-mono">Legal & Compliance</h4>
             <ul class="space-y-2.5 text-xs text-slate-600">
-              <li><a href="/sebi-disclosure" class="hover:text-blue-600 transition font-medium">F&O Disclosures Matrix</a></li>
-              <li><a href="/sebi-disclosure" class="hover:text-blue-600 transition font-medium font-sans">SEBI Registrars Log</a></li>
-              <li><a href="/disclaimer" class="hover:text-blue-600 transition font-medium font-sans">Exchange Audit Protocols</a></li>
-              <li><a href="/disclaimer" class="hover:text-blue-600 transition font-medium">Risk Guidelines Index</a></li>
+              <li><a href="/risk-disclosure" class="hover:text-blue-600 transition font-medium">F&O Risk Disclosure</a></li>
+              <li><a href="/terms" class="hover:text-blue-600 transition font-medium font-sans">Terms of Use</a></li>
+              <li><a href="/data-methodology" class="hover:text-blue-600 transition font-medium font-sans">Data Methodology</a></li>
+              <li><a href="/support-policy" class="hover:text-blue-600 transition font-medium">Support Policy</a></li>
             </ul>
           </div>
 
@@ -3051,8 +3060,59 @@ export default function LandingPage() {
         console.warn('Lucide is not globally loaded in index.html.');
       }
     </script>
-    <script src="/live-data.js"></script>
   ` }} />
+    <VisitorJourney />
     <LandingFunctionalPanels />
   </>;
+}
+
+function VisitorJourney() {
+  const steps = [
+    {
+      title: 'View delayed educational analytics',
+      text: 'Public visitors can explore delayed/sample dashboards while provider setup is pending.',
+      to: '/screener',
+    },
+    {
+      title: 'Create account',
+      text: 'Account status is server-checked. StockPro does not fake a logged-in user.',
+      to: '/account',
+    },
+    {
+      title: 'Use your own broker for live data',
+      text: 'Broker data must be per-user only. No shared broker token, no passwords or OTPs.',
+      to: '/connect-broker',
+    },
+    {
+      title: '7-day Pro trial',
+      text: 'Review trial disclosure. Payment live mode is disabled until final setup approval.',
+      to: '/start-trial',
+    },
+  ];
+
+  return (
+    <section className="border-b border-slate-200 bg-white py-12" aria-labelledby="landing-visitor-journey">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="flex flex-col gap-3 border-b border-slate-200 pb-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">Live-data journey</p>
+            <h2 id="landing-visitor-journey" className="mt-2 text-2xl font-black tracking-tight text-slate-950">From public analytics to per-user live data</h2>
+            <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-slate-500">Live data requires a configured provider or your own authenticated broker connection. StockPro does not place trades or provide investment advice.</p>
+          </div>
+          <a href="/contact" className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-xs font-black text-white transition hover:bg-blue-700">
+            Contact setup team
+          </a>
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {steps.map((step, index) => (
+            <a key={step.to} href={step.to} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-white hover:shadow-md">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-black text-white">{index + 1}</div>
+              <h3 className="mt-4 text-sm font-black text-slate-950">{step.title}</h3>
+              <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">{step.text}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }

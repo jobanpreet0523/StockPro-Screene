@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { useReducedMotionOrLowPower } from '../hooks/useReducedMotionOrLowPower';
 
 /**
  * 3D Floating Particle Background — Full Page Overlay
@@ -9,8 +10,10 @@ import React, { useRef, useEffect } from 'react';
  */
 export default function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const reduceMotion = useReducedMotionOrLowPower();
 
   useEffect(() => {
+    if (reduceMotion) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -27,7 +30,7 @@ export default function ParticleBackground() {
     let isVisible = true;
 
     // Particle config
-    const PARTICLE_COUNT = 130;
+    const PARTICLE_COUNT = window.innerWidth >= 1280 ? 72 : 42;
     const MAX_DEPTH = 1200;
     const FOV = 600;
     const CONNECTION_DISTANCE = 140;
@@ -217,7 +220,9 @@ export default function ParticleBackground() {
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [reduceMotion]);
+
+  if (reduceMotion) return null;
 
   return (
     <canvas

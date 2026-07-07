@@ -23,7 +23,7 @@ export function useMarketIndices() {
       setIndices(response.data as IndexData[]);
       setError(null);
     } catch (err: any) {
-      console.error('fetchIndices error:', err);
+      console.warn('fetchIndices unavailable:', err);
       setError(err.message || 'Market index data is unavailable.');
     } finally {
       setLoading(false);

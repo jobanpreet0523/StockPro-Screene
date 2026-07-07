@@ -68,6 +68,10 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     title: 'StockPro Education Hub — Screener, Option Chain, Risk Guides',
     description: 'Learn market-screening workflows, option-chain basics, watchlist routines, risk discipline, and how to use StockPro tools for educational research.',
   },
+  '/daily-brief': {
+    title: 'Daily Brief - StockPro',
+    description: 'Review educational market context, provider-status labels, and dashboard summaries without fake live news or investment advice.',
+  },
   '/signals': {
     title: 'Signals Workspace — StockPro',
     description: 'Explore scanner alerts, observations, and educational workspace intelligence.',

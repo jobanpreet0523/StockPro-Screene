@@ -350,7 +350,7 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
             ₹{spot.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
           {providerStatus?.isLive === true ? (
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 mt-0.5 font-bold animate-pulse" title="Real-time PRO Feed">
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1 mt-0.5 font-bold animate-pulse" title="Provider reports live data">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" /> Live provider connected
             </span>
           ) : (

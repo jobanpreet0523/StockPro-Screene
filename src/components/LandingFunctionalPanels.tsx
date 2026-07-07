@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Activity, AlertCircle, BarChart3, BookOpen, CalendarDays, Clock3, Newspaper, Search, TableProperties } from 'lucide-react';
+import { Activity, AlertCircle, BarChart3, BookOpen, CalendarDays, Clock3, KeyRound, Newspaper, Search, Signal, TableProperties, UserRound } from 'lucide-react';
 import AdSlot from './AdSlot';
 import LandingTradingViewChart from './LandingTradingViewChart';
 import LiveMarketReads from './LiveMarketReads';
-import { fetchMarketData, providerLabel } from '../core/marketDataClient';
+import { fetchMarketData } from '../core/marketDataClient';
+import { formatTimestamp, getDataLabel } from '../core/dataReality';
 import type { MarketDataStatus, MarketQuote, OptionChainResponse } from '../core/marketDataProvider';
 
 interface LandingStock {
@@ -14,7 +15,6 @@ interface LandingStock {
   price: number;
   change: number;
   changePercent: number;
-  exchange?: string;
 }
 
 interface OiSnapshot {
@@ -36,6 +36,7 @@ function cleanSymbol(symbol: string) {
 }
 
 function compact(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return 'Unavailable';
   return new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 2 }).format(value);
 }
 
@@ -52,28 +53,15 @@ function normalizeOi(payload: any): OiSnapshot {
   const rawPcr = Number(data?.pcr);
   const pcr = Number.isFinite(rawPcr) && rawPcr > 0 ? rawPcr : totalCallOi > 0 ? totalPutOi / totalCallOi : null;
   const rawMaxPain = Number(data?.maxPain);
-  const strikes = rows.map((row: any) => Number(row?.strikePrice)).filter((strike: number) => Number.isFinite(strike));
-  const calculatedMaxPain = strikes.length > 0
-    ? strikes.reduce((best: { strike: number; pain: number }, settlement: number) => {
-        const pain = rows.reduce((sum: number, row: any) => {
-          const strike = Number(row?.strikePrice) || 0;
-          const callOi = Number(row?.CE?.openInterest ?? row?.callOi ?? 0);
-          const putOi = Number(row?.PE?.openInterest ?? row?.putOi ?? 0);
-          return sum + Math.max(0, settlement - strike) * callOi + Math.max(0, strike - settlement) * putOi;
-        }, 0);
-        return pain < best.pain ? { strike: settlement, pain } : best;
-      }, { strike: strikes[0], pain: Number.POSITIVE_INFINITY }).strike
-    : null;
-  const timestamp = data?.records?.timestamp || data?.timestamp || payload?.updatedAt || null;
-  const source = String(payload?.source || data?.source || '').toLowerCase();
+  const timestamp = data?.records?.timestamp || data?.timestamp || payload?.timestamp || null;
 
   return {
     totalCallOi,
     totalPutOi,
     pcr,
-    maxPain: Number.isFinite(rawMaxPain) && rawMaxPain > 0 ? rawMaxPain : calculatedMaxPain,
+    maxPain: Number.isFinite(rawMaxPain) && rawMaxPain > 0 ? rawMaxPain : null,
     timestamp,
-    label: providerLabel(payload),
+    label: getDataLabel(payload),
     source: String(payload?.source || data?.source || 'unknown'),
     message: String(payload?.message || data?.message || 'Provider metadata unavailable.'),
   };
@@ -114,7 +102,9 @@ export default function LandingFunctionalPanels() {
         const json = await fetchMarketData<MarketQuote[]>('/api/live/stocks', AbortSignal.timeout(15000));
         if (active) setStocksProviderStatus(json);
         if (json.status !== 'ok') throw new Error(json.message || 'Stock list request failed');
-        const nextStocks = Array.isArray(json.data) ? json.data.filter((item: any) => item?.symbol && item?.name && Number.isFinite(Number(item?.price))) as LandingStock[] : [];
+        const nextStocks = Array.isArray(json.data)
+          ? json.data.filter((item: any) => item?.symbol && item?.name && Number.isFinite(Number(item?.price))) as LandingStock[]
+          : [];
         if (active) setStocks(nextStocks);
       } catch (error: any) {
         if (active) {
@@ -125,7 +115,7 @@ export default function LandingFunctionalPanels() {
         if (active) setStocksLoading(false);
       }
     };
-    loadStocks();
+    void loadStocks();
     return () => { active = false; };
   }, []);
 
@@ -145,7 +135,7 @@ export default function LandingFunctionalPanels() {
     }
   }, []);
 
-  useEffect(() => { fetchOi(selectedSymbol); }, [fetchOi, selectedSymbol]);
+  useEffect(() => { void fetchOi(selectedSymbol); }, [fetchOi, selectedSymbol]);
 
   const selectedStock = useMemo(() => stocks.find((stock) => cleanSymbol(stock.symbol) === cleanSymbol(selectedSymbol)) || null, [stocks, selectedSymbol]);
   const matches = useMemo(() => {
@@ -156,7 +146,7 @@ export default function LandingFunctionalPanels() {
 
   const chooseStock = (stock: LandingStock) => {
     setSelectedSymbol(stock.symbol);
-    setQuery(`${cleanSymbol(stock.symbol)} — ${stock.name}`);
+    setQuery(`${cleanSymbol(stock.symbol)} - ${stock.name}`);
   };
 
   const searchControl = (
@@ -165,11 +155,11 @@ export default function LandingFunctionalPanels() {
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder={stocksLoading ? 'Loading delayed stock list…' : 'Search NSE stocks…'}
+        placeholder={stocksLoading ? 'Loading delayed stock list...' : 'Search NSE stocks...'}
         aria-label="Search and select a stock"
         className="w-full rounded border border-gray-200 bg-gray-100 py-2 pl-9 pr-3 text-xs font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white"
       />
-      {query && matches.length > 0 && !matches.some((stock) => query === `${cleanSymbol(stock.symbol)} — ${stock.name}`) && (
+      {query && matches.length > 0 && !matches.some((stock) => query === `${cleanSymbol(stock.symbol)} - ${stock.name}`) && (
         <div className="absolute left-0 right-0 top-10 z-[70] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
           {matches.map((stock) => (
             <button key={stock.symbol} type="button" onClick={() => chooseStock(stock)} className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-blue-50">
@@ -185,11 +175,17 @@ export default function LandingFunctionalPanels() {
   const routeButtons = [
     { label: 'Screener', path: '/screener', icon: TableProperties },
     { label: 'Option Chain', path: '/option-chain', icon: BarChart3 },
+    { label: 'Open Interest', path: '/option-chain?focus=oi', icon: Activity },
+    { label: 'Live Chart', path: `/screener?symbol=${encodeURIComponent(cleanSymbol(selectedSymbol))}`, icon: BarChart3 },
     { label: 'Daily Brief', path: '/daily-brief', icon: CalendarDays },
+    { label: 'Signals', path: '/signals', icon: Signal },
     { label: 'News', path: '/news', icon: Newspaper },
     { label: 'Blog', path: '/blog', icon: BookOpen },
     { label: 'Pricing', path: '/pricing', icon: Activity },
-    { label: 'Waitlist', path: '/contact?interest=landing', icon: Clock3 },
+    { label: 'Start Trial', path: '/start-trial', icon: Clock3 },
+    { label: 'Create Account', path: '/account', icon: UserRound },
+    { label: 'Connect Broker', path: '/connect-broker', icon: KeyRound },
+    { label: 'Contact', path: '/contact?interest=landing', icon: Clock3 },
   ];
 
   const workspace = (
@@ -206,7 +202,7 @@ export default function LandingFunctionalPanels() {
 
         <nav className="my-6 flex flex-wrap gap-2" aria-label="StockPro feature navigation">
           {routeButtons.map(({ label, path, icon: Icon }) => (
-            <button key={path} type="button" onClick={() => navigate(path)} data-analytics-event={label === 'Waitlist' ? 'waitlist_click' : 'tool_open_click'} data-analytics-label={`landing:${label}`} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-700">
+            <button key={path} type="button" onClick={() => navigate(path)} data-analytics-event={label === 'Contact' ? 'waitlist_click' : 'tool_open_click'} data-analytics-label={`landing:${label}`} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-700">
               <Icon size={13} /> {label}
             </button>
           ))}
@@ -225,12 +221,25 @@ export default function LandingFunctionalPanels() {
                 <div><div className="font-mono text-lg font-black text-slate-950">{cleanSymbol(selectedSymbol)}</div><div className="mt-1 text-[11px] font-semibold text-slate-500">{selectedStock?.name || (selectedSymbol === 'NIFTY' ? 'Nifty 50 index' : 'Quote unavailable')}</div></div>
                 <div className="text-right"><div className="font-mono text-xl font-black text-slate-950">{selectedStock ? `₹${formatNumber(Number(selectedStock.price))}` : 'Unavailable'}</div>{selectedStock && <div className={`text-[11px] font-black ${Number(selectedStock.changePercent) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{Number(selectedStock.changePercent) >= 0 ? '+' : ''}{formatNumber(Number(selectedStock.changePercent))}%</div>}</div>
               </div>
-              <div className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-amber-700">{providerLabel(stocksProviderStatus)}</div>
+              <div className="mt-4 space-y-1 rounded-lg bg-amber-50 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-amber-700">
+                <div>{getDataLabel(stocksProviderStatus)}</div>
+                <div className="normal-case tracking-normal text-amber-700/80">Source: {stocksProviderStatus?.source || 'unknown'} - Updated: {formatTimestamp(stocksProviderStatus?.timestamp)}</div>
+              </div>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <div className="flex items-start justify-between gap-3"><div><div className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600">Open interest snapshot</div><div className="mt-1 text-xs font-black text-slate-900">{cleanSymbol(selectedSymbol)}</div></div><span className="rounded bg-amber-50 px-2 py-1 text-[8px] font-black uppercase text-amber-700">{oiError ? 'Unavailable' : oi?.label || (oiLoading ? 'Checking source' : 'Unavailable')}</span></div>
-              {oiLoading ? <div className="py-10 text-center text-xs font-bold text-slate-400">Loading option-chain data…</div> : oiError ? <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">{oiError} No substitute values are shown.</div> : oi && (
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600">Open interest snapshot</div>
+                  <div className="mt-1 text-xs font-black text-slate-900">{cleanSymbol(selectedSymbol)}</div>
+                </div>
+                <span className="rounded bg-amber-50 px-2 py-1 text-[8px] font-black uppercase text-amber-700">{oiError ? 'Unavailable' : oi?.label || (oiLoading ? 'Checking source' : 'Unavailable')}</span>
+              </div>
+              {oiLoading ? (
+                <div className="py-10 text-center text-xs font-bold text-slate-400">Loading option-chain data...</div>
+              ) : oiError ? (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">{oiError} Connect broker or configure provider for live OI. No substitute values are shown.</div>
+              ) : oi && (oi.totalCallOi > 0 || oi.totalPutOi > 0) ? (
                 <>
                   <div className="mt-5 grid grid-cols-2 gap-3">
                     <OiMetric label="Total call OI" value={compact(oi.totalCallOi)} />
@@ -239,10 +248,12 @@ export default function LandingFunctionalPanels() {
                     <OiMetric label="Max pain" value={oi.maxPain === null ? 'Unavailable' : formatNumber(oi.maxPain, 0)} />
                   </div>
                   <div className="mt-4 space-y-1 text-[10px] font-semibold text-slate-400">
-                    <div>Provider: {oi.source} · {oi.message}</div>
-                    <div>Timestamp: {oi.timestamp ? new Date(oi.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'Unavailable'}</div>
+                    <div>Provider: {oi.source} - {oi.message}</div>
+                    <div>Timestamp: {formatTimestamp(oi.timestamp)}</div>
                   </div>
                 </>
+              ) : (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">Connect broker or configure provider for live OI. No fake running OI numbers are shown.</div>
               )}
             </div>
           </div>

@@ -23,7 +23,7 @@ export function useLiveStocks() {
       setStocks(response.data as Stock[]);
       setError(null);
     } catch (err: any) {
-      console.error('fetchLiveStocks error:', err);
+      console.warn('fetchLiveStocks unavailable:', err);
       setError(err.message || 'Market stock data is unavailable.');
     } finally {
       setLoading(false);

@@ -1,12 +1,13 @@
 (() => {
   const isLanding = location.pathname === '/' || location.pathname === '/landing';
   if (!isLanding) return;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.matchMedia('(max-width: 768px)').matches;
 
   const marketItems = [
-    { label: 'NIFTY 50', value: '24,270.85', change: '+1.35%' },
-    { label: 'BANK NIFTY', value: '57,038.50', change: '+1.10%' },
-    { label: 'PCR', value: '1.34', change: 'SAMPLE' },
-    { label: 'MAX PAIN', value: '24,250', change: 'ACTIVE' },
+    { label: 'NIFTY 50', value: 'Provider panel', change: 'SAMPLE UI' },
+    { label: 'BANK NIFTY', value: 'Provider panel', change: 'SAMPLE UI' },
+    { label: 'PCR', value: 'See OI card', change: 'SAMPLE UI' },
+    { label: 'MAX PAIN', value: 'See OI card', change: 'SAMPLE UI' },
   ];
 
   const css = document.createElement('style');
@@ -291,6 +292,7 @@
   }
 
   function createHeroCanvas(hero) {
+    if (reduceMotion) return;
     if (hero.querySelector('#stockpro-landing-canvas')) return;
     const canvas = document.createElement('canvas');
     canvas.id = 'stockpro-landing-canvas';
@@ -310,7 +312,7 @@
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.min(90, Math.max(45, Math.floor(width / 20)));
+      const count = Math.min(42, Math.max(18, Math.floor(width / 42)));
       particles = Array.from({ length: count }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -378,7 +380,7 @@
       <div class="sp3d-data-plane"></div>
       <div class="sp3d-ring-stack"><span style="--i:0px"></span><span style="--i:38px"></span><span style="--i:76px"></span><span style="--i:114px"></span></div>
       ${marketItems.map((item, index) => `<div class="sp3d-floating-card card-${['a','b','c','d'][index]}"><div class="sp3d-card-label">${item.label}</div><div class="sp3d-card-value">${item.value}</div><div class="sp3d-card-change">${item.change}</div></div>`).join('')}
-      <div class="sp3d-holo-badge">AI Market Cockpit Active</div>
+      <div class="sp3d-holo-badge">Sample UI overlay - provider data below</div>
     `;
     hero.prepend(layer);
   }
@@ -397,6 +399,7 @@
   }
 
   function attachMagneticHero(hero) {
+    if (reduceMotion) return;
     const target = hero.querySelector('.grid > div:last-child');
     if (!target || target.dataset.spHeroMagnetic === 'true') return;
     target.dataset.spHeroMagnetic = 'true';

@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "security:scan": "node scripts/security-scan.mjs",
     "verify:launch": "node scripts/verify-launch.mjs",
+    "smoke:routes": "node scripts/smoke-routes.mjs",
     "build": "vite build && npx esbuild src/_worker.js --bundle --format=esm --outfile=dist/_worker.js --platform=browser --minify --conditions=worker",
     "ci": "npm run security:scan && npm run typecheck && npm run build && npm run verify:launch",
     "preview": "vite preview"

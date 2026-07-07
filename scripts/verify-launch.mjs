@@ -14,8 +14,11 @@ const requiredFiles = [
   'src/components/AnalyticsManager.tsx',
   'src/components/DataSourceBadge.tsx',
   'src/core/marketData.ts',
+  'src/core/dataReality.ts',
   'src/services/livePlanApi.ts',
   'src/pages/ConnectBrokerPage.tsx',
+  'src/pages/AccountPage.tsx',
+  'src/pages/StatusPage.tsx',
   'src/pages/PrivacyPage.tsx',
   'src/pages/TermsPage.tsx',
   'src/pages/RiskDisclosurePage.tsx',
@@ -37,14 +40,24 @@ const requiredRoutes = [
   '/deals',
   '/news',
   '/pricing',
+  '/start-trial',
   '/blog',
+  '/daily-brief',
   '/signals',
   '/connect-broker',
+  '/account',
+  '/status',
   '/privacy',
   '/terms',
   '/risk-disclosure',
   '/contact',
+  '/about',
+  '/data-methodology',
+  '/support-policy',
+  '/refund-policy',
 ];
+
+const requiredDirectRoutes = [...requiredRoutes.filter((route) => route !== '/'), '/admin/waitlist'];
 
 const errors = [];
 
@@ -63,7 +76,7 @@ for (const component of ['<RouteSeo />', '<AnalyticsManager />']) {
 }
 
 const redirects = read('public/_redirects');
-for (const route of requiredRoutes.filter((route) => route !== '/')) {
+for (const route of requiredDirectRoutes) {
   if (!redirects.includes(route)) errors.push(`Missing SPA redirect: ${route}`);
 }
 
@@ -107,8 +120,30 @@ for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/a
 }
 
 const worker = read('src/_worker.js');
-for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider', '/api/live-feed/status', 'handlePlanRoutes(path, request)']) {
+for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider', '/api/live-feed/status', '/api/waitlist/health', '/api/live/health', '/api/broker/health', '/api/billing/readiness', 'handlePlanRoutes(path, request)']) {
   if (!worker.includes(token)) errors.push(`Worker route wiring is missing: ${token}`);
+}
+
+const landing = read('src/components/LandingPage.tsx');
+if (landing.includes('<script src="/live-data.js"')) errors.push('LandingPage still injects legacy live-data.js DOM patcher');
+for (const unsafe of ['421K Cr', '198K Cr', 'BSE LIVE FEED', 'NSE LIVE FEED']) {
+  if (landing.includes(unsafe)) errors.push(`LandingPage still has unsafe fake-live/static token: ${unsafe}`);
+}
+if (!landing.includes('Payment live mode is disabled')) errors.push('LandingPage is missing payment-live-disabled journey wording');
+if (!landing.includes('No shared broker token')) errors.push('LandingPage is missing no-shared-broker-token wording');
+if (!landing.includes('isRealProviderData(indicesStatus)')) errors.push('LandingPage must not label LIVE unless provider is live');
+
+const landing3d = read('public/landing-3d-elements.js');
+for (const unsafe of ['24,270.85', '57,038.50', '+1.35%', '+1.10%', 'AI Market Cockpit Active']) {
+  if (landing3d.includes(unsafe)) errors.push(`landing-3d-elements still has fake market/live token: ${unsafe}`);
+}
+
+const index = read('index.html');
+if (index.includes('/landing-3d-elements.js" defer')) errors.push('landing-3d-elements should not be globally loaded before landing paint');
+
+const billingReadiness = read('src/core/razorpayReadiness.ts');
+if (!billingReadiness.includes('live_disabled: true') || !billingReadiness.includes('paymentEnabled: false')) {
+  errors.push('Razorpay readiness must keep live payment disabled');
 }
 
 const hero = read('src/components/MarketPulseHero.tsx');
