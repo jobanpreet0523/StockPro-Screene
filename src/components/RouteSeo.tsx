@@ -104,6 +104,14 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     title: 'Account — StockPro',
     description: 'Review StockPro account, subscription, billing readiness, and per-user broker setup states without fake login or payment status.',
   },
+  '/login': {
+    title: 'Login - StockPro',
+    description: 'Check StockPro account session setup through server-verified Supabase Auth state. No fake login state is created.',
+  },
+  '/signup': {
+    title: 'Signup - StockPro',
+    description: 'Create a StockPro account only after Supabase Auth is configured. Signup never creates fake users or broker state.',
+  },
   '/privacy': {
     title: 'Privacy Policy — StockPro',
     description: 'Read how StockPro handles account data, analytics, cookies, local storage, support messages, and third-party services.',

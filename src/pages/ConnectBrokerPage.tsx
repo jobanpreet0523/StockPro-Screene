@@ -3,9 +3,12 @@ import { AlertTriangle, CreditCard, Radio, ShieldCheck, Wifi } from 'lucide-reac
 import BrokerConnectPanel from '../components/BrokerConnectPanel';
 import DataSourceBadge from '../components/DataSourceBadge';
 import { getMarketDataStatus } from '../core/marketData';
+import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 export default function ConnectBrokerPage() {
   const status = getMarketDataStatus(false);
+  const { user, authStatus, authMessage } = useAuth();
 
   return (
     <div className="lg:col-span-12 flex flex-col gap-6">
@@ -27,6 +30,19 @@ export default function ConnectBrokerPage() {
           <DataSourceBadge status={status} />
         </div>
       </section>
+
+      {!user && (
+        <section className="rounded-3xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-900/50 dark:bg-blue-950/20">
+          <h2 className="text-sm font-black text-blue-950 dark:text-blue-100">Login required for broker connection</h2>
+          <p className="mt-2 text-xs font-semibold leading-6 text-blue-800 dark:text-blue-200">
+            Current auth state: {authStatus}. {authMessage} Broker tokens are never accepted for anonymous visitors.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link to="/login" data-analytics-event="login_cta_click" data-analytics-label="connect-broker:login" className="rounded-xl bg-blue-600 px-3 py-2 text-[11px] font-black text-white">Log in</Link>
+            <Link to="/signup" data-analytics-event="signup_cta_click" data-analytics-label="connect-broker:signup" className="rounded-xl border border-blue-200 px-3 py-2 text-[11px] font-black text-blue-800 dark:border-blue-800 dark:text-blue-100">Create account</Link>
+          </div>
+        </section>
+      )}
 
       <BrokerConnectPanel />
 

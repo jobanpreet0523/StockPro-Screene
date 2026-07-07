@@ -2,6 +2,8 @@ import React, { FormEvent, useEffect, useState } from 'react';
 import { CalendarClock, CheckCircle2, CreditCard, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { formatTrialDisclosure, FREE_TRIAL_DAYS, PRO_MONTHLY_PRICE_INR } from '../core/trialPlan';
 import type { TrialApiResponse } from '../core/subscriptionTypes';
+import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 type SubmitState = 'idle' | 'submitting' | 'setup_required' | 'error';
 interface BillingReadinessResponse {
@@ -13,6 +15,7 @@ interface BillingReadinessResponse {
 }
 
 export default function StartTrialPage() {
+  const { user, authStatus, authMessage } = useAuth();
   const [consent, setConsent] = useState(false);
   const [state, setState] = useState<SubmitState>('idle');
   const [message, setMessage] = useState('Payment and recurring mandate setup are not enabled yet.');
@@ -64,6 +67,12 @@ export default function StartTrialPage() {
     setState('submitting');
     setMessage('Checking trial setup...');
     try {
+      if (!user) {
+        setState('error');
+        setMessage('Log in before requesting a test-mode trial. No fake user or subscription was created.');
+        return;
+      }
+
       const response = await fetch(billingReady ? '/api/billing/create-test-subscription' : '/api/trial/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,6 +128,11 @@ export default function StartTrialPage() {
             <div className={`mt-4 rounded-2xl border p-4 text-xs font-bold leading-5 ${billingReady ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300' : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200'}`}>
               Razorpay test readiness: {billingMessage}
             </div>
+            {!user && (
+              <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs font-bold leading-5 text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-200">
+                Login required for trial setup. Current auth state: {authStatus}. {authMessage} <Link to="/login" className="underline">Log in</Link> or <Link to="/signup" className="underline">create account</Link>.
+              </div>
+            )}
 
             <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
               <input

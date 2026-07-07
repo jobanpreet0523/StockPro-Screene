@@ -33,6 +33,8 @@ import SupportPolicyPage from './pages/SupportPolicyPage';
 import RefundPolicyPage from './pages/RefundPolicyPage';
 import StatusPage from './pages/StatusPage';
 import AccountPage from './pages/AccountPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 import StructuredData from './components/StructuredData';
 
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -105,6 +107,8 @@ export default function App() {
             <Route path="/refund-policy" element={<RefundPolicyPage />} />
             <Route path="/status" element={<StatusPage />} />
             <Route path="/account" element={<AccountPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>

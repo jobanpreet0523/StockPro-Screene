@@ -120,6 +120,12 @@ export default function AccountPage() {
               <h2 className="text-sm font-black text-slate-950 dark:text-white">{user ? user.displayName || user.email || 'Authenticated user' : 'No authenticated account'}</h2>
               <p className="mt-1 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-400">{authMessage}</p>
               <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Current auth state: {authStatus}</p>
+              {!user && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link to="/login" data-analytics-event="login_cta_click" data-analytics-label="account:login" className="rounded-xl bg-emerald-500 px-3 py-2 text-[11px] font-black text-slate-950">Log in</Link>
+                  <Link to="/signup" data-analytics-event="signup_cta_click" data-analytics-label="account:signup" className="rounded-xl border border-slate-200 px-3 py-2 text-[11px] font-black text-slate-700 dark:border-slate-700 dark:text-slate-200">Create account</Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

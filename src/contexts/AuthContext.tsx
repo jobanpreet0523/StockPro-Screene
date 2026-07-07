@@ -16,7 +16,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  isPro: true,
+  isPro: false,
   authStatus: 'loading',
   authMessage: 'Checking account status...',
   refreshSession: async () => {},
@@ -30,7 +30,7 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<StockProUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPro, setIsPro] = useState(true);
+  const [isPro, setIsPro] = useState(false);
   const [authStatus, setAuthStatus] = useState<AuthContextType['authStatus']>('loading');
   const [authMessage, setAuthMessage] = useState('Checking account status...');
 
@@ -60,12 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setProStatus = (_status: boolean) => {
-    // Backward compatibility for older components. Stage 18 does not create a paid entitlement.
-    setIsPro(true);
+    // Backward compatibility for older components. Paid entitlement must come from verified subscription state only.
+    setIsPro(false);
   };
 
   const loginWithGoogle = async () => {
-    window.location.href = '/account';
+    window.location.href = '/login';
   };
 
   const logout = async () => {

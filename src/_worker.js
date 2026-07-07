@@ -288,7 +288,7 @@ const BROKER_PROVIDERS = new Set(['dhan', 'upstox', 'angel', 'zerodha']);
 function getSupabaseAuthConfig(env) {
   const supabaseUrl = cleanText(env?.SUPABASE_URL, 500).replace(/\/+$/, '');
   const anonKey = typeof env?.SUPABASE_ANON_KEY === 'string' ? env.SUPABASE_ANON_KEY.trim() : '';
-  const enabled = String(env?.SUPABASE_AUTH_ENABLED || '').trim().toLowerCase() === 'true';
+  const enabled = String(env?.AUTH_ENABLED || env?.SUPABASE_AUTH_ENABLED || '').trim().toLowerCase() === 'true';
   let validUrl = false;
   try {
     const parsed = new URL(supabaseUrl);
