@@ -9,6 +9,7 @@ const services = [
   { key: 'waitlist', label: 'Waitlist API', endpoint: '/api/waitlist/health' },
   { key: 'auth', label: 'Auth status', endpoint: '/api/auth/session' },
   { key: 'brokerVault', label: 'Broker vault', endpoint: '/api/broker/health' },
+  { key: 'brokerStream', label: 'Broker WebSocket', endpoint: '/api/broker/stream/status' },
   { key: 'trial', label: 'Trial and payment', endpoint: '/api/trial/status' },
   { key: 'broker', label: 'Broker connection', endpoint: '/api/broker/status' },
   { key: 'news', label: 'News feed', endpoint: '/api/live-articles' },
@@ -40,6 +41,8 @@ export default function StatusPage() {
           ? `${payload.message || 'Market provider responded.'} Source: ${payload.source || 'unknown'}${Number.isFinite(payload.delayMinutes) ? ` · Delay: ${payload.delayMinutes} minutes` : ''}`
           : service.key === 'brokerVault'
           ? `${payload.message || 'Broker vault checked.'} Auth: ${payload.authConfigured ? 'configured' : 'setup required'} · Vault: ${payload.tokenVaultConfigured ? 'configured' : 'setup required'} · Storage: ${payload.storageConfigured ? 'configured' : 'setup required'} · Provider: ${payload.providerConfigured ? 'configured' : 'setup required'}`
+          : service.key === 'brokerStream'
+          ? `${payload.message || 'Broker stream checked.'} Stream: ${payload.isStreaming ? 'connected' : 'fallback to polling'}`
           : service.key === 'billing'
           ? `${payload.message || 'Billing readiness checked.'} Payment live mode disabled.`
           : service.key === 'ads'

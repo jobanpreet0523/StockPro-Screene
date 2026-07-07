@@ -506,6 +506,33 @@ function brokerHealthPayload(env) {
   };
 }
 
+function handleBrokerStreamStatus(request, env) {
+  if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
+  const enabled = String(env?.BROKER_STREAM_ENABLED || '').trim().toLowerCase() === 'true';
+  const providerValue = String(env?.BROKER_DATA_PROVIDER || 'none').trim().toLowerCase();
+  const provider = providerValue === 'dhan' || providerValue === 'upstox' ? providerValue : 'none';
+  if (!enabled) {
+    return secureJson(request, {
+      status: 'setup_required',
+      source: 'broker_stream',
+      provider,
+      isLive: false,
+      isStreaming: false,
+      reconnectBackoffMs: 0,
+      message: 'Stream setup required. REST polling remains the fallback.',
+    }, 503);
+  }
+  return secureJson(request, {
+    status: 'provider_unavailable',
+    source: 'broker_stream',
+    provider,
+    isLive: false,
+    isStreaming: false,
+    reconnectBackoffMs: 5000,
+    message: 'Broker stream gateway is not connected. Live stream unavailable, using polling.',
+  }, 503);
+}
+
 async function loadBrokerConnection(config, userId) {
   const params = new URLSearchParams({
     select: 'provider,status,connected_at,expires_at',
@@ -934,6 +961,7 @@ async function handleApi(path, url, request, env) {
   if (path === '/api/billing/cancel-test-subscription') return handleBillingSubscription(request, 'cancel', env);
   if (path === '/api/razorpay/webhook') return handleRazorpayWebhook(request, env);
   if (path === '/api/broker/health') return handleBroker(request, 'health', 'none', env);
+  if (path === '/api/broker/stream/status') return handleBrokerStreamStatus(request, env);
   if (path === '/api/broker/status') return handleBroker(request, 'status', 'none', env);
   if (path === '/api/broker/dhan/connect') return handleBroker(request, 'dhan_connect', 'dhan', env);
   if (path === '/api/broker/upstox/start') return handleBroker(request, 'upstox_start', 'upstox', env);
