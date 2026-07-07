@@ -1,6 +1,6 @@
 # StockPro broker token vault setup
 
-Stage 18 prepares per-user encrypted broker-token storage for future data-only broker connections. It does not place, modify, or cancel orders. It does not use one owner/shared broker token for all users.
+Stage 21 prepares per-user encrypted broker-token storage for future data-only broker connections. It does not place, modify, or cancel orders. It does not use one owner/shared broker token for all users.
 
 ## Required Worker environment
 
@@ -12,6 +12,9 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 BROKER_TOKEN_STORAGE=supabase
 BROKER_ENCRYPTION_SECRET=at-least-32-random-characters
 DHAN_CLIENT_ID=your-dhan-client-id
+UPSTOX_CLIENT_ID=your-upstox-client-id
+UPSTOX_CLIENT_SECRET=your-upstox-client-secret
+UPSTOX_REDIRECT_URI=https://stockpro1.qzz.io/api/broker/upstox/callback
 ```
 
 `BROKER_ENCRYPTION_SECRET` must be a Worker secret. Never expose it in frontend code.
@@ -56,6 +59,15 @@ on public.broker_connections (user_id);
 ```
 
 Because access is service-role-only, the browser must use Worker routes such as `/api/broker/status` and `/api/broker/dhan/connect`; it must not query this table directly.
+
+## Worker routes
+
+- `GET /api/broker/health` reports setup status for Auth, storage, encryption, and provider credentials.
+- `GET /api/broker/status` requires an authenticated user and returns only connection metadata. It never returns raw tokens.
+- `POST /api/broker/dhan/connect` accepts a user-supplied Dhan token only after authentication, encrypts it, stores `pending_verification`, and does not show connected until provider verification succeeds.
+- `POST /api/broker/logout` revokes only the authenticated user's broker connection.
+- `GET /api/broker/upstox/start` is an OAuth scaffold and does not create a connection.
+- `GET /api/broker/upstox/callback` is a callback scaffold and does not exchange or expose tokens until final provider approval is implemented.
 
 ## Health check
 

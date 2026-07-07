@@ -661,6 +661,44 @@ async function handleBroker(request, action, provider, env) {
     }
   }
 
+  if (action === 'upstox_start') {
+    const redirectUri = cleanText(env?.UPSTOX_REDIRECT_URI, 500);
+    const clientId = cleanText(env?.UPSTOX_CLIENT_ID, 200);
+    let authorizationUrl = '';
+    if (clientId && redirectUri) {
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        state: auth.user.id,
+      });
+      authorizationUrl = `https://api.upstox.com/v2/login/authorization/dialog?${params.toString()}`;
+    }
+    return secureJson(request, {
+      status: 'setup_required',
+      provider: 'upstox',
+      isConnected: false,
+      dataAccess: 'none',
+      userId: auth.user.id,
+      authorizationUrl: authorizationUrl || null,
+      message: 'Upstox OAuth start scaffold is present, but token exchange and encrypted storage require final provider approval. No broker connection was created.',
+    }, 503);
+  }
+
+  if (action === 'upstox_callback') {
+    const callbackUrl = new URL(request.url);
+    const hasCode = Boolean(cleanText(callbackUrl.searchParams.get('code'), 1000));
+    return secureJson(request, {
+      status: 'setup_required',
+      provider: 'upstox',
+      isConnected: false,
+      dataAccess: 'none',
+      userId: auth.user.id,
+      receivedAuthorizationCode: hasCode,
+      message: 'Upstox callback scaffold received the request, but no token exchange or connected state is enabled until per-user encrypted storage is approved.',
+    }, 503);
+  }
+
   return brokerSetupRequired(request, provider, 'This broker authorization route is still setup_required. No broker account is connected.');
 }
 
