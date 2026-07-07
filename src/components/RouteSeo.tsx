@@ -94,7 +94,11 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
   },
   '/status': {
     title: 'Service Status — StockPro',
-    description: 'Check current StockPro market-data, waitlist, trial, broker, and news-service setup or availability states.',
+    description: 'Check current StockPro market-data, waitlist, auth, broker vault, billing, ads, and news-service setup or availability states.',
+  },
+  '/account': {
+    title: 'Account — StockPro',
+    description: 'Review StockPro account, subscription, billing readiness, and per-user broker setup states without fake login or payment status.',
   },
   '/privacy': {
     title: 'Privacy Policy — StockPro',

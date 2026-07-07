@@ -45,7 +45,7 @@ const PATH_TO_TAB: Record<string, DashboardTab> = Object.entries(TAB_TO_PATH).re
   {} as Record<string, DashboardTab>,
 );
 
-const utilityRoutes = new Set(['/start-trial', '/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/status']);
+const utilityRoutes = new Set(['/start-trial', '/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/status', '/account']);
 
 export interface DashboardContext {
   stocks: Stock[];
@@ -246,6 +246,7 @@ export default function Layout() {
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Data Source</h4>
             <Link to="/connect-broker" className={footerLinkClass}>Broker live setup</Link>
+            <Link to="/account" className={footerLinkClass}>Account</Link>
             <Link to="/data-methodology" className={footerLinkClass}>Data Methodology</Link>
             <Link to="/status" className={footerLinkClass}>Service Status</Link>
             <p className="leading-relaxed">Free public mode uses 15-minute delayed data. Broker mode activates only after payment verification and secure setup.</p>

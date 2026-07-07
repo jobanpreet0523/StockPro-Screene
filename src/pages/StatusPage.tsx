@@ -7,16 +7,21 @@ interface ServiceStatus { key: string; label: string; state: ServiceState; messa
 const services = [
   { key: 'market', label: 'Market data provider', endpoint: '/api/live/health' },
   { key: 'waitlist', label: 'Waitlist API', endpoint: '/api/waitlist/health' },
+  { key: 'auth', label: 'Auth status', endpoint: '/api/auth/session' },
+  { key: 'brokerVault', label: 'Broker vault', endpoint: '/api/broker/health' },
   { key: 'trial', label: 'Trial and payment', endpoint: '/api/trial/status' },
   { key: 'broker', label: 'Broker connection', endpoint: '/api/broker/status' },
   { key: 'news', label: 'News feed', endpoint: '/api/live-articles' },
+  { key: 'ads', label: 'Ads configuration', endpoint: '/api/ad-config' },
+  { key: 'billing', label: 'Billing readiness', endpoint: '/api/billing/readiness' },
 ] as const;
 
 const initial = services.map(({ key, label }) => ({ key, label, state: 'checking' as const, message: 'Checking current status...' }));
 
 function normalizeStatus(response: Response, payload: any): ServiceState {
   if (payload?.status === 'setup_required') return 'setup_required';
-  if (response.ok && payload?.status === 'ok') return 'ok';
+  if (payload?.status === 'unauthenticated' || payload?.status === 'not_connected') return 'setup_required';
+  if (response.ok && (payload?.status === 'ok' || payload?.status === 'authenticated' || payload?.status === 'test_ready')) return 'ok';
   return 'unavailable';
 }
 
@@ -33,6 +38,14 @@ export default function StatusPage() {
         const payload = await response.json().catch(() => ({ status: 'error', message: 'Unreadable service response.' }));
         const details = service.key === 'market'
           ? `${payload.message || 'Market provider responded.'} Source: ${payload.source || 'unknown'}${Number.isFinite(payload.delayMinutes) ? ` · Delay: ${payload.delayMinutes} minutes` : ''}`
+          : service.key === 'brokerVault'
+          ? `${payload.message || 'Broker vault checked.'} Auth: ${payload.authConfigured ? 'configured' : 'setup required'} · Vault: ${payload.tokenVaultConfigured ? 'configured' : 'setup required'} · Storage: ${payload.storageConfigured ? 'configured' : 'setup required'} · Provider: ${payload.providerConfigured ? 'configured' : 'setup required'}`
+          : service.key === 'billing'
+          ? `${payload.message || 'Billing readiness checked.'} Payment live mode disabled.`
+          : service.key === 'ads'
+          ? `${payload.message || 'Ads configuration checked.'} Placeholder mode is acceptable until approved ad setup exists.`
+          : service.key === 'auth'
+          ? `${payload.message || 'Auth status checked.'} No logged-in user is assumed without a valid session.`
           : service.key === 'news' && Array.isArray(payload.data)
           ? `${payload.data.length} current source-linked article${payload.data.length === 1 ? '' : 's'} available.`
           : String(payload.message || 'Service responded without a status message.');
@@ -66,6 +79,13 @@ export default function StatusPage() {
               <p className="mt-3 text-xs font-semibold leading-6 text-slate-600 dark:text-slate-400">{item.message}</p>
             </article>
           ))}
+        </div>
+
+        <div className="mt-6 grid gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-black leading-5 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-200 sm:grid-cols-2">
+          <span>Payment live mode disabled</span>
+          <span>Broker data is per-user only</span>
+          <span>No shared broker token</span>
+          <span>Educational analytics only</span>
         </div>
 
         <p className="mt-6 flex items-start gap-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400"><Activity size={15} className="mt-0.5 shrink-0 text-emerald-500" /> This page is operational context, not a market-data guarantee or investment advice.</p>

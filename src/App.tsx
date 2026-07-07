@@ -32,6 +32,7 @@ import DataMethodologyPage from './pages/DataMethodologyPage';
 import SupportPolicyPage from './pages/SupportPolicyPage';
 import RefundPolicyPage from './pages/RefundPolicyPage';
 import StatusPage from './pages/StatusPage';
+import AccountPage from './pages/AccountPage';
 import StructuredData from './components/StructuredData';
 
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -103,6 +104,7 @@ export default function App() {
             <Route path="/support-policy" element={<SupportPolicyPage />} />
             <Route path="/refund-policy" element={<RefundPolicyPage />} />
             <Route path="/status" element={<StatusPage />} />
+            <Route path="/account" element={<AccountPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>

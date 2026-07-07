@@ -4,28 +4,50 @@ import { formatTrialDisclosure, FREE_TRIAL_DAYS, PRO_MONTHLY_PRICE_INR } from '.
 import type { TrialApiResponse } from '../core/subscriptionTypes';
 
 type SubmitState = 'idle' | 'submitting' | 'setup_required' | 'error';
+interface BillingReadinessResponse {
+  status: 'setup_required' | 'test_ready' | 'error';
+  message: string;
+  live_disabled?: boolean;
+  testModeReady?: boolean;
+  paymentEnabled?: boolean;
+}
 
 export default function StartTrialPage() {
   const [consent, setConsent] = useState(false);
   const [state, setState] = useState<SubmitState>('idle');
   const [message, setMessage] = useState('Payment and recurring mandate setup are not enabled yet.');
+  const [billingMessage, setBillingMessage] = useState('Checking Razorpay test-mode readiness...');
+  const [billingReady, setBillingReady] = useState(false);
 
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const response = await fetch('/api/trial/status');
-        const payload = await response.json().catch(() => ({
+        const [trialResponse, billingResponse] = await Promise.all([
+          fetch('/api/trial/status'),
+          fetch('/api/billing/readiness'),
+        ]);
+        const payload = await trialResponse.json().catch(() => ({
           status: 'error',
           plan: 'pro',
           disclosure: formatTrialDisclosure(),
           paymentEnabled: false,
           message: 'Trial setup returned an unreadable response.',
         })) as TrialApiResponse;
+        const billingPayload = await billingResponse.json().catch(() => ({
+          status: 'error',
+          message: 'Billing readiness returned an unreadable response.',
+          live_disabled: true,
+          paymentEnabled: false,
+        })) as BillingReadinessResponse;
         setState(payload.status === 'setup_required' ? 'setup_required' : 'error');
         setMessage(payload.message);
+        setBillingReady(billingPayload.status === 'test_ready' && billingPayload.live_disabled === true);
+        setBillingMessage(`${billingPayload.message} Payment live mode disabled.`);
       } catch {
         setState('error');
         setMessage('Trial setup could not be reached. No payment was created.');
+        setBillingReady(false);
+        setBillingMessage('Billing readiness could not be reached. No payment was created.');
       }
     };
     void checkStatus();
@@ -42,7 +64,7 @@ export default function StartTrialPage() {
     setState('submitting');
     setMessage('Checking trial setup...');
     try {
-      const response = await fetch('/api/trial/start', {
+      const response = await fetch(billingReady ? '/api/billing/create-test-subscription' : '/api/trial/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ autoRenewConsent: true }),
@@ -94,6 +116,9 @@ export default function StartTrialPage() {
             <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-black leading-6 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
               {formatTrialDisclosure()}
             </p>
+            <div className={`mt-4 rounded-2xl border p-4 text-xs font-bold leading-5 ${billingReady ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300' : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200'}`}>
+              Razorpay test readiness: {billingMessage}
+            </div>
 
             <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
               <input
@@ -122,7 +147,7 @@ export default function StartTrialPage() {
             </div>
 
             <p className="mt-4 flex items-start gap-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
-              <ShieldCheck size={15} className="mt-0.5 shrink-0 text-emerald-500" /> No checkout opens and no charge is created while setup remains disabled.
+              <ShieldCheck size={15} className="mt-0.5 shrink-0 text-emerald-500" /> No live checkout opens, no hidden auto-payment runs, and no charge is created while setup remains disabled.
             </p>
           </form>
         </div>

@@ -1,11 +1,13 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import type { AuthApiResponse, StockProUser } from '../core/authTypes';
 
 interface AuthContextType {
-  user: User | null;
+  user: StockProUser | null;
   loading: boolean;
   isPro: boolean;
+  authStatus: AuthApiResponse['status'] | 'loading';
+  authMessage: string;
+  refreshSession: () => Promise<void>;
   setProStatus: (status: boolean) => void;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -15,66 +17,70 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isPro: true,
+  authStatus: 'loading',
+  authMessage: 'Checking account status...',
+  refreshSession: async () => {},
   setProStatus: () => {},
   loginWithGoogle: async () => {},
-  logout: async () => {}
+  logout: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<StockProUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(true);
+  const [authStatus, setAuthStatus] = useState<AuthContextType['authStatus']>('loading');
+  const [authMessage, setAuthMessage] = useState('Checking account status...');
 
-  const freeGuestUser = useMemo(() => ({
-    uid: 'stockpro-free-guest',
-    displayName: 'Free User',
-    email: 'free@stockpro.local',
-    photoURL: 'https://ui-avatars.com/api/?name=Free+User&color=10b981&background=ecfdf5',
-  } as unknown as User), []);
-
-  useEffect(() => {
-    // StockPro is now fully free: unlock every former PRO feature by default.
-    localStorage.setItem('isPro', 'true');
-    setIsPro(true);
-  }, []);
-
-  const setProStatus = (_status: boolean) => {
-    // Keep backward compatibility with old pricing code, but never lock features again.
-    setIsPro(true);
-    localStorage.setItem('isPro', 'true');
+  const refreshSession = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/session', { headers: { Accept: 'application/json' } });
+      const payload = await response.json().catch(() => ({
+        status: 'error',
+        user: null,
+        message: 'Account session returned an unreadable response.',
+      })) as AuthApiResponse;
+      setUser(payload.status === 'authenticated' ? payload.user : null);
+      setAuthStatus(payload.status);
+      setAuthMessage(payload.message || 'Account status checked.');
+    } catch {
+      setUser(null);
+      setAuthStatus('error');
+      setAuthMessage('Account session could not be reached. No logged-in user was assumed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return unsubscribe;
+    void refreshSession();
   }, []);
 
+  const setProStatus = (_status: boolean) => {
+    // Backward compatibility for older components. Stage 18 does not create a paid entitlement.
+    setIsPro(true);
+  };
+
   const loginWithGoogle = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Failed to sign in with Google", error);
-    }
+    window.location.href = '/account';
   };
 
   const logout = async () => {
     try {
-      await auth.signOut();
-      setUser(null);
-    } catch (error) {
-      console.error("Failed to sign out", error);
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Keep the browser state honest even if the server-side scaffold is unavailable.
     }
+    setUser(null);
+    setAuthStatus('unauthenticated');
+    setAuthMessage('Signed out locally. No StockPro session is active.');
   };
 
-  const effectiveUser = user || freeGuestUser;
-
   return (
-    <AuthContext.Provider value={{ user: effectiveUser, loading, isPro, setProStatus, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading, isPro, authStatus, authMessage, refreshSession, setProStatus, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -33,43 +33,16 @@ export interface MarketDataStatus {
   message: string;
 }
 
-const BROKER_STORAGE_KEY = 'stockpro_broker_connection';
-const isBrowser = () => typeof window !== 'undefined';
-
 export const LIVE_PLAN_PRICE_INR = 299;
 export const FREE_DATA_DELAY_LABEL = '15-Min Delayed Data';
 
 export const getStoredBrokerConnection = (): BrokerConnectionState | null => {
-  if (!isBrowser()) return null;
-
-  try {
-    const raw = window.localStorage.getItem(BROKER_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as BrokerConnectionState;
-    if (!parsed?.provider || !parsed?.connectedAt) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+  return null;
 };
 
-export const saveBrokerConnectionPreview = (provider: BrokerProvider) => {
-  if (!isBrowser()) return;
+export const saveBrokerConnectionPreview = (_provider: BrokerProvider) => {};
 
-  const displayName = provider === 'upstox' ? 'Upstox' : 'Zerodha';
-  const payload: BrokerConnectionState = {
-    provider,
-    displayName,
-    connectedAt: new Date().toISOString(),
-  };
-
-  window.localStorage.setItem(BROKER_STORAGE_KEY, JSON.stringify(payload));
-};
-
-export const clearBrokerConnectionPreview = () => {
-  if (!isBrowser()) return;
-  window.localStorage.removeItem(BROKER_STORAGE_KEY);
-};
+export const clearBrokerConnectionPreview = () => {};
 
 export const getMarketDataStatus = (hasError = false, providerStatus?: ProviderMarketDataStatus | null): MarketDataStatus => {
   if (providerStatus?.isLive === true && providerStatus.status === 'ok') {
@@ -120,8 +93,6 @@ export const getMarketDataStatus = (hasError = false, providerStatus?: ProviderM
     };
   }
 
-  const broker = getStoredBrokerConnection();
-
   if (hasError) {
     return {
       source: 'fallback',
@@ -131,18 +102,6 @@ export const getMarketDataStatus = (hasError = false, providerStatus?: ProviderM
       canUpgradeToBrokerLive: true,
       timestamp: new Date().toISOString(),
       message: 'Market data is unavailable. No substitute values are shown.',
-    };
-  }
-
-  if (broker) {
-    return {
-      source: 'delayed',
-      label: 'Live Setup Pending',
-      provider: broker.displayName,
-      isRealtime: false,
-      canUpgradeToBrokerLive: true,
-      timestamp: broker.connectedAt,
-      message: `${broker.displayName} setup is selected. Until payment verification and broker setup are active, free users still see 15-minute delayed data.`,
     };
   }
 
