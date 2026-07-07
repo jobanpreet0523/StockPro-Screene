@@ -84,7 +84,7 @@ const ignoredConsoleError = (message: string) =>
 
 test.describe('StockPro browser smoke', () => {
   for (const route of publicRoutes) {
-    test(`${route} loads without app crash`, async ({ page }) => {
+    test(route + ' loads without app crash', async ({ page }) => {
       const consoleErrors: string[] = [];
       page.on('console', (message) => {
         if (message.type() === 'error' && !ignoredConsoleError(message.text())) {
@@ -96,7 +96,7 @@ test.describe('StockPro browser smoke', () => {
       await expect(page.locator('body')).toBeVisible();
       await expect(page.locator('body')).not.toContainText(/Something went wrong/i);
       await expect(page.locator('body')).not.toContainText(/Application error/i);
-      expect(consoleErrors, `console errors on ${route}`).toEqual([]);
+      expect(consoleErrors, 'console errors on ' + route).toEqual([]);
     });
   }
 
@@ -130,7 +130,7 @@ const routes = ['/', '/contact', '/screener', '/option-chain', '/pricing', '/sta
 
 test.describe('StockPro accessibility smoke', () => {
   for (const route of routes) {
-    test(`${route} has no serious or critical axe violations`, async ({ page }) => {
+    test(route + ' has no serious or critical axe violations', async ({ page }) => {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
       const results = await new AxeBuilder({ page }).analyze();
       const seriousOrCritical = results.violations.filter((violation) =>
