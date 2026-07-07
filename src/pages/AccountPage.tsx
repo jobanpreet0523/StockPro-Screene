@@ -40,6 +40,7 @@ export default function AccountPage() {
   const { user, authStatus, authMessage, refreshSession, logout } = useAuth();
   const [cards, setCards] = useState<AccountCard[]>(initialCards);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [billingActionMessage, setBillingActionMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -88,6 +89,22 @@ export default function AccountPage() {
   const refreshAll = () => {
     void refreshSession();
     setRefreshKey((value) => value + 1);
+  };
+  const billingTestReady = cards.some((item) => item.key === 'billing' && item.state === 'ok');
+
+  const cancelTestSubscription = async () => {
+    setBillingActionMessage('Checking test cancellation scaffold...');
+    try {
+      const response = await fetch('/api/billing/cancel-test-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'user_requested_from_account_page' }),
+      });
+      const payload = await response.json().catch(() => ({ message: 'Cancellation scaffold returned an unreadable response.' }));
+      setBillingActionMessage(payload.message || (response.ok ? 'Cancellation scaffold checked.' : 'Cancellation scaffold unavailable.'));
+    } catch {
+      setBillingActionMessage('Cancellation scaffold could not be reached. No subscription was changed.');
+    }
   };
 
   return (
@@ -138,6 +155,24 @@ export default function AccountPage() {
           <AccountLink icon={CreditCard} to="/start-trial" title="Review trial disclosure" text="Auto-renew consent remains explicit; live payment is disabled." />
           <AccountLink icon={KeyRound} to="/connect-broker" title="Broker setup" text="Broker data is per-user only. No shared broker token." />
           <AccountLink icon={Database} to="/status" title="Service status" text="Review setup-required states across the platform." />
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-black text-slate-950 dark:text-white">Test subscription controls</h2>
+              <p className="mt-1 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">Visible for readiness only. Live payment stays disabled and no fake active subscription is created.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void cancelTestSubscription()}
+              disabled={!billingTestReady || !user}
+              className="rounded-2xl border border-slate-300 px-4 py-3 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
+            >
+              Cancel test subscription
+            </button>
+          </div>
+          {billingActionMessage && <p className="mt-3 text-xs font-bold leading-5 text-slate-600 dark:text-slate-300">{billingActionMessage}</p>}
         </div>
 
         <p className="mt-6 flex items-start gap-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">

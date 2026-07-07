@@ -1,6 +1,6 @@
 # Razorpay test-mode setup
 
-Stage 18 prepares Razorpay test-mode readiness only. Live payment remains disabled. No live checkout, hidden auto-charge, or real subscription is created by this stage.
+Stage 24 prepares Razorpay test-mode subscription readiness only. Live payment remains disabled. No live checkout, hidden auto-charge, or real subscription is created by this stage.
 
 ## Required Worker environment
 
@@ -25,7 +25,7 @@ Routes added:
 - `POST /api/billing/cancel-test-subscription`
 - `POST /api/razorpay/webhook`
 
-The create/cancel routes require an authenticated user and `autoRenewConsent=true` for creation. In Stage 18 they remain scaffolds and do not create a live charge. The webhook route verifies Razorpay signatures before storing test events.
+The create/cancel routes require an authenticated user and `autoRenewConsent=true` for creation. In Stage 24 they remain test-mode scaffolds and do not create a live charge. The webhook route verifies Razorpay signatures before storing test events.
 
 ## Webhook setup
 
