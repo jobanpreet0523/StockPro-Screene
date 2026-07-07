@@ -6,7 +6,8 @@ export function useMarketStatus() {
   return useQuery({
     queryKey: ['marketStatus'],
     queryFn: ({ signal }) => fetchMarketData<MarketStatusSnapshot>('/api/live/market-status', signal),
-    refetchInterval: 30_000,
+    refetchInterval: () => document.hidden ? false : 30_000,
+    refetchOnWindowFocus: true,
     staleTime: 10_000,
     retry: 1,
   });

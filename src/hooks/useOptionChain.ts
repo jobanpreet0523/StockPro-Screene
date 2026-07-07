@@ -15,7 +15,8 @@ export function useOptionChain() {
       if (response.status !== 'ok' || !response.data) throw new Error(response.message || 'Option-chain provider is unavailable.');
       return response;
     },
-    refetchInterval: 60_000,
+    refetchInterval: () => document.hidden ? false : 30_000,
+    refetchOnWindowFocus: true,
     staleTime: 30_000,
     retry: 1,
   });

@@ -1,4 +1,5 @@
 import { createMarketDataProvider } from './core/marketDataProvider.ts';
+import { brokerRequiredProvider, createBrokerRestMarketDataProvider, shouldUseBrokerRestData } from './core/brokerLiveData.ts';
 import { encryptBrokerToken, getTokenVaultStatus } from './core/tokenVault.ts';
 import { getRazorpayReadiness } from './core/razorpayReadiness.ts';
 
@@ -947,7 +948,7 @@ async function handleApi(path, url, request, env) {
   const providerMatch = path.match(/^\/api\/provider\/(upstox|zerodha)\/(start|callback)$/);
   if (providerMatch) return json({ status: 'setup_required', provider: providerMatch[1], step: providerMatch[2], message: 'Provider setup is not active yet.' }, 503);
 
-  const marketProvider = createMarketDataProvider(env);
+  const marketProvider = await createRequestMarketDataProvider(request, env);
   const liveQuoteMatch = path.match(/^\/api\/live\/quote\/(.+)$/);
   const liveOptionChainMatch = path.match(/^\/api\/live\/option-chain\/(.+)$/);
   if (path.startsWith('/api/live/') && request.method !== 'GET') return json({ status: 'error', message: 'Method not allowed.' }, 405);
@@ -976,4 +977,36 @@ async function handleApi(path, url, request, env) {
   if (path === '/api/chart') return json({ status: 'ok', data: [] });
   if (path === '/api/pro-data') return json({ status: 'ok', symbol: url.searchParams.get('symbol') || 'NIFTY' });
   return json({ status: 'error', message: 'Not found' }, 404);
+}
+
+async function createRequestMarketDataProvider(request, env) {
+  if (!shouldUseBrokerRestData(env)) return createMarketDataProvider(env);
+
+  const auth = await getAuthenticatedUser(request, env);
+  if (auth.status === 'setup_required') return brokerRequiredProvider(auth.message);
+  if (auth.status !== 'authenticated') return brokerRequiredProvider('Connect broker for live data. Sign in before using broker REST market data.');
+
+  const storageConfig = getBrokerConfig(env, 'none');
+  if (storageConfig.storageMode !== 'supabase' || !storageConfig.supabase.configured || storageConfig.vault.status !== 'ok') {
+    return brokerRequiredProvider('Broker REST live data requires Supabase token storage and BROKER_ENCRYPTION_SECRET setup.');
+  }
+
+  try {
+    const row = await loadBrokerConnection(storageConfig, auth.user.id);
+    if (!row || row.status !== 'connected' || !BROKER_PROVIDERS.has(row.provider)) {
+      return brokerRequiredProvider('Connect broker for live data. No verified per-user broker connection was found.');
+    }
+    const providerConfig = getBrokerConfig(env, row.provider);
+    if (!providerConfig.providerReady) {
+      return brokerRequiredProvider(`Broker REST provider credentials for ${row.provider} are not configured.`);
+    }
+    return createBrokerRestMarketDataProvider({
+      userId: auth.user.id,
+      provider: row.provider,
+      isConnected: true,
+      tokenAvailable: true,
+    });
+  } catch {
+    return brokerRequiredProvider('Broker REST live data storage is unavailable. No fake live data is shown.');
+  }
 }
