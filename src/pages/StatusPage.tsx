@@ -6,20 +6,23 @@ interface ServiceStatus { key: string; label: string; state: ServiceState; messa
 
 const services = [
   { key: 'market', label: 'Market data provider', endpoint: '/api/live/health' },
-  { key: 'waitlist', label: 'Waitlist API', endpoint: '/api/waitlist/health' },
+  { key: 'brokerRest', label: 'Broker REST / market data', endpoint: '/api/live/health' },
+  { key: 'waitlist', label: 'Waitlist DB', endpoint: '/api/waitlist/health' },
   { key: 'auth', label: 'Auth status', endpoint: '/api/auth/session' },
-  { key: 'brokerVault', label: 'Broker vault', endpoint: '/api/broker/health' },
+  { key: 'brokerVault', label: 'Broker token vault', endpoint: '/api/broker/health' },
   { key: 'brokerStream', label: 'Broker WebSocket', endpoint: '/api/broker/stream/status' },
   { key: 'trial', label: 'Trial and payment', endpoint: '/api/trial/status' },
   { key: 'broker', label: 'Broker connection', endpoint: '/api/broker/status' },
   { key: 'news', label: 'News feed', endpoint: '/api/live-articles' },
   { key: 'ads', label: 'Ads configuration', endpoint: '/api/ad-config' },
   { key: 'billing', label: 'Billing readiness', endpoint: '/api/billing/readiness' },
+  { key: 'seo', label: 'SEO metadata', endpoint: '/api/site-config' },
 ] as const;
 
 const initial = services.map(({ key, label }) => ({ key, label, state: 'checking' as const, message: 'Checking current status...' }));
 
-function normalizeStatus(response: Response, payload: any): ServiceState {
+function normalizeStatus(response: Response, payload: any, key?: string): ServiceState {
+  if (key === 'seo' && response.ok) return 'ok';
   if (payload?.status === 'setup_required') return 'setup_required';
   if (payload?.status === 'unauthenticated' || payload?.status === 'not_connected') return 'setup_required';
   if (response.ok && (payload?.status === 'ok' || payload?.status === 'authenticated' || payload?.status === 'test_ready')) return 'ok';
@@ -43,6 +46,10 @@ export default function StatusPage() {
           ? `${payload.message || 'Broker vault checked.'} Auth: ${payload.authConfigured ? 'configured' : 'setup required'} · Vault: ${payload.tokenVaultConfigured ? 'configured' : 'setup required'} · Storage: ${payload.storageConfigured ? 'configured' : 'setup required'} · Provider: ${payload.providerConfigured ? 'configured' : 'setup required'}`
           : service.key === 'brokerStream'
           ? `${payload.message || 'Broker stream checked.'} Stream: ${payload.isStreaming ? 'connected' : 'fallback to polling'}`
+          : service.key === 'brokerRest'
+          ? `${payload.message || 'Broker REST checked through live provider layer.'} Source: ${payload.source || 'unknown'}`
+          : service.key === 'seo'
+          ? 'Route SEO, sitemap, redirects, and launch verification are checked by scripts/verify-launch.mjs.'
           : service.key === 'billing'
           ? `${payload.message || 'Billing readiness checked.'} Payment live mode disabled.`
           : service.key === 'ads'
@@ -52,7 +59,7 @@ export default function StatusPage() {
           : service.key === 'news' && Array.isArray(payload.data)
           ? `${payload.data.length} current source-linked article${payload.data.length === 1 ? '' : 's'} available.`
           : String(payload.message || 'Service responded without a status message.');
-        return { key: service.key, label: service.label, state: normalizeStatus(response, payload), message: details } as ServiceStatus;
+        return { key: service.key, label: service.label, state: normalizeStatus(response, payload, service.key), message: details } as ServiceStatus;
       } catch {
         return { key: service.key, label: service.label, state: 'unavailable', message: 'Service is unavailable or timed out. No substitute status is shown.' } as ServiceStatus;
       }
@@ -69,7 +76,7 @@ export default function StatusPage() {
             <h1 className="mt-1 text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">StockPro service status</h1>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">Live checks report configured, setup-required, or unavailable states without inventing service health.</p>
           </div>
-          <button type="button" onClick={() => setRefreshKey((value) => value + 1)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white dark:bg-emerald-500 dark:text-slate-950"><RefreshCw size={14} /> Refresh status</button>
+          <button type="button" onClick={() => setRefreshKey((value) => value + 1)} data-analytics-event="status_check" data-analytics-label="status:refresh" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white dark:bg-emerald-500 dark:text-slate-950"><RefreshCw size={14} /> Refresh status</button>
         </div>
 
         <div className="mt-7 grid gap-4 md:grid-cols-2">

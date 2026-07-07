@@ -5,10 +5,14 @@ const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 const expectedRoutes = [
+  '/',
+  '/login',
+  '/signup',
+  '/account',
   '/contact',
   '/admin/waitlist',
-  '/account',
   '/status',
+  '/beta',
   '/start-trial',
   '/connect-broker',
   '/pricing',
@@ -26,7 +30,7 @@ const missing = [];
 
 for (const route of expectedRoutes) {
   if (!app.includes(`path="${route}"`)) missing.push(`React route missing: ${route}`);
-  if (!redirects.includes(`${route} /index.html 200`)) missing.push(`Direct-route fallback missing: ${route}`);
+  if (route !== '/' && !redirects.includes(`${route} /index.html 200`)) missing.push(`Direct-route fallback missing: ${route}`);
 }
 
 if (!distIndex.includes('<div id="root"></div>')) missing.push('Built index is missing the React root');

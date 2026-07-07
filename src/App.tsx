@@ -35,6 +35,7 @@ import StatusPage from './pages/StatusPage';
 import AccountPage from './pages/AccountPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import BetaLaunchPage from './pages/BetaLaunchPage';
 import StructuredData from './components/StructuredData';
 
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -109,6 +110,7 @@ export default function App() {
             <Route path="/account" element={<AccountPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/beta" element={<BetaLaunchPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>

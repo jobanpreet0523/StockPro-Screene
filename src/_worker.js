@@ -805,6 +805,52 @@ async function handleAffiliateClick(request, env) {
   }
 }
 
+async function handleBetaFeedback(request, env) {
+  if (request.method !== 'POST') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'POST' });
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return secureJson(request, { status: 'error', message: 'A valid JSON request is required.' }, 400);
+  }
+  const message = cleanText(body?.message, 1500);
+  const sourcePage = cleanText(body?.sourcePage, 500);
+  if (!message) return secureJson(request, { status: 'error', message: 'Feedback message is required.' }, 400);
+
+  const storage = getSupabaseTableConfig(env, env?.SUPABASE_BETA_FEEDBACK_TABLE || 'beta_feedback');
+  if (!storage.configured) {
+    return secureJson(request, {
+      status: 'setup_required',
+      message: 'Beta feedback storage is not configured. No fake feedback success was shown.',
+    }, 503);
+  }
+
+  const auth = await getAuthenticatedUser(request, env);
+  const userId = auth.status === 'authenticated' ? auth.user.id : null;
+  try {
+    const response = await fetch(`${storage.supabaseUrl}/rest/v1/${encodeURIComponent(storage.table)}`, {
+      method: 'POST',
+      headers: {
+        apikey: storage.serviceRoleKey,
+        Authorization: `Bearer ${storage.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        message,
+        source_page: sourcePage || null,
+        user_agent: cleanText(request.headers.get('User-Agent'), 500) || null,
+        created_at: new Date().toISOString(),
+      }),
+    });
+    if (!response.ok) return secureJson(request, { status: 'error', message: 'Beta feedback could not be stored. No fake success was shown.' }, 502);
+    return secureJson(request, { status: 'stored', message: 'Beta feedback stored. Thank you.' }, 201);
+  } catch {
+    return secureJson(request, { status: 'error', message: 'Beta feedback storage is temporarily unavailable. No fake success was shown.' }, 502);
+  }
+}
+
 function hexFromBytes(bytes) {
   return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
@@ -968,6 +1014,7 @@ async function handleApi(path, url, request, env) {
   if (path === '/api/broker/upstox/callback') return handleBroker(request, 'upstox_callback', 'upstox', env);
   if (path === '/api/broker/logout') return handleBroker(request, 'logout', 'none', env);
   if (path === '/api/affiliate/click') return handleAffiliateClick(request, env);
+  if (path === '/api/beta/feedback') return handleBetaFeedback(request, env);
   if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
   if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
   if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'setup_required', dataMode: 'delayed', delayMinutes: 15, message: 'Payment verification is disabled until launch readiness is complete.' }, 503);

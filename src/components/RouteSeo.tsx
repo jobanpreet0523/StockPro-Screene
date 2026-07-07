@@ -112,6 +112,10 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     title: 'Signup - StockPro',
     description: 'Create a StockPro account only after Supabase Auth is configured. Signup never creates fake users or broker state.',
   },
+  '/beta': {
+    title: 'Closed Beta Readiness - StockPro',
+    description: 'Review StockPro closed beta readiness across auth, waitlist, broker, billing, market data, news, ads, and setup-required states.',
+  },
   '/privacy': {
     title: 'Privacy Policy — StockPro',
     description: 'Read how StockPro handles account data, analytics, cookies, local storage, support messages, and third-party services.',

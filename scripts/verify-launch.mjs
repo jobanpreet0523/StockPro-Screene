@@ -18,6 +18,9 @@ const requiredFiles = [
   'src/services/livePlanApi.ts',
   'src/pages/ConnectBrokerPage.tsx',
   'src/pages/AccountPage.tsx',
+  'src/pages/LoginPage.tsx',
+  'src/pages/SignupPage.tsx',
+  'src/pages/BetaLaunchPage.tsx',
   'src/pages/StatusPage.tsx',
   'src/pages/PrivacyPage.tsx',
   'src/pages/TermsPage.tsx',
@@ -46,6 +49,9 @@ const requiredRoutes = [
   '/signals',
   '/connect-broker',
   '/account',
+  '/login',
+  '/signup',
+  '/beta',
   '/status',
   '/privacy',
   '/terms',
@@ -120,7 +126,7 @@ for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/a
 }
 
 const worker = read('src/_worker.js');
-for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider', '/api/live-feed/status', '/api/waitlist/health', '/api/live/health', '/api/broker/health', '/api/billing/readiness', 'handlePlanRoutes(path, request)']) {
+for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider', '/api/live-feed/status', '/api/waitlist/health', '/api/live/health', '/api/broker/health', '/api/broker/stream/status', '/api/billing/readiness', '/api/beta/feedback', 'handlePlanRoutes(path, request)']) {
   if (!worker.includes(token)) errors.push(`Worker route wiring is missing: ${token}`);
 }
 
@@ -144,6 +150,16 @@ if (index.includes('/landing-3d-elements.js" defer')) errors.push('landing-3d-el
 const billingReadiness = read('src/core/razorpayReadiness.ts');
 if (!billingReadiness.includes('live_disabled: true') || !billingReadiness.includes('paymentEnabled: false')) {
   errors.push('Razorpay readiness must keep live payment disabled');
+}
+
+const authContext = read('src/contexts/AuthContext.tsx');
+if (authContext.includes('setIsPro(true)') || authContext.includes('isPro: true')) {
+  errors.push('AuthContext must not fake paid/pro entitlement');
+}
+
+const betaPage = read('src/pages/BetaLaunchPage.tsx');
+for (const eventName of ['beta_feedback_submit', 'status_check']) {
+  if (!betaPage.includes(eventName)) errors.push(`Beta page is missing analytics event: ${eventName}`);
 }
 
 const hero = read('src/components/MarketPulseHero.tsx');
