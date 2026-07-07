@@ -195,7 +195,6 @@ export default function OptionChainView({ symbol, currentPrice, stockName: propS
         setChain(chainData);
         setSelectedStrike(chainData.options[Math.floor(chainData.options.length / 2)]);
       } catch (err: any) {
-        console.error('Option-chain provider error:', err);
         setChain(null);
         setSelectedStrike(null);
         setChainError(err?.message || 'Option-chain provider is unavailable.');
