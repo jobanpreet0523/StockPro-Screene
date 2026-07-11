@@ -1,6 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
+
+const configDir = fileURLToPath(new URL('.', import.meta.url));
 
 const analyzePlugins = [];
 
@@ -22,13 +25,13 @@ export default {
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '.'),
+      '@': path.resolve(configDir, '.'),
     },
   },
   build: {
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'index.html'),
+        main: path.resolve(configDir, 'index.html'),
       }
     }
   },

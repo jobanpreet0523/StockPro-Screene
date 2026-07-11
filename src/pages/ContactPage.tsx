@@ -1,7 +1,9 @@
-import React, { FormEvent, useEffect, useMemo, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { BarChart3, Bell, CheckCircle2, Crown, Mail, MessageCircle, Send, ShieldAlert, Sparkles } from 'lucide-react';
 import type { WaitlistApiResponse, WaitlistPayload, WaitlistSubmitState } from '../core/waitlist';
+import TurnstileWidget from '../components/security/TurnstileWidget';
+import { captureSafeEvent } from '../lib/posthog';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,6 +18,9 @@ export default function ContactPage() {
   const [submitState, setSubmitState] = useState<WaitlistSubmitState>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), []);
 
   useEffect(() => {
     setInterest(queryInterest);
@@ -42,6 +47,12 @@ export default function ContactPage() {
     if (!cleanName) errors.name = 'Name is required.';
     if (!emailPattern.test(cleanEmail)) errors.email = 'Enter a valid email address.';
     setFieldErrors(errors);
+
+    if (!turnstileToken) {
+      setSubmitState('setup_required');
+      setStatusMessage('Complete anti-spam verification before submitting.');
+      return;
+    }
 
     if (Object.keys(errors).length > 0) {
       setSubmitState('error');
@@ -115,7 +126,7 @@ export default function ContactPage() {
         <form onSubmit={handleSubmit} noValidate className="mt-6 rounded-3xl border border-violet-200 bg-violet-50/60 p-5 dark:border-violet-900/50 dark:bg-violet-950/10">
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-700 dark:text-violet-300"><Crown size={14} /> Structured waitlist request</div>
           <h2 className="mt-3 text-xl font-black text-slate-950 dark:text-white">Tell us what would make StockPro useful to you.</h2>
-          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">We’ll use this to understand demand and contact you when access is ready.</p>
+          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">Weâ€™ll use this to understand demand and contact you when access is ready.</p>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <label className="text-xs font-black text-slate-700 dark:text-slate-200">
@@ -172,13 +183,15 @@ export default function ContactPage() {
             </div>
           </div>
 
+          <div className="mt-5"><TurnstileWidget action="waitlist" onTokenChange={handleTurnstileToken} resetKey={turnstileResetKey} /></div>
+
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="submit"
-              disabled={submitState === 'submitting'}
+              disabled={submitState === 'submitting' || !turnstileToken}
               className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Send size={15} /> {submitState === 'submitting' ? 'Submitting…' : 'Join waitlist'}
+              <Send size={15} /> {submitState === 'submitting' ? 'Submittingâ€¦' : 'Join waitlist'}
             </button>
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">No payment is required.</span>
           </div>
@@ -245,3 +258,4 @@ export default function ContactPage() {
     </div>
   );
 }
+

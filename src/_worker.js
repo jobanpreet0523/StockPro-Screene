@@ -2,6 +2,11 @@ import { createMarketDataProvider } from './core/marketDataProvider.ts';
 import { brokerRequiredProvider, createBrokerRestMarketDataProvider, shouldUseBrokerRestData } from './core/brokerLiveData.ts';
 import { encryptBrokerToken, getTokenVaultStatus } from './core/tokenVault.ts';
 import { getRazorpayReadiness } from './core/razorpayReadiness.ts';
+import { validateInput } from './core/apiValidation.ts';
+import { betaFeedbackSchema, emailNotificationRequestSchema, waitlistLeadSchema } from './core/schemas.ts';
+import { verifyTurnstileToken } from './core/turnstile.ts';
+import { sendNotification } from './core/notifications.ts';
+import { emailReadiness } from './core/email.ts';
 
 export default {
   async fetch(request, env) {
@@ -16,7 +21,8 @@ export default {
         || path.startsWith('/api/billing/')
         || path.startsWith('/api/razorpay/')
         || path.startsWith('/api/broker/')
-        || path.startsWith('/api/affiliate/');
+        || path.startsWith('/api/affiliate/')
+        || path.startsWith('/api/notifications/');
       const headers = protectedPath ? sameOriginCorsHeaders(request) : corsHeaders();
       return new Response(null, { status: 204, headers });
     }
@@ -150,6 +156,37 @@ function safeTokenEquals(left, right) {
   return difference === 0;
 }
 
+
+const localRateLimits = new Map();
+
+async function allowPublicRequest(request, env, bucket, maxRequests = 5) {
+  const key = `${bucket}:${cleanText(request.headers.get('CF-Connecting-IP') || 'unknown', 80)}`;
+  if (env?.PUBLIC_RATE_LIMITER && typeof env.PUBLIC_RATE_LIMITER.limit === 'function') {
+    try {
+      const result = await env.PUBLIC_RATE_LIMITER.limit({ key });
+      return result?.success === true;
+    } catch {
+      return false;
+    }
+  }
+
+  const now = Date.now();
+  const windowMs = 60_000;
+  const current = localRateLimits.get(key);
+  if (!current || current.resetAt <= now) {
+    localRateLimits.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (current.count >= maxRequests) return false;
+  current.count += 1;
+  return true;
+}
+
+function turnstileFailure(request, verification) {
+  const status = verification.status === 'setup_required' ? 503 : verification.status === 'invalid' ? 400 : 502;
+  return secureJson(request, { status: verification.status, message: verification.message }, status);
+}
+
 async function handleWaitlist(request, env) {
   if (request.method !== 'POST') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'POST' });
   const contentLength = Number(request.headers.get('Content-Length') || 0);
@@ -161,6 +198,12 @@ async function handleWaitlist(request, env) {
   } catch {
     return secureJson(request, { status: 'error', message: 'A valid JSON request is required.' }, 400);
   }
+
+  const validated = validateInput(waitlistLeadSchema, body);
+  if (!validated.ok) return secureJson(request, validated, 400);
+  body = validated.data;
+  const verification = await verifyTurnstileToken(body.turnstileToken, env?.TURNSTILE_SECRET_KEY, request.headers.get('CF-Connecting-IP'));
+  if (!verification.success) return turnstileFailure(request, verification);
 
   const name = cleanText(body?.name, 120);
   const email = cleanText(body?.email, 254).toLowerCase();
@@ -283,7 +326,7 @@ async function handleAdminWaitlist(request, url, env) {
   }
 }
 
-const TRIAL_DISCLOSURE = '₹0 today. Auto-renews at ₹299/month after 7 days unless cancelled.';
+const TRIAL_DISCLOSURE = 'â‚¹0 today. Auto-renews at â‚¹299/month after 7 days unless cancelled.';
 const BROKER_PROVIDERS = new Set(['dhan', 'upstox', 'angel', 'zerodha']);
 
 function getSupabaseAuthConfig(env) {
@@ -438,6 +481,8 @@ async function handleTrial(request, action, env) {
         message: 'A valid JSON request is required.',
       }, 400);
     }
+    const verification = await verifyTurnstileToken(body?.turnstileToken, env?.TURNSTILE_SECRET_KEY, request.headers.get('CF-Connecting-IP'));
+    if (!verification.success) return turnstileFailure(request, verification);
     if (body?.autoRenewConsent !== true) {
       return secureJson(request, {
         status: 'error',
@@ -881,6 +926,11 @@ async function handleBillingSubscription(request, action, env) {
     return secureJson(request, { status: 'error', paymentEnabled: false, live_disabled: true, message: 'A valid JSON request is required.' }, 400);
   }
 
+  if (action === 'create') {
+    const verification = await verifyTurnstileToken(body?.turnstileToken, env?.TURNSTILE_SECRET_KEY, request.headers.get('CF-Connecting-IP'));
+    if (!verification.success) return turnstileFailure(request, verification);
+  }
+
   if (action === 'create' && body?.autoRenewConsent !== true) {
     return secureJson(request, {
       status: 'error',
@@ -962,6 +1012,78 @@ async function handleRazorpayWebhook(request, env) {
   }
 }
 
+
+async function handleNotificationRequest(request, env) {
+  if (request.method !== 'POST') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'POST' });
+  if (!(await allowPublicRequest(request, env, 'notification', 3))) return secureJson(request, { status: 'error', message: 'Too many requests. Please retry later.' }, 429);
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return secureJson(request, { status: 'error', message: 'A valid JSON request is required.' }, 400);
+  }
+  const validated = validateInput(emailNotificationRequestSchema, body);
+  if (!validated.ok) return secureJson(request, validated, 400);
+  const verification = await verifyTurnstileToken(validated.data.turnstileToken, env?.TURNSTILE_SECRET_KEY, request.headers.get('CF-Connecting-IP'));
+  if (!verification.success) return turnstileFailure(request, verification);
+  const result = await sendNotification(env, validated.data);
+  return secureJson(request, result, result.status === 'sent' ? 202 : result.status === 'setup_required' ? 503 : 502);
+}
+
+function configured(value) {
+  return value ? 'configured' : 'setup_required';
+}
+
+function handleSearchConfig(request, env) {
+  if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
+  const indices = [cleanText(env?.ALGOLIA_STOCK_INDEX, 128), cleanText(env?.ALGOLIA_CONTENT_INDEX, 128)]
+    .filter((name) => /^[a-zA-Z0-9_-]{1,128}$/.test(name));
+  return secureJson(request, {
+    status: indices.length ? 'configured' : 'setup_required',
+    indices,
+    message: indices.length ? 'Search indexes are configured.' : 'Search index setup is required.',
+  }, indices.length ? 200 : 503);
+}
+
+function handleOperationsReadiness(request, env) {
+  if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
+  const broker = getBrokerConfig(env, 'none');
+  const billing = getRazorpayReadiness(env);
+  const searchConfigured = Boolean(cleanText(env?.ALGOLIA_ADMIN_KEY, 500) && cleanText(env?.ALGOLIA_STOCK_INDEX, 128) && cleanText(env?.ALGOLIA_CONTENT_INDEX, 128));
+  return secureJson(request, {
+    status: 'ok',
+    services: {
+      turnstile: configured(cleanText(env?.TURNSTILE_SECRET_KEY, 500)),
+      email: emailReadiness(env),
+      search: configured(searchConfigured),
+      supabase: configured(getWaitlistConfig(env).configured),
+      marketProvider: configured(cleanText(env?.MARKET_DATA_PROVIDER, 40)),
+      brokerVault: configured(broker.supabase.configured && broker.vault.status === 'ok'),
+      billingTest: billing.status === 'test_ready' ? 'configured' : 'setup_required',
+      paymentLive: 'disabled',
+      seoAudit: 'configured',
+      testSuite: 'configured',
+    },
+    message: 'Operational readiness reports configuration states only; no secrets are returned.',
+  });
+}
+
+function handleProReadiness(request, env) {
+  if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
+  const broker = getBrokerConfig(env, 'none');
+  const billing = getRazorpayReadiness(env);
+  const marketReady = Boolean(cleanText(env?.MARKET_DATA_PROVIDER, 40));
+  return secureJson(request, {
+    status: 'setup_required',
+    marketProvider: configured(marketReady),
+    brokerVault: configured(broker.supabase.configured && broker.vault.status === 'ok'),
+    billing: billing.status === 'test_ready' ? 'configured' : 'setup_required',
+    savedScreens: null,
+    activeAlerts: null,
+    message: 'Pro readiness is informational. No entitlement, saved data, or alert count is assumed.',
+  }, 503);
+}
+
 function handleAdConfig(request, env) {
   if (request.method !== 'GET') return json({ status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET', 'Cache-Control': 'no-store' });
   const enabled = String(env?.ADS_ENABLED || '').trim().toLowerCase() === 'true';
@@ -993,6 +1115,10 @@ function handleAdConfig(request, env) {
 async function handleApi(path, url, request, env) {
   if (path === '/api/site-config') return json({ gaMeasurementId: env?.VITE_GA_MEASUREMENT_ID || env?.GA_MEASUREMENT_ID || 'G-KK6FYQQ6GV' }, 200, { 'Cache-Control': 'max-age=300' });
   if (path === '/api/ad-config') return handleAdConfig(request, env);
+  if (path === '/api/operations/readiness') return handleOperationsReadiness(request, env);
+  if (path === '/api/search/config') return handleSearchConfig(request, env);
+  if (path === '/api/pro/readiness') return handleProReadiness(request, env);
+  if (path === '/api/notifications/request') return handleNotificationRequest(request, env);
   if (path === '/api/live-articles' || path === '/api/news/live') return handleLiveArticles();
   if (path === '/api/waitlist/health') return handleWaitlistHealth(request, env);
   if (path === '/api/waitlist') return handleWaitlist(request, env);
@@ -1049,7 +1175,7 @@ async function handleApi(path, url, request, env) {
     if (health.status !== 'ok') return json({ ...health, data: null });
     return json({ ...health, status: 'provider_unavailable', providerStatus: 'provider_unavailable', message: 'FII/DII provider data is unavailable. No substitute values are shown.', data: null });
   }
-  if (path === '/api/chart') return json({ status: 'ok', data: [] });
+  if (path === '/api/chart') return json({ status: 'provider_unavailable', source: 'none', message: 'Historical chart provider is not configured. No synthetic candles are returned.', data: [] }, 503, { 'Cache-Control': 'no-store' });
   if (path === '/api/pro-data') return json({ status: 'ok', symbol: url.searchParams.get('symbol') || 'NIFTY' });
   return json({ status: 'error', message: 'Not found' }, 404);
 }
@@ -1085,3 +1211,4 @@ async function createRequestMarketDataProvider(request, env) {
     return brokerRequiredProvider('Broker REST live data storage is unavailable. No fake live data is shown.');
   }
 }
+

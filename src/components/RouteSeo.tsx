@@ -11,7 +11,7 @@ const defaultSeo = {
 
 const routeSeo: Record<string, { title: string; description: string; robots?: string }> = {
   '/': defaultSeo,
-  '/landing': defaultSeo,
+  '/landing': { ...defaultSeo, robots: 'noindex, nofollow' },
   '/screener': {
     title: 'Screening Workspace — StockPro',
     description: 'Use delayed data views, filters, watchlists, and analytics tables inside the StockPro workspace.',
@@ -60,6 +60,10 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     title: 'StockPro Upgrade Center — Free, Pro, Premium',
     description: 'Compare the free delayed workspace with Pro and Premium roadmap features including saved screens, alerts, exports, and advanced research workflows.',
   },
+  '/pro': {
+    title: 'StockPro Pro Readiness',
+    description: 'Review verified Pro workspace readiness without synthetic entitlements, live data, alerts, or saved-screen counts.',
+  },
   '/start-trial': {
     title: '7-Day Pro Trial Disclosure — StockPro',
     description: 'Review the StockPro Pro trial price, duration, cancellation timing, and explicit auto-renew consent disclosure. Payment remains disabled until setup is complete.',
@@ -101,20 +105,29 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     description: 'Check current StockPro market-data, waitlist, auth, broker vault, billing, ads, and news-service setup or availability states.',
   },
   '/account': {
+    robots: 'noindex, nofollow',
     title: 'Account — StockPro',
     description: 'Review StockPro account, subscription, billing readiness, and per-user broker setup states without fake login or payment status.',
   },
   '/login': {
+    robots: 'noindex, nofollow',
     title: 'Login - StockPro',
     description: 'Check StockPro account session setup through server-verified Supabase Auth state. No fake login state is created.',
   },
   '/signup': {
+    robots: 'noindex, nofollow',
     title: 'Signup - StockPro',
     description: 'Create a StockPro account only after Supabase Auth is configured. Signup never creates fake users or broker state.',
   },
   '/beta': {
+    robots: 'noindex, nofollow',
     title: 'Closed Beta Readiness - StockPro',
     description: 'Review StockPro closed beta readiness across auth, waitlist, broker, billing, market data, news, ads, and setup-required states.',
+  },
+  '/admin/waitlist': {
+    title: 'Waitlist Administration - StockPro',
+    description: 'Restricted waitlist administration setup.',
+    robots: 'noindex, nofollow',
   },
   '/privacy': {
     title: 'Privacy Policy — StockPro',

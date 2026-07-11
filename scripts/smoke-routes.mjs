@@ -16,6 +16,7 @@ const expectedRoutes = [
   '/start-trial',
   '/connect-broker',
   '/pricing',
+  '/pro',
   '/news',
   '/blog',
   '/screener',

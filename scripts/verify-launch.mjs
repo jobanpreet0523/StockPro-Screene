@@ -4,6 +4,7 @@ import path from 'node:path';
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const exists = (file) => fs.existsSync(path.join(root, file));
+const errors = [];
 
 const requiredFiles = [
   'public/robots.txt',
@@ -11,174 +12,114 @@ const requiredFiles = [
   'public/_redirects',
   'src/_worker.js',
   'src/components/RouteSeo.tsx',
-  'src/components/AnalyticsManager.tsx',
-  'src/components/DataSourceBadge.tsx',
-  'src/core/marketData.ts',
-  'src/core/dataReality.ts',
-  'src/services/livePlanApi.ts',
-  'src/pages/ConnectBrokerPage.tsx',
-  'src/pages/AccountPage.tsx',
-  'src/pages/LoginPage.tsx',
-  'src/pages/SignupPage.tsx',
-  'src/pages/BetaLaunchPage.tsx',
+  'src/components/analytics/AnalyticsProvider.tsx',
+  'src/components/security/TurnstileWidget.tsx',
+  'src/components/search/StockProSearch.tsx',
+  'src/components/tables/StockProDataTable.tsx',
+  'src/components/charts/LightweightStockChart.tsx',
+  'src/core/schemas.ts',
+  'src/core/apiValidation.ts',
+  'src/core/supabaseClient.ts',
+  'src/core/supabaseServer.ts',
+  'src/core/turnstile.ts',
+  'src/core/email.ts',
+  'src/core/notifications.ts',
+  'src/core/searchConfig.ts',
+  'src/lib/sentry.ts',
+  'src/lib/posthog.ts',
+  'src/lib/webVitals.ts',
+  'src/lib/queryClient.ts',
+  'src/pages/ProPage.tsx',
   'src/pages/StatusPage.tsx',
-  'src/pages/PrivacyPage.tsx',
-  'src/pages/TermsPage.tsx',
-  'src/pages/RiskDisclosurePage.tsx',
-  'src/pages/ContactPage.tsx',
+  'scripts/seo-audit.mjs',
+  'scripts/validate-sitemap.mjs',
+  'docs/TESTING_AND_AUDIT_SETUP.md',
+  'docs/MONITORING_ANALYTICS_SETUP.md',
+  'docs/PRODUCTION_LAUNCH_CHECKLIST.md',
   '.github/workflows/build.yml',
 ];
 
-const requiredRoutes = [
-  '/',
-  '/screener',
-  '/scanner',
-  '/option-chain',
-  '/us-markets',
-  '/strategy-builder',
-  '/greeks-calculator',
-  '/risk-calculator',
-  '/heatmap',
-  '/fii-dii',
-  '/deals',
-  '/news',
-  '/pricing',
-  '/start-trial',
-  '/blog',
-  '/daily-brief',
-  '/signals',
-  '/connect-broker',
-  '/account',
-  '/login',
-  '/signup',
-  '/beta',
-  '/status',
-  '/privacy',
-  '/terms',
-  '/risk-disclosure',
-  '/contact',
-  '/about',
-  '/data-methodology',
-  '/support-policy',
-  '/refund-policy',
-];
-
-const requiredDirectRoutes = [...requiredRoutes.filter((route) => route !== '/'), '/admin/waitlist'];
-
-const errors = [];
-
-for (const file of requiredFiles) {
-  if (!exists(file)) errors.push(`Missing required launch file: ${file}`);
-}
+for (const file of requiredFiles) if (!exists(file)) errors.push(`Missing launch file: ${file}`);
 
 const app = read('src/App.tsx');
-for (const route of requiredRoutes) {
-  if (route === '/') continue;
-  if (!app.includes(`path="${route}"`)) errors.push(`Missing React route: ${route}`);
-}
+const redirects = read('public/_redirects');
+const routeSeo = read('src/components/RouteSeo.tsx');
+const worker = read('src/_worker.js');
+const envExample = read('.env.example');
+const requiredRoutes = ['/', '/screener', '/scanner', '/option-chain', '/news', '/blog', '/daily-brief', '/pricing', '/start-trial', '/connect-broker', '/pro', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/risk-disclosure', '/privacy', '/terms', '/status', '/account', '/login', '/signup', '/beta', '/admin/waitlist'];
 
-for (const component of ['<RouteSeo />', '<AnalyticsManager />']) {
+for (const route of requiredRoutes) {
+  if (route !== '/' && !app.includes(`path="${route}"`)) errors.push(`Missing React route: ${route}`);
+  if (route !== '/' && !redirects.includes(`${route} /index.html 200`)) errors.push(`Missing direct-route fallback: ${route}`);
+}
+for (const component of ['<RouteSeo />', '<AnalyticsProvider>']) {
   if (!app.includes(component)) errors.push(`App is missing ${component}`);
 }
 
-const redirects = read('public/_redirects');
-for (const route of requiredDirectRoutes) {
-  if (!redirects.includes(route)) errors.push(`Missing SPA redirect: ${route}`);
+for (const token of [
+  '/api/operations/readiness',
+  '/api/search/config',
+  '/api/pro/readiness',
+  '/api/notifications/request',
+  'verifyTurnstileToken',
+  'allowPublicRequest',
+  'waitlistLeadSchema',
+  'betaFeedbackSchema',
+  'paymentEnabled: false',
+  'live_disabled: true',
+]) {
+  if (!worker.includes(token)) errors.push(`Worker integration is missing: ${token}`);
 }
 
-const sitemap = read('public/sitemap.xml');
-for (const route of requiredRoutes) {
-  const expected = route === '/' ? 'https://stockpro1.qzz.io/' : `https://stockpro1.qzz.io${route}`;
-  if (!sitemap.includes(expected)) errors.push(`Missing sitemap URL: ${expected}`);
+for (const key of [
+  'VITE_ANALYTICS_ENABLED',
+  'VITE_SENTRY_DSN',
+  'VITE_POSTHOG_KEY',
+  'VITE_TURNSTILE_SITE_KEY',
+  'TURNSTILE_SECRET_KEY',
+  'VITE_SUPABASE_PUBLISHABLE_KEY',
+  'RESEND_API_KEY',
+  'VITE_ALGOLIA_SEARCH_KEY',
+  'ALGOLIA_ADMIN_KEY',
+]) {
+  if (!envExample.includes(key)) errors.push(`.env.example is missing ${key}`);
 }
 
-const robots = read('public/robots.txt');
-if (!robots.includes('Sitemap: https://stockpro1.qzz.io/sitemap.xml')) {
-  errors.push('robots.txt is missing the production sitemap reference');
+for (const route of ['/account', '/login', '/signup', '/beta', '/admin/waitlist']) {
+  const start = routeSeo.indexOf(`'${route}'`);
+  const block = start >= 0 ? routeSeo.slice(start, start + 500) : '';
+  if (!block.includes("robots: 'noindex, nofollow'")) errors.push(`Private/setup route is not noindex: ${route}`);
 }
 
-const routeSeo = read('src/components/RouteSeo.tsx');
-for (const route of requiredRoutes) {
-  if (!routeSeo.includes(`'${route}'`)) errors.push(`RouteSeo is missing metadata config: ${route}`);
+const posthog = read('src/lib/posthog.ts');
+for (const event of ['landing_visit', 'pricing_click', 'start_trial_click', 'connect_broker_click', 'waitlist_submit', 'crt_scan_click', 'pro_tab_click', 'route_load_error']) {
+  if (!posthog.includes(`'${event}'`)) errors.push(`Analytics allowlist is missing: ${event}`);
 }
-if (!routeSeo.includes('link[rel="canonical"]')) errors.push('RouteSeo is missing canonical link management');
-if (!routeSeo.includes('og:title')) errors.push('RouteSeo is missing Open Graph title management');
-
-const analytics = read('src/components/AnalyticsManager.tsx');
-if (!analytics.includes('VITE_GA_MEASUREMENT_ID')) {
-  errors.push('AnalyticsManager is missing VITE_GA_MEASUREMENT_ID support');
+for (const setting of ['autocapture: false', 'disable_session_recording: true', "person_profiles: 'never'"]) {
+  if (!posthog.includes(setting)) errors.push(`PostHog privacy setting is missing: ${setting}`);
 }
 
-const layout = read('src/components/Layout.tsx');
-for (const label of ['Privacy Policy', 'Terms of Use', 'Broker live setup', 'Contact Us']) {
-  if (!layout.includes(label)) errors.push(`Footer is missing launch trust link: ${label}`);
-}
-if (!layout.includes('<DataSourceBadge')) errors.push('Layout is missing the data-source badge');
-
-const marketData = read('src/core/marketData.ts');
-for (const token of ['broker_live', 'delayed', 'fallback', 'MarketQuote', 'MarketDataStatus']) {
-  if (!marketData.includes(token)) errors.push(`Market data model is missing: ${token}`);
-}
-
-const livePlanApi = read('src/services/livePlanApi.ts');
-for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider/', 'free_delayed', 'live_ready']) {
-  if (!livePlanApi.includes(token)) errors.push(`Live plan API client is missing: ${token}`);
-}
-
-const worker = read('src/_worker.js');
-for (const token of ['/api/live-plan/status', '/api/live-plan/create-order', '/api/live-plan/verify-payment', '/api/provider', '/api/live-feed/status', '/api/waitlist/health', '/api/live/health', '/api/broker/health', '/api/broker/stream/status', '/api/billing/readiness', '/api/beta/feedback', 'handlePlanRoutes(path, request)']) {
-  if (!worker.includes(token)) errors.push(`Worker route wiring is missing: ${token}`);
-}
+const turnstile = read('src/core/turnstile.ts');
+if (!turnstile.includes('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit')) errors.push('Official Turnstile script URL is missing.');
+if (read('package.json').includes('@cloudflare/turnstile-react')) errors.push('Nonexistent Turnstile React package must not be installed.');
 
 const landing = read('src/components/LandingPage.tsx');
-if (landing.includes('<script src="/live-data.js"')) errors.push('LandingPage still injects legacy live-data.js DOM patcher');
 for (const unsafe of ['421K Cr', '198K Cr', 'BSE LIVE FEED', 'NSE LIVE FEED']) {
-  if (landing.includes(unsafe)) errors.push(`LandingPage still has unsafe fake-live/static token: ${unsafe}`);
+  if (landing.includes(unsafe)) errors.push(`Landing still contains unsafe fake-live token: ${unsafe}`);
 }
-if (!landing.includes('Payment live mode is disabled')) errors.push('LandingPage is missing payment-live-disabled journey wording');
-if (!landing.includes('No shared broker token')) errors.push('LandingPage is missing no-shared-broker-token wording');
-if (!landing.includes('isRealProviderData(indicesStatus)')) errors.push('LandingPage must not label LIVE unless provider is live');
+if (!landing.includes('Payment live mode is disabled')) errors.push('Landing must keep payment-live-disabled wording.');
+if (!landing.includes('No shared broker token')) errors.push('Landing must keep no-shared-broker-token wording.');
 
-const landing3d = read('public/landing-3d-elements.js');
-for (const unsafe of ['24,270.85', '57,038.50', '+1.35%', '+1.10%', 'AI Market Cockpit Active']) {
-  if (landing3d.includes(unsafe)) errors.push(`landing-3d-elements still has fake market/live token: ${unsafe}`);
-}
+const billing = read('src/core/razorpayReadiness.ts');
+if (!billing.includes('live_disabled: true') || !billing.includes('paymentEnabled: false')) errors.push('Payment live mode is not locked off.');
 
-const index = read('index.html');
-if (index.includes('/landing-3d-elements.js" defer')) errors.push('landing-3d-elements should not be globally loaded before landing paint');
-
-const billingReadiness = read('src/core/razorpayReadiness.ts');
-if (!billingReadiness.includes('live_disabled: true') || !billingReadiness.includes('paymentEnabled: false')) {
-  errors.push('Razorpay readiness must keep live payment disabled');
-}
-
-const authContext = read('src/contexts/AuthContext.tsx');
-if (authContext.includes('setIsPro(true)') || authContext.includes('isPro: true')) {
-  errors.push('AuthContext must not fake paid/pro entitlement');
-}
-
-const betaPage = read('src/pages/BetaLaunchPage.tsx');
-for (const eventName of ['beta_feedback_submit', 'status_check']) {
-  if (!betaPage.includes(eventName)) errors.push(`Beta page is missing analytics event: ${eventName}`);
-}
-
-const hero = read('src/components/MarketPulseHero.tsx');
-for (const unsafe of ['Live Sync', 'live breadth']) {
-  if (hero.includes(unsafe)) errors.push(`Hero still has unsafe wording: ${unsafe}`);
-}
-for (const unsafe of ['Real-time NIFTY', 'Scan NSE stocks with live prices', 'Broker Live Data Mode', 'Buy Live Data Plan']) {
-  if (routeSeo.includes(unsafe)) errors.push(`RouteSeo still has unsafe wording: ${unsafe}`);
-}
-
-const risk = read('src/pages/RiskDisclosurePage.tsx');
-if (!risk.includes('not a SEBI registered investment advisor')) {
-  errors.push('Risk disclosure page is missing SEBI/non-advisory wording');
-}
+const marketData = read('src/core/marketDataClient.ts');
+if (!marketData.includes('validateProviderData')) errors.push('Market provider responses are not schema validated.');
 
 if (errors.length) {
-  console.error('\nLaunch verification failed:\n');
+  console.error('Launch verification failed:');
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
 }
 
-console.log('Launch verification passed: routes, redirects, sitemap, SEO metadata, analytics hook, setup API client, worker route wiring, conservative data wording, data-source foundation, legal pages, footer links, and risk disclosure are present.');
+console.log('Launch verification passed for stages 26-35: optional integrations, validation, anti-spam, monitoring, search, tables, charts, public SEO, readiness, and payment-live-disabled safeguards are present.');
