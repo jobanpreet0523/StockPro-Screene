@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Activity, AlertTriangle, Database, Play, RefreshCw, ShieldCheck } from 'lucide-react';
 import StockProDataTable from '../components/tables/StockProDataTable';
+import CrtCandlePreviewChart from '../components/charts/CrtCandlePreviewChart';
 import { CRT_TIMEFRAMES, defaultCrtFilters, type CrtResult, type CrtScanFilters } from '../core/crtScanner';
 
 interface ProviderStatus { status: 'configured' | 'setup_required'; provider: string; message: string }
@@ -31,6 +32,7 @@ export default function CrtScannerPage() {
   const [runs, setRuns] = useState<ScanRun[]>([]);
   const [activeRun, setActiveRun] = useState<ScanRun | null>(null);
   const [results, setResults] = useState<CrtResult[]>([]);
+  const [chartResult, setChartResult] = useState<CrtResult | null>(null);
   const [state, setState] = useState<'idle' | 'scanning' | 'error'>('idle');
   const [message, setMessage] = useState('Filters will apply on next scan.');
 
@@ -125,7 +127,7 @@ export default function CrtScannerPage() {
     { accessorKey: 'score', header: 'Score' },
     { accessorKey: 'dataCapturedAt', header: 'Data Captured At' },
     { accessorKey: 'scanRunId', header: 'Scan Run ID' },
-    { id: 'chart', header: 'View Chart', cell: ({ row }) => <a className="font-bold text-emerald-700 underline" href={`https://www.tradingview.com/chart/?symbol=NSE:${encodeURIComponent(row.original.symbol)}`} target="_blank" rel="noreferrer">Open chart</a> },
+    { id: 'chart', header: 'View Chart', cell: ({ row }) => <button type="button" className="font-bold text-emerald-700 underline" onClick={() => setChartResult(row.original)}>View saved chart</button> },
   ], []);
 
   return (
@@ -179,6 +181,11 @@ export default function CrtScannerPage() {
         </div>
         <p className={`mt-4 flex items-start gap-2 text-sm font-semibold ${state === 'error' ? 'text-rose-700' : 'text-slate-600'}`}>{state === 'error' ? <AlertTriangle size={16} /> : <Activity size={16} />}{message}</p>
       </section>
+
+      {chartResult && <section className="border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex items-center justify-between gap-3"><div><h2 className="text-lg font-black">{chartResult.symbol} saved CRT candles</h2><p className="text-xs font-semibold text-slate-500">Data captured at: {chartResult.dataCapturedAt} · Scan run: {chartResult.scanRunId}</p></div><button type="button" onClick={() => setChartResult(null)} className="text-xs font-bold text-slate-600">Close</button></div>
+        <div className="mt-4"><CrtCandlePreviewChart candles={chartResult.chartCandles} symbol={chartResult.symbol} /></div>
+      </section>}
 
       <section>
         <h2 className="mb-3 text-lg font-black">Saved scan results</h2>
