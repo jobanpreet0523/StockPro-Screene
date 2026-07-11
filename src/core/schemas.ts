@@ -91,8 +91,8 @@ export const proDashboardStateSchema = z.object({
   marketProvider: setupStateSchema,
   brokerVault: setupStateSchema,
   billing: setupStateSchema,
-  savedScreens: z.number().int().nonnegative(),
-  activeAlerts: z.number().int().nonnegative(),
+  savedScreens: z.number().int().nonnegative().nullable(),
+  activeAlerts: z.number().int().nonnegative().nullable(),
   message: trimmed(500),
 }).strict();
 
