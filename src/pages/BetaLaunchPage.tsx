@@ -1,5 +1,6 @@
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { MessageSquare, RefreshCw, Rocket, ShieldCheck } from 'lucide-react';
+import TurnstileWidget from '../components/security/TurnstileWidget';
 
 type BetaState = 'checking' | 'ok' | 'setup_required' | 'unavailable';
 
@@ -33,6 +34,9 @@ export default function BetaLaunchPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState('Feedback storage is checked only when you submit.');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+  const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), []);
 
   useEffect(() => {
     let active = true;
@@ -56,16 +60,23 @@ export default function BetaLaunchPage() {
 
   const submitFeedback = async (event: FormEvent) => {
     event.preventDefault();
+    if (!turnstileToken) {
+      setFeedbackMessage('Complete anti-spam verification before submitting feedback.');
+      return;
+    }
     setFeedbackMessage('Checking feedback storage...');
     try {
       const response = await fetch('/api/beta/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: feedback, sourcePage: '/beta' }),
+        body: JSON.stringify({ message: feedback, sourcePage: '/beta', turnstileToken }),
       });
       const payload = await response.json().catch(() => ({ message: 'Feedback endpoint returned an unreadable response.' }));
       setFeedbackMessage(payload.message || (response.ok ? 'Feedback endpoint checked.' : 'Feedback storage unavailable.'));
-      if (response.ok && payload.status === 'stored') setFeedback('');
+      if (response.ok && payload.status === 'stored') {
+        setFeedback('');
+        setTurnstileResetKey((value) => value + 1);
+      }
     } catch {
       setFeedbackMessage('Feedback storage is unavailable. No fake success was shown.');
     }
@@ -119,6 +130,7 @@ export default function BetaLaunchPage() {
           />
           <button
             type="submit"
+            disabled={!turnstileToken}
             data-analytics-event="beta_feedback_submit"
             data-analytics-label="beta:feedback"
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950"
@@ -153,3 +165,4 @@ function ReadinessCard({ item }: { item: BetaCheck }) {
     </article>
   );
 }
+
