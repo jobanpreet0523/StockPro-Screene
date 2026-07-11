@@ -14,3 +14,9 @@
 - [ ] Optional browser and Lighthouse outcomes are recorded honestly.
 - [ ] `/status` shows only configured, setup_required, or disabled states.
 - [ ] No secrets, `node_modules`, `dist`, `.npm-cache`, or local reports are committed.
+- [ ] Stage 36 production routes load without uncaught browser errors.
+- [ ] `/crt-scanner` is free, manual-run only, and never substitutes synthetic market data.
+- [ ] CRT scan runs and result snapshots are persisted by `scan_run_id` before display.
+- [ ] `/pro` keeps a white/light research workspace and uses honest access states.
+- [ ] Watchlists, alerts, and saved screens require authenticated server storage.
+- [ ] Closed beta metrics are targets, not fabricated counters.
