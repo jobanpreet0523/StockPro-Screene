@@ -7,6 +7,7 @@ const expectedPaths = [
   '/',
   '/screener',
   '/scanner',
+  '/crt-scanner',
   '/option-chain',
   '/news',
   '/blog',
