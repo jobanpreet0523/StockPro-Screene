@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, User, BookOpen, X, Sparkles, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { captureSafeEvent } from '../lib/posthog';
 
 export default function EmailCapturePopup() {
   const [isOpen, setIsOpen] = useState(false);
@@ -86,6 +87,7 @@ export default function EmailCapturePopup() {
       if (response.ok || response.status === 201 || response.status === 204) {
         setStatus('success');
         markAsShown();
+        captureSafeEvent('lead_pdf_subscribed');
       } else {
         const data = await response.json().catch(() => ({}));
         setStatus('error');

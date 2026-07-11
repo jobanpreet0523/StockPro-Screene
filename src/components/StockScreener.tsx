@@ -10,6 +10,7 @@ import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { fetchMarketData } from '../core/marketDataClient';
 import type { MarketQuote } from '../core/marketDataProvider';
+import { captureSafeEvent } from '../lib/posthog';
 
 interface ScreenerRowProps {
   key?: string;
@@ -146,7 +147,7 @@ function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, form
       <td className="py-3.5 px-4 text-right">
         <div className="flex items-center justify-end gap-1.5">
           <button
-            onClick={() => onSelectStock('NSE:' + stock.symbol.replace('.NS', ''))}
+            onClick={() => { captureSafeEvent('stock_chart_opened'); onSelectStock('NSE:' + stock.symbol.replace('.NS', '')); }}
             title="Open Interactive Chart"
             className="p-1 px-2.5 rounded bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-500 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-950/10 text-emerald-700 dark:text-emerald-400 hover:text-white transition text-xs font-bold flex items-center gap-1 cursor-pointer"
           >
@@ -155,7 +156,7 @@ function ScreenerRow({ stock, onSelectStock, onSelectFoStock, formatVolume, form
           </button>
           {stock.isFoEnabled && (
             <button
-              onClick={() => onSelectFoStock(stock.symbol)}
+              onClick={() => { captureSafeEvent('option_chain_opened'); onSelectFoStock(stock.symbol); }}
               title="Open F&O Derivatives Console"
               className="p-1 px-2.5 rounded bg-purple-50 dark:bg-purple-950/45 hover:bg-purple-500 dark:hover:bg-purple-900 border border-purple-200 dark:border-purple-950/10 text-purple-700 dark:text-purple-300 hover:text-white transition text-xs font-bold flex items-center gap-1 cursor-pointer"
             >
@@ -238,6 +239,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
         userId: user.uid,
         symbols: updatedSymbols
       }, { merge: true });
+      captureSafeEvent('watchlist_item_toggled');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `watchlists/${user.uid}`);
     }
@@ -309,6 +311,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
       rsiMax: draftRsiMax,
       minVolume: draftMinVolume
     });
+    captureSafeEvent('screener_filters_applied');
   };
 
   // Set preset query filters
@@ -461,6 +464,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    captureSafeEvent('screener_csv_exported');
   };
 
   return (
@@ -489,7 +493,7 @@ export default function StockScreener({ stocks, onSelectStock, onSelectFoStock }
           ].map(p => (
             <button
               key={p.id}
-              onClick={() => setActivePreset(p.id)}
+              onClick={() => { setActivePreset(p.id); captureSafeEvent('screener_preset_selected'); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide border transition-all cursor-pointer flex items-center gap-1.5 ${
                 activePreset === p.id
                   ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/40 shadow-inner'

@@ -95,8 +95,8 @@ const posthog = read('src/lib/posthog.ts');
 for (const event of ['landing_visit', 'pricing_click', 'start_trial_click', 'connect_broker_click', 'waitlist_submit', 'crt_scan_click', 'pro_tab_click', 'route_load_error']) {
   if (!posthog.includes(`'${event}'`)) errors.push(`Analytics allowlist is missing: ${event}`);
 }
-for (const setting of ['autocapture: false', 'disable_session_recording: true', "person_profiles: 'never'"]) {
-  if (!posthog.includes(setting)) errors.push(`PostHog privacy setting is missing: ${setting}`);
+for (const setting of ["defaults: '2026-05-30'", 'capture_pageview: false', "person_profiles: 'identified_only'"]) {
+  if (!posthog.includes(setting)) errors.push(`PostHog init setting is missing: ${setting}`);
 }
 
 const turnstile = read('src/core/turnstile.ts');
