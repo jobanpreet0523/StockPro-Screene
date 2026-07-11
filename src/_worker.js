@@ -263,7 +263,8 @@ async function handleWaitlist(request, env) {
       return secureJson(request, { status: 'error', message: 'The waitlist could not be stored. Please try again or use the email fallback.' }, 502);
     }
 
-    return secureJson(request, { status: 'stored', message: 'Your waitlist request was stored successfully.' }, 201);
+    const emailResult = await sendNotification(env, { type: 'waitlist_confirmation', to: email, context: { message: 'Your StockPro waitlist request was stored.' } });
+    return secureJson(request, { status: 'stored', emailStatus: emailResult.status, message: emailResult.status === 'sent' ? 'Your waitlist request was stored and confirmation email was accepted.' : `Your waitlist request was stored. ${emailResult.message}` }, 201);
   } catch {
     return secureJson(request, { status: 'error', message: 'The waitlist service is temporarily unavailable. Please try again or use the email fallback.' }, 502);
   }
@@ -897,7 +898,9 @@ async function handleBetaFeedback(request, env) {
       }),
     });
     if (!response.ok) return secureJson(request, { status: 'error', message: 'Beta feedback could not be stored. No fake success was shown.' }, 502);
-    return secureJson(request, { status: 'stored', message: 'Beta feedback stored. Thank you.' }, 201);
+    const supportEmail = cleanText(env?.SUPPORT_EMAIL, 254);
+    const emailResult = await sendNotification(env, { type: 'beta_feedback_received', to: supportEmail, context: { message: 'New closed beta feedback is available in the restricted admin view.' } });
+    return secureJson(request, { status: 'stored', emailStatus: emailResult.status, message: emailResult.status === 'sent' ? 'Beta feedback stored and support notification accepted.' : `Beta feedback stored. ${emailResult.message}` }, 201);
   } catch {
     return secureJson(request, { status: 'error', message: 'Beta feedback storage is temporarily unavailable. No fake success was shown.' }, 502);
   }
