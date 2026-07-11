@@ -1,4 +1,7 @@
+import { z } from 'zod';
 import type { MarketDataEnvelope, MarketDataStatus } from './marketDataProvider';
+import { validateProviderData } from './apiValidation';
+import { marketDataEnvelopeSchema } from './schemas';
 
 export async function fetchMarketData<T>(path: string, signal?: AbortSignal): Promise<MarketDataEnvelope<T>> {
   const response = await fetch(path, { signal });
@@ -9,12 +12,11 @@ export async function fetchMarketData<T>(path: string, signal?: AbortSignal): Pr
     throw new Error('Market-data service returned an invalid response.');
   }
 
-  const envelope = payload as Partial<MarketDataEnvelope<T>>;
-  if (!envelope.status || typeof envelope.source !== 'string' || typeof envelope.message !== 'string') {
-    throw new Error('Market-data response metadata is incomplete.');
-  }
+  const validated = validateProviderData(marketDataEnvelopeSchema(z.unknown()), payload);
+  if (!validated.ok) throw new Error(validated.message);
+  const envelope = validated.data as MarketDataEnvelope<T>;
   if (!response.ok && envelope.status === 'error') throw new Error(envelope.message);
-  return envelope as MarketDataEnvelope<T>;
+  return envelope;
 }
 
 export function providerLabel(status?: Pick<MarketDataStatus, 'status' | 'isLive' | 'providerStatus'> | null) {
