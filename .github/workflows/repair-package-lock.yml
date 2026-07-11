@@ -1,0 +1,57 @@
+name: Repair Package Lock
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair-package-lock:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Repair package lock
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Verify clean install
+        run: npm ci
+
+      - name: Run validation
+        run: |
+          npm run typecheck
+          npm run security:scan
+          npm run build
+          npm run verify:launch
+          npm run smoke:routes
+          npm run seo:audit
+          npm run seo:sitemap
+
+      - name: Commit package-lock.json if changed
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "lockfile_changed=false" >> "$GITHUB_ENV"
+            echo "package-lock.json is unchanged."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "fix: repair package lock for CI"
+            echo "lockfile_changed=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Push to main
+        if: env.lockfile_changed == 'true'
+        run: git push origin HEAD:main
