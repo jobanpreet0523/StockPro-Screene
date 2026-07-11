@@ -13,7 +13,6 @@ const explicitEventMap: Record<string, SafeAnalyticsEvent> = {
   crt_scan_click: 'crt_scan_click',
   pro_tab_click: 'pro_tab_click',
   signup: 'signup',
-  signup_cta_click: 'signup',
   crt_scan_run: 'crt_scan_run',
   watchlist_created: 'watchlist_created',
   alert_created: 'alert_created',
