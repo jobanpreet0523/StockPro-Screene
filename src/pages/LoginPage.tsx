@@ -1,75 +1,49 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, ShieldCheck, UserPlus } from 'lucide-react';
 import { getFrontendAuthReadiness } from '../core/authConfig';
+import { getSupabaseClient } from '../core/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
   const { user, authStatus, authMessage, refreshSession } = useAuth();
   const readiness = getFrontendAuthReadiness();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState(readiness.message);
+  const [submitting, setSubmitting] = useState(false);
 
-  return (
-    <AuthShell
-      eyebrow="Secure account access"
-      title="Log in to StockPro"
-      icon={LogIn}
-      message={user ? `Signed in as ${user.email || user.displayName || user.id}.` : authMessage}
-    >
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900/60">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Current session</p>
-        <p className="mt-2 text-sm font-bold text-slate-700 dark:text-slate-200">{authStatus}</p>
-        <p className="mt-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">{readiness.message}</p>
-      </div>
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const client = getSupabaseClient();
+    if (!client) return setMessage('Supabase Auth setup is required. No user was created.');
+    setSubmitting(true);
+    const { error } = await client.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      setMessage(error.message);
+      setSubmitting(false);
+      return;
+    }
+    await refreshSession();
+    navigate('/account');
+  };
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => void refreshSession()}
-          data-analytics-event="login_cta_click"
-          data-analytics-label="login:refresh-session"
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-400"
-        >
-          <LogIn size={16} /> Check session
-        </button>
-        <Link
-          to="/signup"
-          data-analytics-event="signup_cta_click"
-          data-analytics-label="login:signup-link"
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
-        >
-          <UserPlus size={16} /> Create account
-        </Link>
-      </div>
-
-      {!readiness.configured && (
-        <SetupNotice text="Login is intentionally disabled until Supabase Auth env values and redirect URLs are configured. No fake user is created." />
-      )}
-    </AuthShell>
-  );
-}
-
-function AuthShell({ eyebrow, title, icon: Icon, message, children }: { eyebrow: string; title: string; icon: typeof LogIn; message: string; children: React.ReactNode }) {
   return (
     <div className="lg:col-span-12">
-      <section className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white/95 p-7 shadow-xl dark:border-slate-800 dark:bg-slate-950/90 sm:p-9">
-        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900/50">
-          <Icon size={14} /> {eyebrow}
-        </div>
-        <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">{title}</h1>
-        <p className="mt-3 text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">{message}</p>
-        <div className="mt-6 grid gap-4">{children}</div>
-        <p className="mt-6 flex items-start gap-2 text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">
-          <ShieldCheck size={15} className="mt-0.5 shrink-0 text-emerald-500" /> Server-verified session state is the source of truth. StockPro does not fake logged-in users.
-        </p>
+      <section className="mx-auto max-w-xl border border-slate-200 bg-white p-7 shadow-lg dark:border-slate-800 dark:bg-slate-950 sm:p-9">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase text-emerald-700"><LogIn size={15} /> Secure account access</div>
+        <h1 className="mt-3 text-3xl font-black text-slate-950 dark:text-white">Log in to StockPro</h1>
+        <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">{user ? `Signed in as ${user.email || user.displayName}.` : authMessage}</p>
+        <form onSubmit={submit} className="mt-6 grid gap-4">
+          <label className="grid gap-1 text-sm font-bold">Email<input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="border border-slate-300 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-900" /></label>
+          <label className="grid gap-1 text-sm font-bold">Password<input type="password" required minLength={8} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="border border-slate-300 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-900" /></label>
+          <button disabled={!readiness.configured || submitting} className="inline-flex items-center justify-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"><LogIn size={16} /> {submitting ? 'Signing in...' : 'Log in'}</button>
+        </form>
+        <p className="mt-4 border border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">Status: {authStatus}. {message}</p>
+        <Link to="/signup" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-emerald-700"><UserPlus size={15} /> Create account</Link>
+        <p className="mt-6 flex gap-2 text-xs font-semibold text-slate-500"><ShieldCheck size={15} /> Server-verified sessions only. No logged-in user is synthesized.</p>
       </section>
-    </div>
-  );
-}
-
-function SetupNotice({ text }: { text: string }) {
-  return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-5 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
-      {text} See <Link className="underline" to="/data-methodology">setup documentation</Link> and docs/SUPABASE_AUTH_SETUP.md.
     </div>
   );
 }
