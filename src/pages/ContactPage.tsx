@@ -68,7 +68,14 @@ export default function ContactPage() {
       interest: interest.trim() || 'general',
       sourcePage: `${location.pathname}${location.search}`,
       referrer: document.referrer || undefined,
+      turnstileToken,
     };
+    const validatedPayload = waitlistLeadSchema.safeParse(payload);
+    if (!validatedPayload.success) {
+      setSubmitState('error');
+      setStatusMessage('Please correct the form before submitting.');
+      return;
+    }
 
     setSubmitState('submitting');
     setStatusMessage('');
