@@ -4,6 +4,7 @@ import { BarChart3, Bell, CheckCircle2, Crown, Mail, MessageCircle, Send, Shield
 import type { WaitlistApiResponse, WaitlistPayload, WaitlistSubmitState } from '../core/waitlist';
 import TurnstileWidget from '../components/security/TurnstileWidget';
 import { captureSafeEvent } from '../lib/posthog';
+import { waitlistLeadSchema } from '../core/schemas';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -76,7 +77,7 @@ export default function ContactPage() {
       const response = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(validatedPayload.data),
       });
       const result = await response.json().catch(() => ({
         status: 'error',
