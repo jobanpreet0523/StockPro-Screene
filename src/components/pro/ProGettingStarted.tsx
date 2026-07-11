@@ -1,0 +1,3 @@
+import { Link } from 'react-router-dom';
+const steps=[['Create account','/signup'],['Connect broker','/connect-broker'],['Create watchlist','/pro'],['Open screener','/screener'],['Set alert','/pro'],['Start Pro trial','/start-trial']] as const;
+export default function ProGettingStarted(){return <div><h1 className="text-2xl font-black">Getting Started</h1><div className="mt-5 grid gap-3 md:grid-cols-2">{steps.map(([label,to],index)=><Link key={label} to={to} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-sm font-black text-white">{index+1}</span><span className="font-black">{label}</span></Link>)}</div></div>}
