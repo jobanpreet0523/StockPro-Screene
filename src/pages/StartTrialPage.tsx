@@ -5,6 +5,7 @@ import TurnstileWidget from '../components/security/TurnstileWidget';
 import type { TrialApiResponse } from '../core/subscriptionTypes';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { captureSafeEvent } from '../lib/posthog';
 
 type SubmitState = 'idle' | 'submitting' | 'setup_required' | 'error';
 interface BillingReadinessResponse {
@@ -74,6 +75,7 @@ export default function StartTrialPage() {
 
     setState('submitting');
     setMessage('Checking trial setup...');
+    captureSafeEvent('trial_form_submitted');
     try {
       if (!user) {
         setState('error');

@@ -1,7 +1,8 @@
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { captureSafeEvent, initPostHog, type SafeAnalyticsEvent } from '../../lib/posthog';
+import { captureSafeEvent, initPostHog, posthogIdentify, posthogReset, type SafeAnalyticsEvent } from '../../lib/posthog';
 import { captureRouteError, initSentry } from '../../lib/sentry';
+import { useAuth } from '../../contexts/AuthContext';
 
 const explicitEventMap: Record<string, SafeAnalyticsEvent> = {
   pricing_click: 'pricing_click',
@@ -12,6 +13,9 @@ const explicitEventMap: Record<string, SafeAnalyticsEvent> = {
   waitlist_submit: 'waitlist_submit',
   crt_scan_click: 'crt_scan_click',
   pro_tab_click: 'pro_tab_click',
+  login_cta_click: 'login_session_checked',
+  signup_cta_click: 'signup_session_checked',
+  affiliate_click: 'affiliate_link_clicked',
 };
 
 function eventForTarget(target: HTMLElement): SafeAnalyticsEvent | null {
@@ -28,11 +32,27 @@ function eventForTarget(target: HTMLElement): SafeAnalyticsEvent | null {
 
 export default function AnalyticsProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { user } = useAuth();
+  const identifiedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     initSentry();
     initPostHog();
   }, []);
+
+  useEffect(() => {
+    if (user?.uid && user.uid !== identifiedIdRef.current) {
+      identifiedIdRef.current = user.uid;
+      posthogIdentify(user.uid, {
+        ...(user.displayName ? { name: user.displayName } : {}),
+        ...(user.email ? { email: user.email } : {}),
+        role: user.role,
+      });
+    } else if (!user && identifiedIdRef.current) {
+      identifiedIdRef.current = null;
+      posthogReset();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (location.pathname === '/') captureSafeEvent('landing_visit', '/');

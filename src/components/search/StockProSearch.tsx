@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { fetchSearchRuntimeConfig, getSearchClient, type SearchRuntimeConfig } from '../../core/searchConfig';
 import { searchResultItemSchema, type SearchResultItem } from '../../core/schemas';
 import SearchResultCard from './SearchResultCard';
+import { captureSafeEvent } from '../../lib/posthog';
 
 export default function StockProSearch() {
   const client = useMemo(() => getSearchClient(), []);
@@ -39,6 +40,7 @@ export default function StockProSearch() {
           .filter((item) => item.success)
           .map((item) => item.data);
         setResults(parsed);
+        if (parsed.length > 0) captureSafeEvent('stock_searched');
         setMessage(parsed.length ? '' : 'No verified search results found.');
       } catch {
         if (active) {

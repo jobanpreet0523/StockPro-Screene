@@ -9,6 +9,18 @@ export const SAFE_ANALYTICS_EVENTS = [
   'crt_scan_click',
   'pro_tab_click',
   'route_load_error',
+  'screener_preset_selected',
+  'screener_filters_applied',
+  'screener_csv_exported',
+  'watchlist_item_toggled',
+  'stock_chart_opened',
+  'option_chain_opened',
+  'lead_pdf_subscribed',
+  'trial_form_submitted',
+  'stock_searched',
+  'affiliate_link_clicked',
+  'login_session_checked',
+  'signup_session_checked',
 ] as const;
 
 export type SafeAnalyticsEvent = typeof SAFE_ANALYTICS_EVENTS[number];
@@ -21,16 +33,10 @@ export function initPostHog() {
   if (!enabled || !key) return false;
 
   posthog.init(key, {
-    api_host: String(import.meta.env.VITE_POSTHOG_HOST || 'https://app.posthog.com'),
-    autocapture: false,
+    api_host: String(import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com'),
+    defaults: '2026-05-30',
     capture_pageview: false,
-    capture_pageleave: false,
-    disable_session_recording: true,
-    persistence: 'memory',
-    person_profiles: 'never',
-    loaded(instance) {
-      instance.opt_in_capturing();
-    },
+    person_profiles: 'identified_only',
   });
   initialized = true;
   return true;
@@ -39,6 +45,16 @@ export function initPostHog() {
 export function captureSafeEvent(event: SafeAnalyticsEvent, path = window.location.pathname) {
   if (!initialized || !SAFE_ANALYTICS_EVENTS.includes(event)) return;
   posthog.capture(event, { path: path.slice(0, 300) });
+}
+
+export function posthogIdentify(userId: string, traits?: Record<string, unknown>) {
+  if (!initialized) return;
+  posthog.identify(userId, traits);
+}
+
+export function posthogReset() {
+  if (!initialized) return;
+  posthog.reset();
 }
 
 export function posthogReadiness() {
