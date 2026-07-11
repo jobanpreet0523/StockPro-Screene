@@ -7,9 +7,11 @@ import { betaFeedbackSchema, emailNotificationRequestSchema, waitlistLeadSchema 
 import { verifyTurnstileToken } from './core/turnstile.ts';
 import { sendNotification } from './core/notifications.ts';
 import { emailReadiness } from './core/email.ts';
+import { handleCrtScannerRequest } from './core/crtScannerServer.ts';
+import { handleSavedResearchRequest } from './core/savedResearchServer.ts';
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname.length > 1 && url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
 
@@ -22,11 +24,16 @@ export default {
         || path.startsWith('/api/razorpay/')
         || path.startsWith('/api/broker/')
         || path.startsWith('/api/affiliate/')
-        || path.startsWith('/api/notifications/');
+        || path.startsWith('/api/notifications/')
+        || path.startsWith('/api/crt-scanner/')
+        || path.startsWith('/api/market/instruments')
+        || path.startsWith('/api/watchlists')
+        || path.startsWith('/api/alerts')
+        || path.startsWith('/api/saved-');
       const headers = protectedPath ? sameOriginCorsHeaders(request) : corsHeaders();
       return new Response(null, { status: 204, headers });
     }
-    if (path.startsWith('/api/')) return handleApi(path, url, request, env);
+    if (path.startsWith('/api/')) return handleApi(path, url, request, env, ctx);
 
     try {
       const assetRes = await env.ASSETS.fetch(request.clone());
@@ -41,7 +48,7 @@ function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Token',
   };
 }
 
@@ -1111,8 +1118,36 @@ function handleAdConfig(request, env) {
 }
 
 // launch verification compatibility token: handlePlanRoutes(path, request)
+async function handleSignupCheck(request, env) {
+  if (request.method !== 'POST') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'POST' });
+  if (!(await allowPublicRequest(request, env, 'signup', 3))) return secureJson(request, { status: 'error', message: 'Too many signup attempts. Retry later.' }, 429);
+  const payload = await request.json().catch(() => null);
+  const verification = await verifyTurnstileToken(payload?.turnstileToken, env?.TURNSTILE_SECRET_KEY, request.headers.get('CF-Connecting-IP'));
+  if (!verification.success) return turnstileFailure(request, verification);
+  return secureJson(request, { status: 'ok', message: 'Signup anti-spam verification passed. Supabase remains responsible for creating the account.' });
+}
+
+async function handleAdminBetaFeedback(request, env) {
+  if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
+  const config = getSupabaseTableConfig(env, env?.SUPABASE_BETA_FEEDBACK_TABLE || 'beta_feedback');
+  const adminToken = cleanText(env?.ADMIN_ACCESS_TOKEN, 500);
+  const enabled = String(env?.BETA_ADMIN_ENABLED || '').trim().toLowerCase() === 'true';
+  if (!config.configured || !enabled || !adminToken) return secureJson(request, { status: 'setup_required', message: 'Beta feedback administration requires Supabase and server-side admin configuration.' }, 503);
+  if (!safeTokenEquals(cleanText(request.headers.get('X-Admin-Token'), 500), adminToken)) return secureJson(request, { status: 'unauthorized', message: 'A valid admin access token is required.' }, 401);
+  const response = await fetch(`${config.supabaseUrl}/rest/v1/${encodeURIComponent(config.table)}?select=id,message,source_page,user_id,created_at&order=created_at.desc&limit=200`, {
+    headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, Accept: 'application/json' },
+  });
+  const rows = response.ok ? await response.json().catch(() => null) : null;
+  if (!Array.isArray(rows)) return secureJson(request, { status: 'error', message: 'Beta feedback records could not be loaded.' }, 502);
+  return secureJson(request, { status: 'ok', data: rows, count: rows.length, message: 'Beta feedback records loaded.' });
+}
+
 // launch verification route token: /api/provider
-async function handleApi(path, url, request, env) {
+async function handleApi(path, url, request, env, ctx) {
+  if (path === '/api/auth/signup-check') return handleSignupCheck(request, env);
+  if (path === '/api/admin/beta-feedback') return handleAdminBetaFeedback(request, env);
+  if (path === '/api/market/provider-status' || path.startsWith('/api/market/instruments') || path.startsWith('/api/crt-scanner/')) return handleCrtScannerRequest(request, path, env, ctx, () => allowPublicRequest(request, env, 'crt-scanner', 3));
+  if (path.startsWith('/api/watchlists') || path.startsWith('/api/alerts') || path === '/api/saved-screens' || path === '/api/saved-work') return handleSavedResearchRequest(request, path, env, () => getAuthenticatedUser(request, env));
   if (path === '/api/site-config') return json({ gaMeasurementId: env?.VITE_GA_MEASUREMENT_ID || env?.GA_MEASUREMENT_ID || 'G-KK6FYQQ6GV' }, 200, { 'Cache-Control': 'max-age=300' });
   if (path === '/api/ad-config') return handleAdConfig(request, env);
   if (path === '/api/operations/readiness') return handleOperationsReadiness(request, env);
