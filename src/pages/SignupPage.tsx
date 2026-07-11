@@ -4,6 +4,7 @@ import { LogIn, ShieldCheck, UserPlus } from 'lucide-react';
 import TurnstileWidget from '../components/security/TurnstileWidget';
 import { getFrontendAuthReadiness } from '../core/authConfig';
 import { getSupabaseClient } from '../core/supabaseClient';
+import { captureSafeEvent } from '../lib/posthog';
 
 export default function SignupPage() {
   const readiness = getFrontendAuthReadiness();
@@ -27,6 +28,7 @@ export default function SignupPage() {
       const { error } = await client.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: `${window.location.origin}/account` } });
       if (error) return setMessage(error.message);
       setMessage('Check your email to confirm the real Supabase account.');
+      captureSafeEvent('signup');
       navigate('/login');
     } finally {
       setSubmitting(false);
