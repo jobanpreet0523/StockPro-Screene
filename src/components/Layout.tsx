@@ -131,9 +131,10 @@ export default function Layout() {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         onSelectStock={handleSelectStock}
+        hideMarketDataLabels={location.pathname === '/crt-scanner'}
       />
 
-      <TrustDataBanner />
+      {location.pathname !== '/crt-scanner' && <TrustDataBanner />}
 
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
         {!isUtilityRoute && (
