@@ -13,7 +13,7 @@
     "seo:sitemap": "node scripts/validate-sitemap.mjs",
     "build": "vite build --configLoader runner && npx esbuild src/_worker.js --bundle --format=esm --outfile=dist/_worker.js --platform=browser --minify --conditions=worker",
     "ci": "npm run typecheck && npm run security:scan && npm run build && npm run verify:launch && npm run smoke:routes && npm run seo:audit && npm run seo:sitemap && npm run quality:deps",
-    "preview": "vite preview",
+    "preview": "vite preview --configLoader runner",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
