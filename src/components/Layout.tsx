@@ -17,11 +17,13 @@ import { Stock, IndexData } from '../types';
 export type DashboardTab =
   | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'
   | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator'
-  | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief';
+  | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief' | 'crt-scanner' | 'pro';
 
 export const TAB_TO_PATH: Record<DashboardTab, string> = {
   screener: '/screener',
   chartink: '/scanner',
+  'crt-scanner': '/crt-scanner',
+  pro: '/pro',
   fo: '/option-chain',
   us: '/us-markets',
   'strategy-builder': '/strategy-builder',
@@ -45,7 +47,7 @@ const PATH_TO_TAB: Record<string, DashboardTab> = Object.entries(TAB_TO_PATH).re
   {} as Record<string, DashboardTab>,
 );
 
-const utilityRoutes = new Set(['/start-trial', '/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/status', '/account']);
+const utilityRoutes = new Set(['/start-trial', '/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/status', '/account', '/crt-scanner', '/pro']);
 
 export interface DashboardContext {
   stocks: Stock[];
