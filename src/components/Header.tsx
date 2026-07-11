@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, TrendingUp, LayoutDashboard, Sun, Moon, LogIn, LogOut, ExternalLink, Zap, Newspaper, Flame, SlidersHorizontal, ShieldCheck, Cpu, Landmark, BookOpen, Globe, Settings2, Calculator, CalendarDays, UserRound } from 'lucide-react';
+import { Search, TrendingUp, LayoutDashboard, Sun, Moon, LogIn, LogOut, ExternalLink, Zap, Newspaper, Flame, SlidersHorizontal, ShieldCheck, Cpu, Landmark, BookOpen, Globe, Settings2, Calculator, CalendarDays, UserRound, ScanSearch, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Stock, IndexData } from '../types';
 import { useTheme } from './ThemeContext';
@@ -9,8 +9,8 @@ import { getMarketStatus } from '../utils/marketStatus';
 interface HeaderProps {
   indices: IndexData[];
   stocks: Stock[];
-  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief';
-  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief') => void;
+  activeTab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief' | 'crt-scanner' | 'pro';
+  setActiveTab: (tab: 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog' | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator' | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief' | 'crt-scanner' | 'pro') => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
@@ -23,6 +23,8 @@ const functionTabs: Array<{ tab: Tab; label: string; icon: React.ElementType }> 
   { tab: 'fo', label: 'Option Chain', icon: Cpu },
   { tab: 'signals', label: 'Signals', icon: Zap },
   { tab: 'chartink', label: 'Scanner', icon: SlidersHorizontal },
+  { tab: 'crt-scanner', label: 'CRT Scanner', icon: ScanSearch },
+  { tab: 'pro', label: 'Pro', icon: Crown },
   { tab: 'heatmap', label: 'Heatmap', icon: Flame },
   { tab: 'news', label: 'News', icon: Newspaper },
   { tab: 'daily-brief', label: 'Daily Brief', icon: CalendarDays },
