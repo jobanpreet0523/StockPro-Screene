@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Activity, AlertTriangle, Database, Play, RefreshCw, ShieldCheck } from 'lucide-react';
 import StockProDataTable from '../components/tables/StockProDataTable';
 import CrtCandlePreviewChart from '../components/charts/CrtCandlePreviewChart';
+import { captureSafeEvent } from '../lib/posthog';
 import { CRT_TIMEFRAMES, defaultCrtFilters, type CrtResult, type CrtScanFilters } from '../core/crtScanner';
 
 interface ProviderStatus { status: 'configured' | 'setup_required'; provider: string; message: string }
@@ -86,6 +87,7 @@ export default function CrtScannerPage() {
       });
       setActiveRun({ id: payload.scan_run_id, status: 'queued', provider: provider.provider, created_at: payload.data_captured_at });
       setMessage(payload.message);
+      captureSafeEvent('crt_scan_run');
     } catch (error) {
       setState('error');
       setMessage(error instanceof Error ? error.message : 'CRT scan could not start.');
@@ -176,7 +178,7 @@ export default function CrtScannerPage() {
           <Toggle label="Show weak setups" checked={filters.showWeakSetups} onChange={(value) => setFilters((f) => ({ ...f, showWeakSetups: value }))} />
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
-          <button type="button" onClick={() => void runScan()} disabled={state === 'scanning'} data-analytics-event="crt_scan_run" className="inline-flex items-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-50"><Play size={16} /> {state === 'scanning' ? 'Scanning market data...' : 'Run CRT Scan'}</button>
+          <button type="button" onClick={() => void runScan()} disabled={state === 'scanning'} className="inline-flex items-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-50"><Play size={16} /> {state === 'scanning' ? 'Scanning market data...' : 'Run CRT Scan'}</button>
           <button type="button" onClick={() => void runScan()} disabled={state === 'scanning' || !activeRun} className="inline-flex items-center gap-2 border border-slate-300 px-5 py-3 text-sm font-black disabled:opacity-50 dark:border-slate-700"><RefreshCw size={16} /> Refresh Market Data &amp; Scan Again</button>
         </div>
         <p className={`mt-4 flex items-start gap-2 text-sm font-semibold ${state === 'error' ? 'text-rose-700' : 'text-slate-600'}`}>{state === 'error' ? <AlertTriangle size={16} /> : <Activity size={16} />}{message}</p>
