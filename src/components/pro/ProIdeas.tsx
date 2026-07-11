@@ -1,0 +1,5 @@
+import ProSetupPanel from './ProSetupPanel';
+const categories = ['Momentum Leaders','Value + Quality','High OI Buildup','Oversold Bounce','FII/DII Flow Watch'];
+export default function ProIdeas() {
+  return <div><h1 className="text-2xl font-black">Ideas</h1><p className="mt-1 text-sm font-semibold text-slate-600">Educational strategy categories. They are not picks or recommendations.</p><div className="mt-5 grid gap-3 md:grid-cols-2">{categories.map((name) => <article key={name} className="rounded-lg border border-slate-200 bg-white p-5"><h2 className="font-black">{name}</h2><p className="mt-2 text-sm font-semibold text-slate-500">Authorized provider data is required before this category can produce source-backed research observations. No returns are estimated.</p><span className="mt-3 inline-block rounded bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800">setup required</span></article>)}</div><div className="mt-4"><ProSetupPanel title="Provider required" message="StockPro will show only source-backed observations with capture timestamps. No AI picks, buy/sell labels, or synthetic performance." /></div></div>;
+}
