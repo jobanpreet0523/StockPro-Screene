@@ -11,6 +11,7 @@ const expectedRoutes = [
   '/account',
   '/contact',
   '/admin/waitlist',
+  '/admin/beta-feedback',
   '/status',
   '/beta',
   '/start-trial',
@@ -20,6 +21,7 @@ const expectedRoutes = [
   '/news',
   '/blog',
   '/screener',
+  '/crt-scanner',
   '/option-chain',
 ];
 
