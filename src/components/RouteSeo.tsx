@@ -20,6 +20,10 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     title: 'Scanner Workspace — StockPro',
     description: 'Explore scanner views, momentum tables, saved views, and workspace signals using delayed data labels.',
   },
+  '/crt-scanner': {
+    title: 'Free CRT Scanner — StockPro',
+    description: 'Run a manual educational CRT scan from an authorized market-data snapshot and review saved results by scan run ID.',
+  },
   '/option-chain': {
     title: 'Chain Workspace — StockPro',
     description: 'Analyze chain-style tables, open interest views, volatility context, support zones, and resistance zones using delayed or verified data labels.',
@@ -123,6 +127,11 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
     robots: 'noindex, nofollow',
     title: 'Closed Beta Readiness - StockPro',
     description: 'Review StockPro closed beta readiness across auth, waitlist, broker, billing, market data, news, ads, and setup-required states.',
+  },
+  '/admin/beta-feedback': {
+    title: 'Beta Feedback Administration - StockPro',
+    description: 'Restricted closed beta feedback administration.',
+    robots: 'noindex, nofollow',
   },
   '/admin/waitlist': {
     title: 'Waitlist Administration - StockPro',
