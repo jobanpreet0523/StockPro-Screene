@@ -73,8 +73,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <RouteSeo />
-        <AnalyticsManager />
+        <AnalyticsProvider>
+          <RouteSeo />
         <StructuredData />
         <ParticleBackground />
         <Routes>
@@ -116,6 +116,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/screener" replace />} />
         </Routes>
+        </AnalyticsProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );
