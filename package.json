@@ -12,7 +12,7 @@
     "seo:audit": "node scripts/seo-audit.mjs",
     "seo:sitemap": "node scripts/validate-sitemap.mjs",
     "build": "vite build --configLoader runner && npx esbuild src/_worker.js --bundle --format=esm --outfile=dist/_worker.js --platform=browser --minify --conditions=worker",
-    "ci": "npm run security:scan && npm run typecheck && npm run build && npm run verify:launch",
+    "ci": "npm run typecheck && npm run security:scan && npm run build && npm run verify:launch && npm run smoke:routes && npm run seo:audit && npm run seo:sitemap && npm run quality:deps",
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
