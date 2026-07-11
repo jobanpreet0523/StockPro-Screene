@@ -41,7 +41,7 @@ jobs:
 
       - name: Commit package-lock.json if changed
         run: |
-          if git diff --quiet -- package-lock.json; then
+          if [ -z "$(git status --porcelain -- package-lock.json)" ]; then
             echo "lockfile_changed=false" >> "$GITHUB_ENV"
             echo "package-lock.json is unchanged."
           else
