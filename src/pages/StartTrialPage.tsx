@@ -1,6 +1,7 @@
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { CalendarClock, CheckCircle2, CreditCard, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { formatTrialDisclosure, FREE_TRIAL_DAYS, PRO_MONTHLY_PRICE_INR } from '../core/trialPlan';
+import TurnstileWidget from '../components/security/TurnstileWidget';
 import type { TrialApiResponse } from '../core/subscriptionTypes';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -21,6 +22,8 @@ export default function StartTrialPage() {
   const [message, setMessage] = useState('Payment and recurring mandate setup are not enabled yet.');
   const [billingMessage, setBillingMessage] = useState('Checking Razorpay test-mode readiness...');
   const [billingReady, setBillingReady] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), []);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -58,6 +61,11 @@ export default function StartTrialPage() {
 
   const startTrial = async (event: FormEvent) => {
     event.preventDefault();
+    if (!turnstileToken) {
+      setState('setup_required');
+      setMessage('Complete anti-spam verification before requesting a trial.');
+      return;
+    }
     if (!consent) {
       setState('error');
       setMessage('Confirm the auto-renew disclosure before requesting a trial.');
@@ -76,7 +84,7 @@ export default function StartTrialPage() {
       const response = await fetch(billingReady ? '/api/billing/create-test-subscription' : '/api/trial/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autoRenewConsent: true }),
+        body: JSON.stringify({ autoRenewConsent: true, turnstileToken }),
       });
       const payload = await response.json().catch(() => ({
         status: 'error',
@@ -108,12 +116,12 @@ export default function StartTrialPage() {
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300 ring-1 ring-emerald-400/20">
               <CalendarClock size={13} /> Pro trial foundation
             </div>
-            <h1 className="mt-5 text-4xl font-black tracking-[-0.05em]">₹0 today</h1>
+            <h1 className="mt-5 text-4xl font-black tracking-[-0.05em]">â‚¹0 today</h1>
             <p className="mt-2 text-lg font-black text-emerald-300">{FREE_TRIAL_DAYS}-day Pro trial</p>
             <div className="mt-7 grid gap-3 text-sm font-semibold text-slate-300">
-              <TrialPoint text={`After the trial: ₹${PRO_MONTHLY_PRICE_INR}/month`} />
+              <TrialPoint text={`After the trial: â‚¹${PRO_MONTHLY_PRICE_INR}/month`} />
               <TrialPoint text="Cancel anytime before the trial ends" />
-              <TrialPoint text="Educational analytics only—not investment advice" />
+              <TrialPoint text="Educational analytics onlyâ€”not investment advice" />
             </div>
           </div>
 
@@ -148,7 +156,7 @@ export default function StartTrialPage() {
 
             <button
               type="submit"
-              disabled={state === 'submitting'}
+              disabled={state === 'submitting' || !turnstileToken}
               data-analytics-event="trial_cta_click"
               data-analytics-label="start-trial:submit"
               className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
@@ -173,3 +181,4 @@ export default function StartTrialPage() {
 function TrialPoint({ text }: { text: string }) {
   return <div className="flex items-start gap-2"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-emerald-400" /> {text}</div>;
 }
+
