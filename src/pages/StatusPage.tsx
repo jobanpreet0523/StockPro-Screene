@@ -46,6 +46,10 @@ const runtimeLabels: Record<string, string> = {
   paymentLive: 'Payment live',
   seoAudit: 'SEO audit',
   testSuite: 'Test suite',
+  crtProvider: 'CRT authorized provider',
+  crtStorage: 'CRT scan storage',
+  savedResearch: 'Watchlist and alert storage',
+  betaAdmin: 'Closed beta administration',
 };
 
 export default function StatusPage() {
