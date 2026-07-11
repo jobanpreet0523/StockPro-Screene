@@ -1057,6 +1057,12 @@ function handleOperationsReadiness(request, env) {
   const broker = getBrokerConfig(env, 'none');
   const billing = getRazorpayReadiness(env);
   const searchConfigured = Boolean(cleanText(env?.ALGOLIA_ADMIN_KEY, 500) && cleanText(env?.ALGOLIA_STOCK_INDEX, 128) && cleanText(env?.ALGOLIA_CONTENT_INDEX, 128));
+  const providerName = cleanText(env?.MARKET_DATA_PROVIDER, 40);
+  const crtProviderConfigured = providerName === 'zerodha'
+    ? Boolean(cleanText(env?.ZERODHA_API_KEY, 500) && cleanText(env?.ZERODHA_ACCESS_TOKEN, 2000))
+    : providerName === 'authorized_vendor' && Boolean(cleanText(env?.AUTHORIZED_VENDOR_API_KEY, 500) && cleanText(env?.AUTHORIZED_VENDOR_BASE_URL, 500));
+  const crtStorageConfigured = getSupabaseTableConfig(env, env?.SUPABASE_CRT_SCAN_RUNS_TABLE || 'crt_scan_runs').configured;
+  const savedResearchConfigured = getSupabaseTableConfig(env, env?.SUPABASE_WATCHLISTS_TABLE || 'watchlists').configured;
   return secureJson(request, {
     status: 'ok',
     services: {
@@ -1070,6 +1076,10 @@ function handleOperationsReadiness(request, env) {
       paymentLive: 'disabled',
       seoAudit: 'configured',
       testSuite: 'configured',
+      crtProvider: configured(crtProviderConfigured),
+      crtStorage: configured(crtStorageConfigured),
+      savedResearch: configured(savedResearchConfigured),
+      betaAdmin: configured(String(env?.BETA_ADMIN_ENABLED || '').trim().toLowerCase() === 'true' && cleanText(env?.ADMIN_ACCESS_TOKEN, 500)),
     },
     message: 'Operational readiness reports configuration states only; no secrets are returned.',
   });
