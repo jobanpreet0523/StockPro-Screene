@@ -2,11 +2,6 @@ name: Repair Package Lock
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/repair-package-lock.yml
 
 permissions:
   contents: write
@@ -52,7 +47,7 @@ jobs:
         if: steps.lockfile.outputs.changed == 'true'
         run: |
           echo "Pushed repaired package-lock.json to main."
-          echo "Build Verification should be run against the repaired lockfile."
+          echo "Run Build Verification against the repaired lockfile."
 
       - name: Install dependencies
         if: steps.lockfile.outputs.changed != 'true'
