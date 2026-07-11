@@ -1,6 +1,7 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { MessageSquare, RefreshCw, Rocket, ShieldCheck } from 'lucide-react';
 import TurnstileWidget from '../components/security/TurnstileWidget';
+import { betaFeedbackSchema } from '../core/schemas';
 
 type BetaState = 'checking' | 'ok' | 'setup_required' | 'unavailable';
 
@@ -64,12 +65,17 @@ export default function BetaLaunchPage() {
       setFeedbackMessage('Complete anti-spam verification before submitting feedback.');
       return;
     }
+    const validatedFeedback = betaFeedbackSchema.safeParse({ message: feedback, sourcePage: '/beta', turnstileToken });
+    if (!validatedFeedback.success) {
+      setFeedbackMessage('Enter valid feedback before submitting.');
+      return;
+    }
     setFeedbackMessage('Checking feedback storage...');
     try {
       const response = await fetch('/api/beta/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: feedback, sourcePage: '/beta', turnstileToken }),
+        body: JSON.stringify(validatedFeedback.data),
       });
       const payload = await response.json().catch(() => ({ message: 'Feedback endpoint returned an unreadable response.' }));
       setFeedbackMessage(payload.message || (response.ok ? 'Feedback endpoint checked.' : 'Feedback storage unavailable.'));
