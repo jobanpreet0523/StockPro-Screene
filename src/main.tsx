@@ -9,11 +9,13 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
       <ThemeProvider>
         <App />
       </ThemeProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   </StrictMode>,
 );
 
