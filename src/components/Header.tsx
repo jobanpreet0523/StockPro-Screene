@@ -14,6 +14,7 @@ interface HeaderProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSelectStock: (symbol: string) => void;
+  hideMarketDataLabels?: boolean;
 }
 
 type Tab = HeaderProps['activeTab'];
@@ -38,7 +39,7 @@ const functionTabs: Array<{ tab: Tab; label: string; icon: React.ElementType }> 
   { tab: 'blog', label: 'Blog', icon: BookOpen },
 ];
 
-export default function Header({ indices, stocks, activeTab, setActiveTab, searchTerm, setSearchTerm, onSelectStock }: HeaderProps) {
+export default function Header({ indices, stocks, activeTab, setActiveTab, searchTerm, setSearchTerm, onSelectStock, hideMarketDataLabels = false }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, loginWithGoogle, logout } = useAuth();
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export default function Header({ indices, stocks, activeTab, setActiveTab, searc
 
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white sticky top-0 z-50 shadow-md transition-all duration-300" id="app_header">
-      <div className="bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-hidden text-[11px] sm:text-xs transition-all duration-300">
+      <div className={`bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-hidden text-[11px] sm:text-xs transition-all duration-300 ${hideMarketDataLabels ? 'hidden' : ''}`}>
         <div className="max-w-7xl mx-auto flex items-center gap-4 whitespace-nowrap">
           <div className="flex items-center gap-2 shrink-0" title="Free public mode uses 15-minute delayed market data.">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]" style={{ color: marketStatus.color }}>
@@ -100,7 +101,7 @@ export default function Header({ indices, stocks, activeTab, setActiveTab, searc
               <span className="font-sans font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">Stock<span className="text-emerald-500 dark:text-emerald-400 font-extrabold">Pro</span></span>
               <span className="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40 uppercase">Screener</span>
             </div>
-            {user ? <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">Welcome back, {user.displayName?.split(' ')[0]}</p> : <p className="text-[10px] text-slate-500 dark:text-slate-400">15-minute delayed analytics</p>}
+            {user ? <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">Welcome back, {user.displayName?.split(' ')[0]}</p> : <p className="text-[10px] text-slate-500 dark:text-slate-400">{hideMarketDataLabels ? 'Educational analytics' : '15-minute delayed analytics'}</p>}
           </div>
         </div>
 
