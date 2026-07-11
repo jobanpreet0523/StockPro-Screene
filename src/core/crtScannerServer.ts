@@ -11,6 +11,7 @@ interface CrtEnv extends SupabaseServerEnv {
   SUPABASE_CRT_SCAN_RUNS_TABLE?: string;
   SUPABASE_CRT_SCAN_RESULTS_TABLE?: string;
   CRT_SCAN_BATCH_SIZE?: string;
+  ADMIN_ACCESS_TOKEN?: string;
 }
 
 interface ExecutionContextLike { waitUntil(promise: Promise<unknown>): void }
@@ -18,6 +19,12 @@ interface ExecutionContextLike { waitUntil(promise: Promise<unknown>): void }
 const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const clean = (value: unknown) => typeof value === 'string' ? value.trim() : '';
+function tokenEquals(left: string, right: string) {
+  const a = new TextEncoder().encode(left); const b = new TextEncoder().encode(right);
+  if (!a.length || a.length !== b.length) return false;
+  let difference = 0; for (let index = 0; index < a.length; index += 1) difference |= a[index] ^ b[index];
+  return difference === 0;
+}
 const tableName = (value: unknown, fallback: string) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(clean(value)) ? clean(value) : fallback;
 
 function providerConfig(env: CrtEnv) {
@@ -231,6 +238,8 @@ export async function handleCrtScannerRequest(request: Request, path: string, en
   }
 
   if (path === '/api/market/instruments/refresh' && request.method === 'POST') {
+    const adminToken = clean(env.ADMIN_ACCESS_TOKEN);
+    if (!tokenEquals(clean(request.headers.get('X-Admin-Token')), adminToken)) return reply({ status: 'unauthorized', message: 'Instrument refresh requires server-configured admin access.' }, 401);
     if (!provider.configured) return reply({ status: 'setup_required', message: provider.message }, 503);
     if (!(await allowRequest())) return reply({ status: 'error', message: 'Instrument refresh rate limit reached.' }, 429);
     try { return reply({ status: 'ok', count: await refreshInstruments(env), message: 'Authorized provider instrument master refreshed and stored.' }); }
