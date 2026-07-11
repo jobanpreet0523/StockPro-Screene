@@ -8,6 +8,7 @@ export interface WaitlistPayload {
   interest?: string;
   sourcePage?: string;
   referrer?: string;
+  turnstileToken?: string;
 }
 
 export interface WaitlistApiResponse {
