@@ -1,6 +1,8 @@
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { FormEvent, useEffect, useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { AlertTriangle, Database, Download, KeyRound, LockKeyhole, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import type { AdminWaitlistResponse, WaitlistLead } from '../core/waitlist';
+import StockProDataTable from '../components/tables/StockProDataTable';
 
 const TOKEN_STORAGE_KEY = 'stockpro_waitlist_admin_token';
 type PageState = 'checking' | 'setup_required' | 'locked' | 'loading' | 'ready' | 'error';
@@ -13,11 +15,20 @@ function escapeCsv(value: unknown) {
 
 export default function AdminWaitlistPage() {
   const [pageState, setPageState] = useState<PageState>('checking');
-  const [message, setMessage] = useState('Checking waitlist admin setup…');
+  const [message, setMessage] = useState('Checking waitlist admin setupâ€¦');
   const [tokenInput, setTokenInput] = useState('');
   const [rows, setRows] = useState<WaitlistLead[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [interestFilter, setInterestFilter] = useState('');
+  const columns = useMemo<ColumnDef<WaitlistLead, any>[]>(() => [
+    { accessorKey: 'name', header: 'Name' },
+    { accessorKey: 'email', header: 'Email' },
+    { accessorKey: 'interest', header: 'Interest', cell: ({ getValue }) => getValue() || '-' },
+    { accessorKey: 'use_case', header: 'Use case', cell: ({ getValue }) => getValue() || '-' },
+    { accessorKey: 'source_page', header: 'Source page', cell: ({ getValue }) => getValue() || '-' },
+    { accessorKey: 'status', header: 'Status' },
+    { accessorKey: 'created_at', header: 'Created at', cell: ({ getValue }) => new Date(String(getValue())).toLocaleString('en-IN') },
+  ], []);
 
   const requestRows = async (token: string, saveToken: boolean) => {
     if (!token) {
@@ -27,7 +38,7 @@ export default function AdminWaitlistPage() {
     }
 
     setPageState('loading');
-    setMessage('Loading waitlist records…');
+    setMessage('Loading waitlist recordsâ€¦');
     const params = new URLSearchParams({ limit: '50' });
     if (statusFilter.trim()) params.set('status', statusFilter.trim());
     if (interestFilter.trim()) params.set('interest', interestFilter.trim());
@@ -190,16 +201,8 @@ export default function AdminWaitlistPage() {
               <div className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">{pageState === 'loading' ? <RefreshCw size={14} className="animate-spin" /> : <Database size={14} />} {message}</div>
             </section>
 
-            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-xs">
-                  <thead className="bg-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-300"><tr>{['Name', 'Email', 'Interest', 'Use case', 'Source page', 'Status', 'Created at'].map((label) => <th key={label} className="px-4 py-3">{label}</th>)}</tr></thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {rows.map((row) => <tr key={row.id} className="align-top hover:bg-slate-50 dark:hover:bg-slate-800/50"><td className="px-4 py-3 font-bold">{row.name}</td><td className="px-4 py-3">{row.email}</td><td className="px-4 py-3">{row.interest || '—'}</td><td className="max-w-xs whitespace-normal px-4 py-3">{row.use_case || '—'}</td><td className="max-w-xs break-all px-4 py-3">{row.source_page || '—'}</td><td className="px-4 py-3 font-bold uppercase">{row.status}</td><td className="whitespace-nowrap px-4 py-3">{new Date(row.created_at).toLocaleString('en-IN')}</td></tr>)}
-                    {rows.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center font-semibold text-slate-500">No waitlist records match the current filters.</td></tr>}
-                  </tbody>
-                </table>
-              </div>
+            <section>
+              <StockProDataTable data={rows} columns={columns} emptyMessage="No waitlist records match the current filters." filterPlaceholder="Filter loaded waitlist records" onExportCsv={exportCsv} />
             </section>
           </>
         )}
@@ -207,3 +210,4 @@ export default function AdminWaitlistPage() {
     </main>
   );
 }
+
