@@ -1,62 +1,49 @@
-import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Crown, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { proDashboardStateSchema } from '../core/schemas';
+import { useState } from 'react';
+import ProLayout from '../components/pro/ProLayout';
+import type { ProSection } from '../components/pro/ProSidebar';
+import ProDashboard from '../components/pro/ProDashboard';
+import ProWatchlist from '../components/pro/ProWatchlist';
+import ProIdeas from '../components/pro/ProIdeas';
+import ProScreener from '../components/pro/ProScreener';
+import ProDataExplorer from '../components/pro/ProDataExplorer';
+import ProCharts from '../components/pro/ProCharts';
+import ProSavedWork from '../components/pro/ProSavedWork';
+import ProAiResearch from '../components/pro/ProAiResearch';
+import ProGettingStarted from '../components/pro/ProGettingStarted';
+import { useProAccess } from '../hooks/useProAccess';
 
-async function loadProReadiness() {
-  const response = await fetch('/api/pro/readiness');
-  const payload = await response.json().catch(() => null);
-  const parsed = proDashboardStateSchema.safeParse(payload);
-  if (!parsed.success) throw new Error('Pro readiness returned malformed data.');
-  return parsed.data;
-}
+const panels: Record<ProSection, React.ComponentType> = {
+  dashboard: ProDashboard,
+  watchlist: ProWatchlist,
+  ideas: ProIdeas,
+  screener: ProScreener,
+  data: ProDataExplorer,
+  charts: ProCharts,
+  saved: ProSavedWork,
+  ai: ProAiResearch,
+  'getting-started': ProGettingStarted,
+};
 
 export default function ProPage() {
-  const query = useQuery({
-    queryKey: ['pro-readiness'],
-    queryFn: loadProReadiness,
-    refetchInterval: false,
-  });
+  const [section, setSection] = useState<ProSection>('dashboard');
+  const access = useProAccess();
+  const Panel = panels[section];
 
   return (
     <div className="lg:col-span-12">
-      <section className="border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950 sm:p-8">
-        <div className="flex items-center gap-3">
-          <Crown size={24} className="text-emerald-500" />
+      <ProLayout active={section} onSelect={setSection}>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-4 py-3">
           <div>
-            <p className="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">Pro workspace readiness</p>
-            <h1 className="mt-1 text-2xl font-black text-slate-950 dark:text-white">StockPro Pro</h1>
+            <p className="text-xs font-bold uppercase text-emerald-700">Access</p>
+            <p className="text-sm font-black">{access.loading ? 'checking' : access.tier.replace('_', ' ')}</p>
           </div>
+          <p className="max-w-2xl text-xs font-semibold text-slate-600">{access.message}</p>
         </div>
-
-        {query.isPending ? (
-          <p className="mt-6 flex items-center gap-2 text-sm font-semibold text-slate-500"><RefreshCw size={15} className="animate-spin" /> Checking real service readiness...</p>
-        ) : query.isError ? (
-          <div className="mt-6 border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-800 dark:border-rose-900 dark:bg-rose-950/20 dark:text-rose-200">
-            <AlertTriangle size={18} />
-            <p className="mt-2">Pro readiness is unavailable. No dashboard data or entitlement is assumed.</p>
-          </div>
-        ) : (
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {[
-              ['Market provider', query.data.marketProvider],
-              ['Broker vault', query.data.brokerVault],
-              ['Billing test readiness', query.data.billing],
-            ].map(([label, state]) => (
-              <article key={label} className="border border-slate-200 p-4 dark:border-slate-800">
-                <h2 className="text-xs font-bold text-slate-500">{label}</h2>
-                <p className="mt-2 text-sm font-black text-slate-950 dark:text-white">{state.replace('_', ' ')}</p>
-              </article>
-            ))}
-          </div>
-        )}
-
-        <p className="mt-6 text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">Pro access, saved screens, alerts, broker data, and billing remain setup-dependent. No paid entitlement, live data, or recommendations are synthesized.</p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link to="/contact?interest=pro" data-analytics-event="pro_tab_click" className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-black text-slate-950">Join Pro waitlist</Link>
-          <Link to="/pricing" data-analytics-event="pricing_click" className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-black dark:border-slate-700">Review pricing</Link>
-        </div>
-      </section>
+        <Panel />
+        <footer className="mt-6 border-t border-slate-200 pt-4 text-xs font-semibold leading-5 text-slate-500">
+          StockPro provides educational analytics and research tools only. It does not provide investment advice, buy/sell recommendations, guaranteed returns, or trade execution.
+        </footer>
+      </ProLayout>
     </div>
   );
 }
