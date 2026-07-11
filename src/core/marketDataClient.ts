@@ -13,8 +13,8 @@ export async function fetchMarketData<T>(path: string, signal?: AbortSignal): Pr
   }
 
   const validated = validateProviderData(marketDataEnvelopeSchema(z.unknown()), payload);
-  if (!validated.ok) throw new Error(validated.message);
-  const envelope = validated.data as MarketDataEnvelope<T>;
+  if (validated.ok === false) throw new Error(validated.message);
+  const envelope = validated.data as unknown as MarketDataEnvelope<T>;
   if (!response.ok && envelope.status === 'error') throw new Error(envelope.message);
   return envelope;
 }
