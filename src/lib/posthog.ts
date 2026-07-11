@@ -9,6 +9,10 @@ export const SAFE_ANALYTICS_EVENTS = [
   'crt_scan_click',
   'pro_tab_click',
   'route_load_error',
+  'signup',
+  'crt_scan_run',
+  'watchlist_created',
+  'alert_created',
 ] as const;
 
 export type SafeAnalyticsEvent = typeof SAFE_ANALYTICS_EVENTS[number];
