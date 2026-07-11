@@ -1,5 +1,6 @@
 /screener /index.html 200
 /scanner /index.html 200
+/crt-scanner /index.html 200
 /option-chain /index.html 200
 /us-markets /index.html 200
 /strategy-builder /index.html 200
@@ -22,6 +23,7 @@
 /beta /index.html 200
 /status /index.html 200
 /admin/waitlist /index.html 200
+/admin/beta-feedback /index.html 200
 /privacy /index.html 200
 /terms /index.html 200
 /risk-disclosure /index.html 200

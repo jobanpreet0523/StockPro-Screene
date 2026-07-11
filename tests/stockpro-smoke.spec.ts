@@ -5,6 +5,8 @@ const publicRoutes = [
   '/contact',
   '/screener',
   '/option-chain',
+  '/crt-scanner',
+  '/pro',
   '/pricing',
   '/start-trial',
   '/connect-broker',
@@ -48,6 +50,20 @@ test.describe('StockPro browser smoke', () => {
   test('/connect-broker explains per-user broker data', async ({ page }) => {
     await page.goto('/connect-broker');
     await expect(page.locator('body')).toContainText(/own broker|per-user|broker/i);
+  });
+
+  test('/crt-scanner stays manual and educational', async ({ page }) => {
+    await page.goto('/crt-scanner');
+    await expect(page.getByRole('heading', { name: 'CRT Scanner' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Run CRT Scan' })).toBeVisible();
+    await expect(page.locator('body')).not.toContainText(/BUY|SELL|PROFIT GUARANTEED|SURE SHOT/);
+  });
+
+  test('/pro exposes original light research workspace', async ({ page }) => {
+    await page.goto('/pro');
+    await expect(page.getByText('Pro Workspace', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'AI Research' })).toBeVisible();
+    await expect(page.locator('body')).toContainText(/educational analytics/i);
   });
 
   test('/status keeps live payment disabled visibly', async ({ page }) => {

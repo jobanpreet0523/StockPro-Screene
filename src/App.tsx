@@ -37,6 +37,8 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import BetaLaunchPage from './pages/BetaLaunchPage';
 import ProPage from './pages/ProPage';
+import CrtScannerPage from './pages/CrtScannerPage';
+import AdminBetaFeedbackPage from './pages/AdminBetaFeedbackPage';
 import StructuredData from './components/StructuredData';
 
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -81,9 +83,11 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/admin/waitlist" element={<AdminWaitlistPage />} />
+          <Route path="/admin/beta-feedback" element={<AdminBetaFeedbackPage />} />
           <Route element={<Layout />}>
             <Route path="/screener" element={<ScreenerPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
+            <Route path="/crt-scanner" element={<CrtScannerPage />} />
             <Route path="/option-chain" element={<OptionChainPage />} />
             <Route path="/us-markets" element={<UsMarketsPage />} />
             <Route path="/strategy-builder" element={<StrategyPage />} />

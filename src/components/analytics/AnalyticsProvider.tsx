@@ -12,6 +12,10 @@ const explicitEventMap: Record<string, SafeAnalyticsEvent> = {
   waitlist_submit: 'waitlist_submit',
   crt_scan_click: 'crt_scan_click',
   pro_tab_click: 'pro_tab_click',
+  signup: 'signup',
+  crt_scan_run: 'crt_scan_run',
+  watchlist_created: 'watchlist_created',
+  alert_created: 'alert_created',
 };
 
 function eventForTarget(target: HTMLElement): SafeAnalyticsEvent | null {

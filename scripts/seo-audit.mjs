@@ -23,13 +23,13 @@ if (errors.length === 0) {
     if (!routeSeo.includes(token)) errors.push(`RouteSeo is missing ${token}`);
   }
 
-  const publicRoutes = ['/', '/screener', '/scanner', '/option-chain', '/news', '/blog', '/daily-brief', '/pricing', '/start-trial', '/connect-broker', '/pro', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/risk-disclosure', '/privacy', '/terms', '/status'];
+  const publicRoutes = ['/', '/screener', '/scanner', '/crt-scanner', '/option-chain', '/news', '/blog', '/daily-brief', '/pricing', '/start-trial', '/connect-broker', '/pro', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/risk-disclosure', '/privacy', '/terms', '/status'];
   for (const route of publicRoutes) {
     if (route !== '/' && !app.includes(`path="${route}"`)) errors.push(`Missing public route: ${route}`);
     if (!routeSeo.includes(`'${route}'`)) errors.push(`Missing route metadata: ${route}`);
   }
 
-  for (const route of ['/admin/waitlist', '/account', '/login', '/signup', '/beta']) {
+  for (const route of ['/admin/waitlist', '/admin/beta-feedback', '/account', '/login', '/signup', '/beta']) {
     const routeBlock = new RegExp(`['"]${route.replace('/', '\\/')}['"][\\s\\S]{0,500}?robots:\\s*['"]noindex, nofollow['"]`);
     if (!routeBlock.test(routeSeo)) errors.push(`Private/setup route must be noindex: ${route}`);
   }

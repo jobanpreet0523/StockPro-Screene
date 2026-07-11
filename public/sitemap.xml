@@ -10,6 +10,9 @@
     <loc>https://stockpro1.qzz.io/scanner</loc>
   </url>
   <url>
+    <loc>https://stockpro1.qzz.io/crt-scanner</loc>
+  </url>
+  <url>
     <loc>https://stockpro1.qzz.io/option-chain</loc>
   </url>
   <url>

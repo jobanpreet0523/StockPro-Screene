@@ -1,6 +1,7 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { MessageSquare, RefreshCw, Rocket, ShieldCheck } from 'lucide-react';
 import TurnstileWidget from '../components/security/TurnstileWidget';
+import { betaFeedbackSchema } from '../core/schemas';
 
 type BetaState = 'checking' | 'ok' | 'setup_required' | 'unavailable';
 
@@ -64,12 +65,17 @@ export default function BetaLaunchPage() {
       setFeedbackMessage('Complete anti-spam verification before submitting feedback.');
       return;
     }
+    const validatedFeedback = betaFeedbackSchema.safeParse({ message: feedback, sourcePage: '/beta', turnstileToken });
+    if (!validatedFeedback.success) {
+      setFeedbackMessage('Enter valid feedback before submitting.');
+      return;
+    }
     setFeedbackMessage('Checking feedback storage...');
     try {
       const response = await fetch('/api/beta/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: feedback, sourcePage: '/beta', turnstileToken }),
+        body: JSON.stringify(validatedFeedback.data),
       });
       const payload = await response.json().catch(() => ({ message: 'Feedback endpoint returned an unreadable response.' }));
       setFeedbackMessage(payload.message || (response.ok ? 'Feedback endpoint checked.' : 'Feedback storage unavailable.'));
@@ -115,6 +121,14 @@ export default function BetaLaunchPage() {
         </div>
       </section>
 
+      <section className="border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950 sm:p-8">
+        <p className="text-xs font-black uppercase text-blue-700">Closed beta targets</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+          {['100 beta users','20 daily active users','10 broker-connected users','First paid interest'].map((target) => <article key={target} className="rounded-lg border border-slate-200 p-4 text-sm font-black">{target}<p className="mt-1 text-xs font-semibold text-slate-500">Target, not a reported count</p></article>)}
+        </div>
+        <p className="mt-4 text-sm font-semibold text-slate-600 dark:text-slate-300">Beta access is invite-only or waitlist-based. A stored waitlist record or authenticated invitation is required; this page does not grant access itself.</p>
+      </section>
+
       <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/90 sm:p-8">
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-300">
           <MessageSquare size={15} /> Beta feedback
@@ -128,6 +142,7 @@ export default function BetaLaunchPage() {
             placeholder="Tell us what blocked you or what felt unclear. Do not include passwords, OTPs, broker tokens, or payment credentials."
             className="min-h-32 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
           />
+          <TurnstileWidget action="beta_feedback" onTokenChange={handleTurnstileToken} resetKey={turnstileResetKey} />
           <button
             type="submit"
             disabled={!turnstileToken}
