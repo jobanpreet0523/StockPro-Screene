@@ -65,6 +65,7 @@ export interface CrtResult {
   score: number;
   dataCapturedAt: string;
   scanRunId: string;
+  chartCandles: CrtCandle[];
 }
 
 function bucketKey(time: string, timeframe: CrtTimeframe) {
@@ -179,6 +180,7 @@ export function evaluateCrtSnapshot(snapshot: CrtInstrumentSnapshot, filters: Cr
         score,
         dataCapturedAt: capturedAt,
         scanRunId,
+        chartCandles: candles.slice(-30),
       };
     }
   }
