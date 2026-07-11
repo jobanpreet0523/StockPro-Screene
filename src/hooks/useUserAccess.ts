@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuthSession } from './useAuthSession';
+import { authenticatedFetch } from '../core/supabaseClient';
 
 export type UserAccessTier = 'visitor' | 'free' | 'trial' | 'pro' | 'setup_required';
 
-async function loadAccess(token?: string) {
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await fetch('/api/trial/status', { headers });
+async function loadAccess() {
+  const response = await authenticatedFetch('/api/trial/status');
   const payload = await response.json().catch(() => null) as { status?: string; subscription?: { status?: string }; message?: string } | null;
   if (!payload) throw new Error('Access status returned malformed data.');
   if (payload.status === 'setup_required') return { tier: 'setup_required' as const, message: payload.message || 'Access storage requires setup.' };
