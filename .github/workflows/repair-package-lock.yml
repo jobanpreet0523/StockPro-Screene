@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
@@ -24,12 +24,35 @@ jobs:
           cache: npm
 
       - name: Repair package lock
-        run: npm install --package-lock-only --ignore-scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit --include=dev
 
-      - name: Verify clean install
+      - name: Commit repaired package lock if changed
+        id: lockfile
+        run: |
+          if [ -z "$(git status --porcelain -- package-lock.json)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "package-lock.json is unchanged."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "fix: repair package lock for CI"
+            git push origin HEAD:main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop after pushing repaired lockfile
+        if: steps.lockfile.outputs.changed == 'true'
+        run: |
+          echo "Pushed repaired package-lock.json to main."
+          echo "Build Verification will run again from the new push."
+
+      - name: Install dependencies
+        if: steps.lockfile.outputs.changed != 'true'
         run: npm ci
 
       - name: Run validation
+        if: steps.lockfile.outputs.changed != 'true'
         run: |
           npm run typecheck
           npm run security:scan
@@ -38,20 +61,4 @@ jobs:
           npm run smoke:routes
           npm run seo:audit
           npm run seo:sitemap
-
-      - name: Commit package-lock.json if changed
-        run: |
-          if [ -z "$(git status --porcelain -- package-lock.json)" ]; then
-            echo "lockfile_changed=false" >> "$GITHUB_ENV"
-            echo "package-lock.json is unchanged."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
-            git commit -m "fix: repair package lock for CI"
-            echo "lockfile_changed=true" >> "$GITHUB_ENV"
-          fi
-
-      - name: Push to main
-        if: env.lockfile_changed == 'true'
-        run: git push origin HEAD:main
+          npm run quality:deps
