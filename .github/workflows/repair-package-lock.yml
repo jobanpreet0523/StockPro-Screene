@@ -2,6 +2,11 @@ name: Repair Package Lock
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/repair-package-lock.yml
 
 permissions:
   contents: write
@@ -24,7 +29,9 @@ jobs:
           cache: npm
 
       - name: Repair package lock
-        run: npm install --package-lock-only --ignore-scripts --no-audit --include=dev
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --include=dev
+          npm install --ignore-scripts --no-audit --include=dev
 
       - name: Commit repaired package lock if changed
         id: lockfile
@@ -45,7 +52,7 @@ jobs:
         if: steps.lockfile.outputs.changed == 'true'
         run: |
           echo "Pushed repaired package-lock.json to main."
-          echo "Build Verification will run again from the new push."
+          echo "Build Verification should be run against the repaired lockfile."
 
       - name: Install dependencies
         if: steps.lockfile.outputs.changed != 'true'
@@ -54,11 +61,6 @@ jobs:
       - name: Run validation
         if: steps.lockfile.outputs.changed != 'true'
         run: |
-          npm run typecheck
-          npm run security:scan
-          npm run build
-          npm run verify:launch
+          npm run ci
           npm run smoke:routes
-          npm run seo:audit
-          npm run seo:sitemap
           npm run quality:deps
