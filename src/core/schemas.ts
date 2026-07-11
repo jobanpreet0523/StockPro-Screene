@@ -52,6 +52,22 @@ export const marketDataEnvelopeSchema = <T extends z.ZodType>(dataSchema: T) => 
   data: dataSchema.nullable(),
 }).passthrough();
 
+
+export const chartCandleSchema = z.object({
+  time: z.union([z.string().min(1).max(40), z.number().int().nonnegative()]),
+  open: z.number().finite(),
+  high: z.number().finite(),
+  low: z.number().finite(),
+  close: z.number().finite(),
+}).strict().refine((candle) => candle.high >= Math.max(candle.open, candle.close) && candle.low <= Math.min(candle.open, candle.close), 'Invalid OHLC candle bounds.');
+
+export const chartResponseSchema = z.object({
+  status: z.enum(['ok', 'empty', 'setup_required', 'provider_unavailable', 'error']),
+  source: trimmed(120),
+  message: trimmed(500),
+  data: z.array(chartCandleSchema).max(5000),
+}).passthrough();
+
 export const crtScanRunSchema = z.object({
   id: trimmed(120),
   status: z.enum(['queued', 'running', 'completed', 'failed', 'setup_required']),
