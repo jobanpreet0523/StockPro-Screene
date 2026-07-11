@@ -4,7 +4,7 @@ import LandingPage from './components/LandingPage';
 import Layout from './components/Layout';
 import ParticleBackground from './components/ParticleBackground';
 import RouteSeo from './components/RouteSeo';
-import AnalyticsManager from './components/AnalyticsManager';
+import AnalyticsProvider from './components/analytics/AnalyticsProvider';
 import ScreenerPage from './pages/ScreenerPage';
 import ScannerPage from './pages/ScannerPage';
 import OptionChainPage from './pages/OptionChainPage';
@@ -36,6 +36,7 @@ import AccountPage from './pages/AccountPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import BetaLaunchPage from './pages/BetaLaunchPage';
+import ProPage from './pages/ProPage';
 import StructuredData from './components/StructuredData';
 
 interface ErrorBoundaryProps { children: ReactNode; }
@@ -93,6 +94,7 @@ export default function App() {
             <Route path="/deals" element={<DealsPage />} />
             <Route path="/news" element={<NewsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/pro" element={<ProPage />} />
             <Route path="/start-trial" element={<StartTrialPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/daily-brief" element={<DailyBriefPage />} />
@@ -118,3 +120,4 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
