@@ -1175,7 +1175,7 @@ async function handleApi(path, url, request, env) {
     if (health.status !== 'ok') return json({ ...health, data: null });
     return json({ ...health, status: 'provider_unavailable', providerStatus: 'provider_unavailable', message: 'FII/DII provider data is unavailable. No substitute values are shown.', data: null });
   }
-  if (path === '/api/chart') return json({ status: 'ok', data: [] });
+  if (path === '/api/chart') return json({ status: 'provider_unavailable', source: 'none', message: 'Historical chart provider is not configured. No synthetic candles are returned.', data: [] }, 503, { 'Cache-Control': 'no-store' });
   if (path === '/api/pro-data') return json({ status: 'ok', symbol: url.searchParams.get('symbol') || 'NIFTY' });
   return json({ status: 'error', message: 'Not found' }, 404);
 }
