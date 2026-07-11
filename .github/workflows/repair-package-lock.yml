@@ -56,6 +56,11 @@ jobs:
       - name: Run validation
         if: steps.lockfile.outputs.changed != 'true'
         run: |
-          npm run ci
+          npm run typecheck
+          npm run security:scan
+          npm run build
+          npm run verify:launch
           npm run smoke:routes
+          npm run seo:audit
+          npm run seo:sitemap
           npm run quality:deps
