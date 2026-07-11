@@ -61,6 +61,7 @@ const app = read('src/App.tsx');
 const redirects = read('public/_redirects');
 const routeSeo = read('src/components/RouteSeo.tsx');
 const worker = read('src/_worker.js');
+const workerIntegrations = worker + read('src/core/crtScannerServer.ts') + read('src/core/savedResearchServer.ts');
 const envExample = read('.env.example');
 const requiredRoutes = ['/', '/screener', '/scanner', '/crt-scanner', '/option-chain', '/news', '/blog', '/daily-brief', '/pricing', '/start-trial', '/connect-broker', '/pro', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/risk-disclosure', '/privacy', '/terms', '/status', '/account', '/login', '/signup', '/beta', '/admin/waitlist', '/admin/beta-feedback'];
 
@@ -89,7 +90,7 @@ for (const token of [
   'paymentEnabled: false',
   'live_disabled: true',
 ]) {
-  if (!worker.includes(token)) errors.push(`Worker integration is missing: ${token}`);
+  if (!workerIntegrations.includes(token)) errors.push(`Worker integration is missing: ${token}`);
 }
 
 for (const key of [
@@ -133,7 +134,7 @@ if (!main.includes('<QueryClientProvider client={queryClient}>')) errors.push('Q
 
 const crt = read('src/pages/CrtScannerPage.tsx');
 for (const unsafe of ['BUY', 'SELL', 'demo badge', 'sample badge', 'fake live']) if (crt.includes(unsafe)) errors.push(`CRT Scanner contains prohibited label: ${unsafe}`);
-for (const required of ['Run CRT Scan', 'Refresh Market Data & Scan Again', 'Filters will apply on next scan.', 'Data Captured At']) if (!crt.includes(required)) errors.push(`CRT Scanner is missing: ${required}`);
+for (const required of ['Run CRT Scan', 'Refresh Market Data &amp; Scan Again', 'Filters will apply on next scan.', 'Data Captured At']) if (!crt.includes(required)) errors.push(`CRT Scanner is missing: ${required}`);
 
 const landing = read('src/components/LandingPage.tsx');
 for (const unsafe of ['421K Cr', '198K Cr', 'BSE LIVE FEED', 'NSE LIVE FEED']) {
