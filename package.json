@@ -11,7 +11,7 @@
     "smoke:routes": "node scripts/smoke-routes.mjs",
     "seo:audit": "node scripts/seo-audit.mjs",
     "seo:sitemap": "node scripts/validate-sitemap.mjs",
-    "build": "vite build && npx esbuild src/_worker.js --bundle --format=esm --outfile=dist/_worker.js --platform=browser --minify --conditions=worker",
+    "build": "vite build --configLoader runner && npx esbuild src/_worker.js --bundle --format=esm --outfile=dist/_worker.js --platform=browser --minify --conditions=worker",
     "ci": "npm run security:scan && npm run typecheck && npm run build && npm run verify:launch",
     "preview": "vite preview",
     "test:e2e": "playwright test",
