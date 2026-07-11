@@ -180,11 +180,13 @@ async function processRun(env: CrtEnv, runId: string, filters: CrtScanFilters) {
     for (let index = 0; index < instruments.length; index += batchSize) {
       const batch = instruments.slice(index, index + batchSize);
       const capturedAt = new Date().toISOString();
-      const snapshots = providerConfig(env).provider === 'authorized_vendor'
-        ? (await vendorSnapshots(env, batch)).data
-        : (await Promise.allSettled(batch.map((row) => zerodhaSnapshot(env, row))))
-            .filter((entry): entry is PromiseFulfilledResult<CrtInstrumentSnapshot> => entry.status === 'fulfilled')
-            .map((entry) => entry.value);
+      let snapshots: CrtInstrumentSnapshot[];
+      if (providerConfig(env).provider === 'authorized_vendor') {
+        snapshots = (await vendorSnapshots(env, batch)).data;
+      } else {
+        const settled = await Promise.allSettled(batch.map((row) => zerodhaSnapshot(env, row)));
+        snapshots = settled.flatMap((entry) => entry.status === 'fulfilled' ? [entry.value] : []);
+      }
       const results = snapshots.map((snapshot) => evaluateCrtSnapshot(snapshot, filters, runId, capturedAt)).filter(Boolean);
       if (results.length) {
         const response = await supabaseRequest(env, db.results, { method: 'POST', body: JSON.stringify(results!.map((result) => ({
