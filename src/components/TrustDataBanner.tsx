@@ -12,13 +12,13 @@ export default function TrustDataBanner() {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em]">Educational analytics only</p>
             <p className="mt-1 text-xs font-semibold leading-5">
-              StockPro is not SEBI-registered investment advice. Free mode shows 15-minute delayed market data.
+              StockPro is not SEBI-registered investment advice. Market data appears only from a configured authorized provider.
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
           <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 dark:bg-slate-950/50">
-            <Clock3 size={12} /> 15-min delayed
+            <Clock3 size={12} /> Provider required
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 dark:bg-slate-950/50">
             <AlertTriangle size={12} /> Risk disclosure applies
