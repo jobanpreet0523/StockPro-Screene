@@ -159,7 +159,7 @@ export default function Layout() {
                     <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-full"></div>
                     <div className="h-2 bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse w-2/3"></div>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Fetching 15-minute delayed market data...</span>
+                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Checking authorized market provider...</span>
                 </>
               ) : stocksError ? (
                 <>
@@ -206,7 +206,7 @@ export default function Layout() {
                       Indian Stock Markets are Closed (Weekend Session)
                     </h4>
                     <p className="text-xs text-slate-650 dark:text-slate-400 mt-1 leading-relaxed">
-                      Since today is a market holiday, the NSE/BSE trading session is closed. The platform displays the <strong>latest 15-minute delayed market data available</strong> with analytical option chain and chart overlay support.
+                      Since today is a market holiday, the NSE/BSE trading session is closed. The platform displays <strong>no market data is displayed until an authorized provider is connected</strong>.
                     </p>
                   </div>
                 </div>
@@ -236,7 +236,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">StockPro Screener</h4>
-            <p className="text-[9px] text-slate-400 mb-2 leading-tight">StockPro Analytics is not a SEBI registered investment advisor. Free mode shows 15-minute delayed market data. Derivatives trading involves risk of loss.</p>
+            <p className="text-[9px] text-slate-400 mb-2 leading-tight">StockPro Analytics is not a SEBI registered investment advisor. Market data appears only from configured authorized providers. Derivatives trading involves risk of loss.</p>
             <p>&copy; {new Date().getFullYear()} StockPro. All rights reserved.</p>
           </div>
           <div className="flex flex-col gap-2">
