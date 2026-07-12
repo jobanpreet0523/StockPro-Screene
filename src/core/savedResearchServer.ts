@@ -49,10 +49,10 @@ async function body(request: Request) { return request.json().catch(() => null);
 
 export async function handleSavedResearchRequest(request: Request, path: string, env: ResearchEnv, authenticate: Authenticate) {
   const cfg = config(env);
-  if (!cfg.db.configured) return json({ status: 'setup_required', message: 'Authenticated Supabase storage is required.' }, 503);
+  if (!cfg.db.configured) return json({ status: 'setup_required', configured: false, severity: 'info', data: [], message: 'Authenticated Supabase storage is required.' });
   const auth = await authenticate();
-  if (auth.status === 'setup_required') return json({ status: 'setup_required', message: auth.message || 'Authentication requires setup.' }, 503);
-  if (auth.status !== 'authenticated' || !auth.user?.id) return json({ status: 'unauthenticated', message: 'Log in to use private saved research.' }, 401);
+  if (auth.status === 'setup_required') return json({ status: 'setup_required', configured: false, severity: 'info', data: [], message: auth.message || 'Authentication requires setup.' });
+  if (auth.status !== 'authenticated' || !auth.user?.id) return json({ status: 'unauthenticated', configured: false, severity: 'info', data: [], message: 'Log in to use private saved research.' });
   const userId = auth.user.id;
 
   if (path === '/api/watchlists') {
