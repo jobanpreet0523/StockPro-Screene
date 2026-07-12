@@ -84,7 +84,7 @@ export default function LandingPage() {
       if (document.getElementById('stockpro-landing-3d-script')) return;
       const script = document.createElement('script');
       script.id = 'stockpro-landing-3d-script';
-      script.src = '/landing-3d-elements.js';
+      script.src = '/landing-3d-elements.js?v=provider-required';
       script.defer = true;
       document.body.appendChild(script);
     };
