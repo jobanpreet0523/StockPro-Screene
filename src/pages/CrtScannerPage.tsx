@@ -143,7 +143,7 @@ export default function CrtScannerPage() {
       </section>
 
       <header>
-        <p className="text-xs font-bold uppercase text-emerald-700">Free research tool</p>
+        <p className="text-xs font-bold uppercase text-emerald-700 dark:text-emerald-300">Free research tool</p>
         <h1 className="mt-2 text-3xl font-black text-slate-950 dark:text-white">CRT Scanner</h1>
         <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-600 dark:text-slate-300">Run a one-time authorized market snapshot, persist the complete scan by run ID, and review only saved backend results.</p>
       </header>
@@ -185,7 +185,7 @@ export default function CrtScannerPage() {
           <button type="button" onClick={() => void runScan()} disabled={state === 'scanning' || provider?.status !== 'configured'} className="inline-flex items-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-50"><Play size={16} /> {state === 'scanning' ? 'Scanning market data...' : 'Run CRT Scan'}</button>
           <button type="button" onClick={() => void runScan()} disabled={state === 'scanning' || !activeRun} className="inline-flex items-center gap-2 border border-slate-300 px-5 py-3 text-sm font-black disabled:opacity-50 dark:border-slate-700"><RefreshCw size={16} /> Refresh Market Data &amp; Scan Again</button>
         </div>
-        <p className={`mt-4 flex items-start gap-2 text-sm font-semibold ${state === 'error' ? 'text-rose-700' : state === 'setup_required' ? 'text-amber-700' : 'text-slate-600'}`}>{state === 'error' || state === 'setup_required' ? <AlertTriangle size={16} /> : <Activity size={16} />}{message}</p>
+        <p className={`mt-4 flex items-start gap-2 text-sm font-semibold ${state === 'error' ? 'text-rose-700' : state === 'setup_required' ? 'text-amber-700' : 'text-slate-600 dark:text-slate-300'}`}>{state === 'error' || state === 'setup_required' ? <AlertTriangle size={16} /> : <Activity size={16} />}{message}</p>
       </section>
 
       {chartResult && <section className="border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
@@ -209,7 +209,7 @@ export default function CrtScannerPage() {
 }
 
 function StatusCard({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return <article className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><p className="text-xs font-bold text-slate-500">{label}</p><p className="mt-1 text-lg font-black">{value.replace('_', ' ')}</p><p className="mt-1 text-xs font-semibold text-slate-500">{detail}</p></article>;
+  return <article className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"><p className="text-xs font-bold text-slate-500 dark:text-slate-300">{label}</p><p className="mt-1 text-lg font-black">{value.replace('_', ' ')}</p><p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-300">{detail}</p></article>;
 }
 function Select({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
   return <label className="grid gap-1 text-xs font-bold">{label}<select value={value} onChange={(e) => onChange(e.target.value)} className="border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900">{options.map((option) => <option key={option}>{option}</option>)}</select></label>;
