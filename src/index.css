@@ -353,15 +353,26 @@ select {
   color: #92400e !important;
 }
 
-.dark #core_app_layer .text-slate-400,
-.dark #core_app_layer .text-slate-500,
-.dark #core_app_layer .text-gray-400,
-.dark #core_app_layer .text-gray-500 {
+.dark #core_app_layer .dark\\:bg-slate-950 .text-slate-400,
+.dark #core_app_layer .dark\\:bg-slate-950 .text-slate-500,
+.dark #core_app_layer .dark\\:bg-slate-900 .text-slate-400,
+.dark #core_app_layer .dark\\:bg-slate-900 .text-slate-500,
+.dark #core_app_layer .dark\\:bg-slate-800 .text-slate-400,
+.dark #core_app_layer .dark\\:bg-slate-800 .text-slate-500 {
   color: #cbd5e1 !important;
 }
 
-.dark #core_app_layer .text-emerald-600 {
-  color: #6ee7b7 !important;
+.dark #core_app_layer .dark\\:bg-white .dark\\:text-slate-400,
+.dark #core_app_layer .dark\\:bg-white .dark\\:text-slate-300 {
+  color: #475569 !important;
+}
+
+.bg-emerald-600.text-white {
+  background-color: #047857 !important;
+}
+
+.bg-amber-600.text-white {
+  background-color: #92400e !important;
 }
 
 
