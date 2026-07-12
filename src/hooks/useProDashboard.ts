@@ -1,21 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
-
-async function read(endpoint: string) {
-  const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
-  const payload = await response.json().catch(() => null);
-  return { ok: response.ok, payload };
-}
+import { readApi } from '../core/apiClient';
+import { authenticatedFetch } from '../core/supabaseClient';
 
 export function useProDashboard() {
   return useQuery({
     queryKey: ['pro-dashboard'],
     queryFn: async () => {
-      const [market, indices, broker, trial, billing] = await Promise.all([
-        read('/api/live/health'), read('/api/live/indices'), read('/api/broker/status'),
-        read('/api/trial/status'), read('/api/billing/readiness'),
+      const [readiness, market, indices, broker, trial, billing, watchlists] = await Promise.all([
+        readApi('/api/pro/readiness'),
+        readApi('/api/live/health'),
+        readApi('/api/live/indices'),
+        readApi('/api/broker/status'),
+        readApi('/api/trial/status'),
+        readApi('/api/billing/readiness'),
+        readApi('/api/watchlists', {}, authenticatedFetch),
       ]);
-      return { market, indices, broker, trial, billing };
+      return { readiness, market, indices, broker, trial, billing, watchlists };
     },
+    retry: false,
     refetchInterval: false,
+    refetchOnWindowFocus: false,
   });
 }
