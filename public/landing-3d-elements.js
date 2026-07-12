@@ -4,10 +4,10 @@
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.matchMedia('(max-width: 768px)').matches;
 
   const marketItems = [
-    { label: 'NIFTY 50', value: 'Provider panel', change: 'SAMPLE UI' },
-    { label: 'BANK NIFTY', value: 'Provider panel', change: 'SAMPLE UI' },
-    { label: 'PCR', value: 'See OI card', change: 'SAMPLE UI' },
-    { label: 'MAX PAIN', value: 'See OI card', change: 'SAMPLE UI' },
+    { label: 'NIFTY 50', value: 'Provider panel', change: 'PROVIDER REQUIRED' },
+    { label: 'BANK NIFTY', value: 'Provider panel', change: 'PROVIDER REQUIRED' },
+    { label: 'PCR', value: 'See OI card', change: 'PROVIDER REQUIRED' },
+    { label: 'MAX PAIN', value: 'See OI card', change: 'PROVIDER REQUIRED' },
   ];
 
   const css = document.createElement('style');
@@ -380,7 +380,7 @@
       <div class="sp3d-data-plane"></div>
       <div class="sp3d-ring-stack"><span style="--i:0px"></span><span style="--i:38px"></span><span style="--i:76px"></span><span style="--i:114px"></span></div>
       ${marketItems.map((item, index) => `<div class="sp3d-floating-card card-${['a','b','c','d'][index]}"><div class="sp3d-card-label">${item.label}</div><div class="sp3d-card-value">${item.value}</div><div class="sp3d-card-change">${item.change}</div></div>`).join('')}
-      <div class="sp3d-holo-badge">Sample UI overlay - provider data below</div>
+      <div class="sp3d-holo-badge">Illustrative overlay - provider data below</div>
     `;
     hero.prepend(layer);
   }
