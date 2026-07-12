@@ -393,3 +393,47 @@ select {
 #landing_page .text-amber-700 {
   color: #92400e !important;
 }
+
+
+/* Theme-aware muted text: dark shell first, then intentional light surfaces. */
+.dark #core_app_layer .text-slate-400,
+.dark #core_app_layer .text-slate-500,
+.dark #core_app_layer .text-gray-400,
+.dark #core_app_layer .text-gray-500 {
+  color: #cbd5e1 !important;
+}
+
+.dark #core_app_layer .bg-white.text-slate-400,
+.dark #core_app_layer .bg-white.text-slate-500,
+.dark #core_app_layer .bg-white .text-slate-400,
+.dark #core_app_layer .bg-white .text-slate-500,
+.dark #core_app_layer .bg-slate-50.text-slate-400,
+.dark #core_app_layer .bg-slate-50.text-slate-500,
+.dark #core_app_layer .bg-slate-50 .text-slate-400,
+.dark #core_app_layer .bg-slate-50 .text-slate-500,
+.dark #core_app_layer .bg-gray-50 .text-gray-400,
+.dark #core_app_layer .bg-gray-50 .text-gray-500 {
+  color: #475569 !important;
+}
+
+.dark #core_app_layer .bg-white .text-emerald-500,
+.dark #core_app_layer .dark\\:bg-white .text-emerald-500 {
+  color: #047857 !important;
+}
+
+#landing_page .text-slate-700 {
+  color: #334155 !important;
+}
+
+#landing_page [class*="text-amber-700"] {
+  color: #92400e !important;
+}
+
+#landing_page [title="Scheduled NSE market-hours status"] {
+  background: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+
+#landing_page [title="Scheduled NSE market-hours status"] span[style*="color"] {
+  color: #991b1b !important;
+}
