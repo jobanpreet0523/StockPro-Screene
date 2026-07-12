@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const routes = ['/', '/contact', '/screener', '/option-chain', '/pricing', '/start-trial', '/connect-broker', '/status'];
+const routes = ['/', '/pro', '/crt-scanner', '/connect-broker', '/account', '/pricing', '/contact', '/status'];
 
 test.describe('StockPro accessibility smoke', () => {
   for (const route of routes) {
