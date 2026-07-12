@@ -336,8 +336,10 @@ export function externalProviderAdapter(env: MarketDataEnv): MarketDataProvider 
 }
 
 export function createMarketDataProvider(env: MarketDataEnv = {}): MarketDataProvider {
-  const selection = (env.MARKET_DATA_PROVIDER || 'delayed').trim().toLowerCase();
-  if (selection === 'delayed') return existingDelayedAdapter;
-  if (selection === 'external') return externalProviderAdapter(env);
-  return setupRequiredProvider(selection || 'unknown', 'MARKET_DATA_PROVIDER must be either delayed or external.');
+  const selection = (env.MARKET_DATA_PROVIDER || '').trim().toLowerCase();
+  if (selection === 'external' || selection === 'authorized_vendor') return externalProviderAdapter(env);
+  if (selection === 'broker' || selection === 'dhan' || selection === 'upstox' || selection === 'zerodha') {
+    return setupRequiredProvider(selection, 'This provider requires an authenticated backend or per-user broker adapter. No shared public token is used.');
+  }
+  return setupRequiredProvider(selection || 'none', 'Authorized market provider setup is required. No delayed, demo, sample, or synthetic values are returned.');
 }
