@@ -1,6 +1,6 @@
 import { createMarketDataProvider } from './core/marketDataProvider.ts';
 import { brokerRequiredProvider, createBrokerRestMarketDataProvider, shouldUseBrokerRestData } from './core/brokerLiveData.ts';
-import { encryptBrokerToken, getTokenVaultStatus } from './core/tokenVault.ts';
+import { decryptBrokerToken, encryptBrokerToken, getTokenVaultStatus } from './core/tokenVault.ts';
 import { getRazorpayReadiness } from './core/razorpayReadiness.ts';
 import { validateInput } from './core/apiValidation.ts';
 import { betaFeedbackSchema, emailNotificationRequestSchema, waitlistLeadSchema } from './core/schemas.ts';
@@ -525,7 +525,7 @@ function getBrokerConfig(env, provider = 'none') {
   const providerReady = provider === 'upstox'
     ? Boolean(cleanText(env?.UPSTOX_CLIENT_ID, 200) && cleanText(env?.UPSTOX_CLIENT_SECRET, 500) && cleanText(env?.UPSTOX_REDIRECT_URI, 500))
     : provider === 'dhan'
-    ? Boolean(cleanText(env?.DHAN_CLIENT_ID, 200))
+    ? true
     : provider === 'none';
   return {
     auth: getSupabaseAuthConfig(env),
@@ -594,7 +594,7 @@ function handleBrokerStreamStatus(request, env) {
 
 async function loadBrokerConnection(config, userId) {
   const params = new URLSearchParams({
-    select: 'provider,status,connected_at,expires_at',
+    select: 'user_id,provider,status,connected_at,expires_at,encrypted_token,token_iv,token_algorithm',
     user_id: `eq.${userId}`,
     order: 'updated_at.desc',
     limit: '1',
@@ -708,7 +708,12 @@ async function handleBroker(request, action, provider, env) {
     } catch {
       return secureJson(request, { status: 'error', provider, isConnected: false, dataAccess: 'none', message: 'A valid JSON request is required. No broker account was connected.' }, 400);
     }
-    const token = cleanText(body?.accessToken || body?.token, 4000);
+    const accessToken = cleanText(body?.accessToken || body?.token, 4000);
+    const clientId = cleanText(body?.clientId, 120);
+    if (!accessToken || !/^[A-Za-z0-9_-]{3,120}$/.test(clientId)) {
+      return secureJson(request, { status: 'invalid_input', provider, isConnected: false, dataAccess: 'none', message: 'Dhan client ID and access token are required.' }, 400);
+    }
+    const token = JSON.stringify({ accessToken, clientId });
     const encrypted = await encryptBrokerToken({ token, provider: 'dhan', userId: auth.user.id, secret: cleanText(env?.BROKER_ENCRYPTION_SECRET, 500) });
     if (encrypted.status !== 'ok' || !encrypted.record) {
       return secureJson(request, { status: encrypted.status, provider, isConnected: false, dataAccess: 'none', message: encrypted.message }, encrypted.status === 'setup_required' ? 503 : 400);
@@ -787,6 +792,129 @@ async function handleBroker(request, action, provider, env) {
   }
 
   return brokerSetupRequired(request, provider, 'This broker authorization route is still setup_required. No broker account is connected.');
+}
+
+async function writeBrokerAuditEvent(env, userId, provider, eventType, outcome) {
+  const storage = getSupabaseTableConfig(env, env?.SUPABASE_BROKER_EVENTS_TABLE || 'broker_connection_events');
+  if (!storage.configured) return;
+  await fetch(`${storage.supabaseUrl}/rest/v1/${encodeURIComponent(storage.table)}`, {
+    method: 'POST',
+    headers: {
+      apikey: storage.serviceRoleKey,
+      Authorization: `Bearer ${storage.serviceRoleKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ user_id: userId, provider, event_type: eventType, outcome, safe_metadata: {}, created_at: new Date().toISOString() }),
+  }).catch(() => undefined);
+}
+
+async function handleBrokerConnectionTest(request, env) {
+  if (request.method !== 'POST') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'POST' });
+  const auth = await getAuthenticatedUser(request, env);
+  if (auth.status === 'setup_required') return secureJson(request, { status: 'setup_required', configured: false, severity: 'info', message: auth.message });
+  if (auth.status !== 'authenticated') return secureJson(request, { status: 'unauthenticated', configured: false, severity: 'info', message: 'Log in before testing a broker connection.' });
+
+  const config = getBrokerConfig(env, 'none');
+  if (config.storageMode !== 'supabase' || !config.supabase.configured || config.vault.status !== 'ok') {
+    return brokerSetupRequired(request, 'none', 'Per-user encrypted broker storage must be configured before a connection can be tested.');
+  }
+
+  const row = await loadBrokerConnection(config, auth.user.id).catch(() => null);
+  if (!row?.encrypted_token || !row?.token_iv || row.provider !== 'dhan') {
+    return secureJson(request, { status: 'not_connected', configured: true, severity: 'info', message: 'Save this user\'s Dhan credentials before running a connection test.' });
+  }
+  const decrypted = await decryptBrokerToken({
+    record: {
+      provider: 'dhan',
+      userId: auth.user.id,
+      encryptedToken: row.encrypted_token,
+      iv: row.token_iv,
+      algorithm: 'AES-GCM',
+      createdAt: row.connected_at || new Date().toISOString(),
+    },
+    secret: cleanText(env?.BROKER_ENCRYPTION_SECRET, 500),
+  });
+  if (decrypted.status !== 'ok' || !decrypted.token) {
+    await writeBrokerAuditEvent(env, auth.user.id, 'dhan', 'connection_test', 'decrypt_failed');
+    return secureJson(request, { status: 'reconnect_required', configured: true, severity: 'info', message: 'Stored broker credentials could not be opened. Reconnect this broker account.' });
+  }
+
+  let credentials;
+  let body;
+  try {
+    credentials = JSON.parse(decrypted.token);
+    body = await request.json();
+  } catch {
+    return secureJson(request, { status: 'invalid_input', message: 'A valid broker test request is required.' }, 400);
+  }
+  const testType = cleanText(body?.testType || 'profile', 40);
+  const allowed = new Set(['profile', 'quote', 'historical', 'option_chain']);
+  if (!allowed.has(testType)) return secureJson(request, { status: 'invalid_input', message: 'Unsupported broker connection test.' }, 400);
+
+  let endpoint = 'https://api.dhan.co/v2/profile';
+  let method = 'GET';
+  let payload;
+  if (testType === 'quote') {
+    const securityId = Number(body?.securityId);
+    if (!Number.isInteger(securityId) || securityId <= 0) return secureJson(request, { status: 'invalid_input', message: 'A positive Dhan security ID is required for quote testing.' }, 400);
+    endpoint = 'https://api.dhan.co/v2/marketfeed/quote';
+    method = 'POST';
+    payload = { NSE_EQ: [securityId] };
+  } else if (testType === 'historical') {
+    const securityId = cleanText(body?.securityId, 40);
+    const fromDate = cleanText(body?.fromDate, 20);
+    const toDate = cleanText(body?.toDate, 20);
+    if (!securityId || !/^\d{4}-\d{2}-\d{2}$/.test(fromDate) || !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) return secureJson(request, { status: 'invalid_input', message: 'Security ID and YYYY-MM-DD date range are required.' }, 400);
+    endpoint = 'https://api.dhan.co/v2/charts/historical';
+    method = 'POST';
+    payload = { securityId, exchangeSegment: 'NSE_EQ', instrument: 'EQUITY', expiryCode: 0, oi: false, fromDate, toDate };
+  } else if (testType === 'option_chain') {
+    const underlyingScrip = Number(body?.underlyingScrip);
+    const underlyingSeg = cleanText(body?.underlyingSeg || 'IDX_I', 30);
+    const expiry = cleanText(body?.expiry, 20);
+    if (!Number.isInteger(underlyingScrip) || underlyingScrip <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(expiry)) return secureJson(request, { status: 'invalid_input', message: 'Underlying security ID and YYYY-MM-DD expiry are required.' }, 400);
+    endpoint = 'https://api.dhan.co/v2/optionchain';
+    method = 'POST';
+    payload = { UnderlyingScrip: underlyingScrip, UnderlyingSeg: underlyingSeg, Expiry: expiry };
+  }
+
+  const response = await fetch(endpoint, {
+    method,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'access-token': cleanText(credentials?.accessToken, 4000),
+      'client-id': cleanText(credentials?.clientId, 120),
+    },
+    body: method === 'POST' ? JSON.stringify(payload) : undefined,
+  }).catch(() => null);
+  if (!response?.ok) {
+    await writeBrokerAuditEvent(env, auth.user.id, 'dhan', `${testType}_test`, 'reconnect_required');
+    return secureJson(request, { status: 'reconnect_required', configured: true, severity: 'info', testType, message: 'Broker rejected the connection test. Refresh the user\'s token and try again.' });
+  }
+  const providerPayload = await response.json().catch(() => null);
+  const update = await fetch(`${config.supabase.supabaseUrl}/rest/v1/${encodeURIComponent(config.supabase.table)}?user_id=eq.${encodeURIComponent(auth.user.id)}&provider=eq.dhan`, {
+    method: 'PATCH',
+    headers: {
+      apikey: config.supabase.serviceRoleKey,
+      Authorization: `Bearer ${config.supabase.serviceRoleKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ status: 'connected', connected_at: new Date().toISOString(), last_tested_at: new Date().toISOString(), last_error_code: null, updated_at: new Date().toISOString() }),
+  });
+  if (!update.ok) return secureJson(request, { status: 'error', message: 'Provider test passed, but connection status could not be persisted.' }, 502);
+  await writeBrokerAuditEvent(env, auth.user.id, 'dhan', `${testType}_test`, 'passed');
+  return secureJson(request, {
+    status: 'connected',
+    configured: true,
+    provider: 'dhan',
+    testType,
+    dataAccess: 'market_data_only',
+    providerDataPresent: Boolean(providerPayload?.data ?? providerPayload),
+    message: `Dhan ${testType.replace('_', ' ')} test passed for this authenticated user. Order placement remains disabled.`,
+  });
 }
 
 function getAffiliateConfig(env, broker) {
@@ -1256,6 +1384,7 @@ async function handleApi(path, url, request, env, ctx) {
   if (path === '/api/broker/health') return handleBroker(request, 'health', 'none', env);
   if (path === '/api/broker/stream/status') return handleBrokerStreamStatus(request, env);
   if (path === '/api/broker/status') return handleBroker(request, 'status', 'none', env);
+  if (path === '/api/broker/test') return handleBrokerConnectionTest(request, env);
   if (path === '/api/broker/dhan/connect') return handleBroker(request, 'dhan_connect', 'dhan', env);
   if (path === '/api/broker/upstox/start') return handleBroker(request, 'upstox_start', 'upstox', env);
   if (path === '/api/broker/upstox/callback') return handleBroker(request, 'upstox_callback', 'upstox', env);
