@@ -10,6 +10,7 @@ import { readApi } from '../core/apiClient';
 type ReadinessState = 'configured' | 'setup_required' | 'disabled' | 'checking';
 interface ReadinessItem { key: string; label: string; state: ReadinessState; message: string; }
 interface OperationalResponse {
+  [key: string]: unknown;
   status: 'ok';
   services: Record<string, 'configured' | 'setup_required' | 'disabled'>;
   message: string;
