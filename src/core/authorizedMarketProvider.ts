@@ -119,7 +119,7 @@ function authorizedVendorProvider(env: AuthorizedProviderEnv): AuthorizedMarketP
   };
   const array = <T>(schema: z.ZodType<T>, value: unknown): T[] => {
     const validated = validateProviderData(z.array(schema), value);
-    if (!validated.ok) throw new Error(validated.message);
+    if (validated.ok === false) throw new Error(validated.message);
     return validated.data;
   };
   return {
