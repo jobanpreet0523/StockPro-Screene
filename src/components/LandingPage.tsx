@@ -2231,7 +2231,7 @@ export default function LandingPage() {
         </span>
         
         <!-- Interactive vector grayscale institutional logo placeholders -->
-        <div class="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-60 hover:opacity-85 transition-opacity duration-300">
+        <div class="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-100 transition-opacity duration-300">
           
           <!-- Logo 1: MCX -->
           <div class="flex items-center gap-2 select-none grayscale cursor-default hover:scale-105 transition-all">
