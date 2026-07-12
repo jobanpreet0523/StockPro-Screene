@@ -336,7 +336,7 @@ async function handleAdminWaitlist(request, url, env) {
   }
 }
 
-const TRIAL_DISCLOSURE = 'â‚¹0 today. Auto-renews at â‚¹299/month after 7 days unless cancelled.';
+const TRIAL_DISCLOSURE = 'INR 0 today. Auto-renews at INR 299/month after 7 days unless cancelled.';
 const BROKER_PROVIDERS = new Set(['dhan', 'upstox', 'angel', 'zerodha']);
 
 function getSupabaseAuthConfig(env) {
@@ -1060,8 +1060,8 @@ async function handleBillingSubscription(request, action, env) {
   if (request.method !== 'POST') return secureJson(request, { status: 'error', paymentEnabled: false, live_disabled: true, message: 'Method not allowed.' }, 405, { Allow: 'POST' });
 
   const auth = await getAuthenticatedUser(request, env);
-  if (auth.status === 'setup_required') return secureJson(request, { status: 'setup_required', paymentEnabled: false, live_disabled: true, message: auth.message }, 503);
-  if (auth.status !== 'authenticated') return secureJson(request, { status: 'unauthenticated', paymentEnabled: false, live_disabled: true, message: 'Sign in before using test-mode billing scaffolds.' }, 401);
+  if (auth.status === 'setup_required') return secureJson(request, { status: 'setup_required', configured: false, severity: 'info', paymentEnabled: false, live_disabled: true, message: auth.message });
+  if (auth.status !== 'authenticated') return secureJson(request, { status: 'unauthenticated', configured: false, severity: 'info', paymentEnabled: false, live_disabled: true, message: 'Sign in before using test-mode billing scaffolds.' });
 
   let body = {};
   try {
@@ -1097,7 +1097,7 @@ async function handleBillingSubscription(request, action, env) {
     message: action === 'cancel'
       ? 'Razorpay test cancellation scaffold is present, but no subscription was cancelled until per-user storage and webhook processing are manually approved.'
       : 'Razorpay test credentials are present, but no subscription or charge was created until final manual approval.',
-  }, 503);
+  });
 }
 
 async function handleRazorpayWebhook(request, env) {
