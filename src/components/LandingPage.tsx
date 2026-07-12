@@ -199,7 +199,7 @@ export default function LandingPage() {
   ];
 
   return <>
-    <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
+    <div id="landing_page" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `
 
     <!-- 1. GLOBAL NAVIGATION BAR -->
     <nav class="sticky top-0 bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between z-50 shadow-sm">
