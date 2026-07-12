@@ -5,6 +5,7 @@ import { searchClientReadiness } from '../core/searchConfig';
 import { getTurnstileClientReadiness } from '../core/turnstile';
 import { posthogReadiness } from '../lib/posthog';
 import { sentryReadiness } from '../lib/sentry';
+import { readApi } from '../core/apiClient';
 
 type ReadinessState = 'configured' | 'setup_required' | 'disabled' | 'checking';
 interface ReadinessItem { key: string; label: string; state: ReadinessState; message: string; }
@@ -15,10 +16,13 @@ interface OperationalResponse {
 }
 
 async function loadOperationalReadiness() {
-  const response = await fetch('/api/operations/readiness', { signal: AbortSignal.timeout(15_000) });
-  const payload = await response.json().catch(() => null) as OperationalResponse | null;
-  if (!response.ok || payload?.status !== 'ok' || !payload.services) throw new Error('Operational readiness is unavailable.');
-  return payload;
+  const result = await readApi<OperationalResponse>('/api/operations/readiness', { signal: AbortSignal.timeout(15_000) });
+  return result.payload?.services ? result.payload : null;
+}
+
+async function loadDatabaseReadiness() {
+  const result = await readApi<{ status: string; configured?: boolean; message?: string; tables?: Record<string, 'configured' | 'missing' | 'setup_required' | 'unavailable'> }>('/api/database/readiness', { signal: AbortSignal.timeout(15_000) });
+  return result.payload;
 }
 
 function clientItems(): ReadinessItem[] {
@@ -56,7 +60,16 @@ export default function StatusPage() {
   const query = useQuery({
     queryKey: ['operational-readiness'],
     queryFn: loadOperationalReadiness,
+    retry: false,
     refetchInterval: false,
+    refetchOnWindowFocus: false,
+  });
+  const databaseQuery = useQuery({
+    queryKey: ['database-readiness'],
+    queryFn: loadDatabaseReadiness,
+    retry: false,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
   });
 
   const runtimeItems: ReadinessItem[] = query.data
@@ -73,7 +86,13 @@ export default function StatusPage() {
         message: query.isPending ? 'Checking runtime configuration...' : 'Runtime readiness is unavailable. No substitute status is shown.',
       }));
 
-  const items = [...clientItems(), ...runtimeItems];
+  const databaseItems: ReadinessItem[] = Object.entries(databaseQuery.data?.tables || {}).map(([key, state]) => ({
+    key: `database-${key}`,
+    label: `Database: ${key}`,
+    state: state === 'configured' ? 'configured' : 'setup_required',
+    message: state === 'configured' ? 'Required table is reachable.' : state === 'missing' ? 'Required table is missing.' : state === 'unavailable' ? 'Table check is temporarily unavailable.' : 'Supabase setup is required.',
+  }));
+  const items = [...clientItems(), ...runtimeItems, ...databaseItems];
 
   return (
     <div className="lg:col-span-12">
@@ -84,7 +103,7 @@ export default function StatusPage() {
             <h1 className="mt-1 text-3xl font-black text-slate-950 dark:text-white">StockPro service status</h1>
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-600 dark:text-slate-300">Only configured, setup required, disabled, or checking states are shown. Credential values and synthetic health are never returned.</p>
           </div>
-          <button type="button" onClick={() => void query.refetch()} title="Refresh readiness" className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-3 text-xs font-bold text-white dark:bg-emerald-500 dark:text-slate-950"><RefreshCw size={14} /> Refresh</button>
+          <button type="button" onClick={() => { void query.refetch(); void databaseQuery.refetch(); }} title="Refresh readiness" className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-3 text-xs font-bold text-white dark:bg-emerald-500 dark:text-slate-950"><RefreshCw size={14} /> Refresh</button>
         </div>
 
         <div className="mt-7 grid gap-3 md:grid-cols-2">
