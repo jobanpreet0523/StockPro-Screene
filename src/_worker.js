@@ -227,8 +227,10 @@ async function handleWaitlist(request, env) {
   if (!config.configured) {
     return secureJson(request, {
       status: 'setup_required',
+      configured: false,
+      severity: 'info',
       message: 'Waitlist storage is not configured yet. You can use the email fallback while setup is completed.',
-    }, 503);
+    });
   }
 
   try {
@@ -274,7 +276,7 @@ function handleWaitlistHealth(request, env) {
   if (request.method !== 'GET') return json({ status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET', 'Cache-Control': 'no-store' });
   const config = getWaitlistConfig(env);
   if (!config.configured) {
-    return json({ status: 'setup_required', message: 'Waitlist storage requires server-side Supabase configuration.' }, 503, { 'Cache-Control': 'no-store' });
+    return json({ status: 'setup_required', configured: false, severity: 'info', message: 'Waitlist storage requires server-side Supabase configuration.' }, 200, { 'Cache-Control': 'no-store' });
   }
   return json({ status: 'ok', message: 'Waitlist storage bindings appear configured.' }, 200, { 'Cache-Control': 'no-store' });
 }
@@ -292,7 +294,7 @@ async function handleAdminWaitlist(request, url, env) {
   const config = getWaitlistConfig(env);
   const adminToken = typeof env?.ADMIN_ACCESS_TOKEN === 'string' ? env.ADMIN_ACCESS_TOKEN.trim() : '';
   if (!config.configured || !isAdminEnabled(env) || !adminToken) {
-    return secureJson(request, { status: 'setup_required', message: 'Waitlist admin access requires server-side Supabase and admin configuration.' }, 503);
+    return secureJson(request, { status: 'setup_required', configured: false, severity: 'info', message: 'Waitlist admin access requires server-side Supabase and admin configuration.' });
   }
 
   const authorization = request.headers.get('Authorization') || '';
@@ -425,11 +427,11 @@ async function handleAuth(request, action, env) {
       session: null,
       user: null,
       message: config.configured ? 'Session cookie cleared. Supabase token revocation must be handled by the auth client.' : 'Auth is not configured; any local session cookie was cleared.',
-    }, config.configured ? 200 : 503, { 'Set-Cookie': 'stockpro_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0' });
+    }, 200, { 'Set-Cookie': 'stockpro_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0' });
   }
 
   const auth = await getAuthenticatedUser(request, env);
-  if (auth.status === 'setup_required') return secureJson(request, { status: 'setup_required', session: null, user: null, message: auth.message }, 503);
+  if (auth.status === 'setup_required') return secureJson(request, { status: 'setup_required', configured: false, severity: 'info', session: null, user: null, message: auth.message });
   if (auth.status !== 'authenticated') return secureJson(request, noAuthSession(auth.message), 200);
 
   const session = {
@@ -1151,7 +1153,7 @@ async function handleAdminBetaFeedback(request, env) {
   const config = getSupabaseTableConfig(env, env?.SUPABASE_BETA_FEEDBACK_TABLE || 'beta_feedback');
   const adminToken = cleanText(env?.ADMIN_ACCESS_TOKEN, 500);
   const enabled = String(env?.BETA_ADMIN_ENABLED || '').trim().toLowerCase() === 'true';
-  if (!config.configured || !enabled || !adminToken) return secureJson(request, { status: 'setup_required', message: 'Beta feedback administration requires Supabase and server-side admin configuration.' }, 503);
+  if (!config.configured || !enabled || !adminToken) return secureJson(request, { status: 'setup_required', configured: false, severity: 'info', message: 'Beta feedback administration requires Supabase and server-side admin configuration.' });
   if (!safeTokenEquals(cleanText(request.headers.get('X-Admin-Token'), 500), adminToken)) return secureJson(request, { status: 'unauthorized', message: 'A valid admin access token is required.' }, 401);
   const response = await fetch(`${config.supabaseUrl}/rest/v1/${encodeURIComponent(config.table)}?select=id,message,source_page,user_id,created_at&order=created_at.desc&limit=200`, {
     headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, Accept: 'application/json' },
