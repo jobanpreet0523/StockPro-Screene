@@ -35,12 +35,11 @@ export default {
     }
     if (path.startsWith('/api/')) return handleApi(path, url, request, env, ctx);
 
-    try {
-      const assetRes = await env.ASSETS.fetch(request.clone());
-      if (assetRes.status !== 404) return assetRes;
-    } catch {}
+    if (request.method === 'GET' && !path.split('/').pop()?.includes('.')) {
+      return env.ASSETS.fetch(new Request(new URL('/index.html', url.origin), request));
+    }
 
-    return env.ASSETS.fetch(new Request(new URL('/index.html', url.origin), request));
+    return env.ASSETS.fetch(request);
   },
 };
 
