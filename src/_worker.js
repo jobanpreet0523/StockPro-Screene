@@ -457,11 +457,13 @@ function getTrialConfig(env) {
 function trialSetupRequired(request, reason) {
   return secureJson(request, {
     status: 'setup_required',
+    configured: false,
+    severity: 'info',
     plan: 'pro',
     disclosure: TRIAL_DISCLOSURE,
     paymentEnabled: false,
     message: reason,
-  }, 503);
+  });
 }
 
 async function handleTrial(request, action, env) {
@@ -536,11 +538,13 @@ function getBrokerConfig(env, provider = 'none') {
 function brokerSetupRequired(request, provider, message) {
   return secureJson(request, {
     status: 'setup_required',
+    configured: false,
+    severity: 'info',
     provider,
     isConnected: false,
     dataAccess: 'none',
     message,
-  }, 503);
+  });
 }
 
 function brokerHealthPayload(env) {
@@ -609,7 +613,7 @@ async function handleBroker(request, action, provider, env) {
   if (action === 'health') {
     if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
     const health = brokerHealthPayload(env);
-    return secureJson(request, health, health.status === 'ok' ? 200 : 503);
+    return secureJson(request, { ...health, configured: health.status === 'ok', severity: 'info' });
   }
 
   const expectedMethod = action === 'status' || action === 'upstox_start' || action === 'upstox_callback' ? 'GET' : 'POST';
@@ -919,7 +923,7 @@ async function hmacSha256Hex(message, secret) {
 async function handleBillingReadiness(request, env) {
   if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
   const readiness = getRazorpayReadiness(env);
-  return secureJson(request, readiness, readiness.status === 'test_ready' ? 200 : 503);
+  return secureJson(request, { ...readiness, configured: readiness.status === 'test_ready', severity: 'info' });
 }
 
 async function handleBillingSubscription(request, action, env) {
@@ -951,7 +955,7 @@ async function handleBillingSubscription(request, action, env) {
   }
 
   const readiness = getRazorpayReadiness(env);
-  if (readiness.status !== 'test_ready') return secureJson(request, readiness, 503);
+  if (readiness.status !== 'test_ready') return secureJson(request, { ...readiness, configured: false, severity: 'info' });
 
   return secureJson(request, {
     status: 'setup_required',
@@ -969,7 +973,7 @@ async function handleBillingSubscription(request, action, env) {
 async function handleRazorpayWebhook(request, env) {
   if (request.method !== 'POST') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'POST' });
   const readiness = getRazorpayReadiness(env);
-  if (readiness.status !== 'test_ready') return secureJson(request, readiness, 503);
+  if (readiness.status !== 'test_ready') return secureJson(request, { ...readiness, configured: false, severity: 'info' });
 
   const signature = cleanText(request.headers.get('x-razorpay-signature'), 256);
   if (!signature) return secureJson(request, { status: 'error', message: 'Razorpay webhook signature is required.' }, 400);
@@ -1052,7 +1056,7 @@ function handleSearchConfig(request, env) {
     status: indices.length ? 'configured' : 'setup_required',
     indices,
     message: indices.length ? 'Search indexes are configured.' : 'Search index setup is required.',
-  }, indices.length ? 200 : 503);
+  }, 200);
 }
 
 function handleOperationsReadiness(request, env) {
@@ -1095,13 +1099,15 @@ function handleProReadiness(request, env) {
   const marketReady = Boolean(cleanText(env?.MARKET_DATA_PROVIDER, 40));
   return secureJson(request, {
     status: 'setup_required',
+    configured: false,
+    severity: 'info',
     marketProvider: configured(marketReady),
     brokerVault: configured(broker.supabase.configured && broker.vault.status === 'ok'),
     billing: billing.status === 'test_ready' ? 'configured' : 'setup_required',
     savedScreens: null,
     activeAlerts: null,
     message: 'Pro readiness is informational. No entitlement, saved data, or alert count is assumed.',
-  }, 503);
+  });
 }
 
 function handleAdConfig(request, env) {
@@ -1127,7 +1133,7 @@ function handleAdConfig(request, env) {
     ADSENSE_SLOT_IN_FEED: adsConfigured ? inFeed : '',
     SPONSOR_MODE: sponsorMode,
     message: configured ? 'Advertising configuration is available.' : 'Advertising is not configured. Placeholder slots remain visible.',
-  }, configured ? 200 : 503, { 'Cache-Control': 'max-age=300' });
+  }, 200, { 'Cache-Control': 'max-age=300' });
 }
 
 // launch verification compatibility token: handlePlanRoutes(path, request)
