@@ -40,7 +40,7 @@ for (const route of expectedRoutes) {
 if (!distIndex.includes('<div id="root"></div>')) missing.push('Built index is missing the React root');
 if (!distIndex.includes('/assets/')) missing.push('Built index is missing bundled asset references');
 if (!wrangler.includes('not_found_handling = "single-page-application"')) missing.push('Cloudflare SPA not-found handling is missing');
-if (!wrangler.includes('run_worker_first = ["/api/*"]')) missing.push('Cloudflare API worker-first routing is missing');
+if (!wrangler.includes('run_worker_first = true')) missing.push('Cloudflare API worker-first routing is missing');
 
 if (missing.length) {
   console.error('Route smoke verification failed:');
