@@ -11,7 +11,7 @@ export default function PricingView() {
   const navigate = useNavigate();
   const paymentEnabled = paidAccessEnabled();
   const checkoutReady = canEnableCheckout();
-  const freeFeatures = ["15-minute delayed dashboard", "Basic screener presets", "Limited watchlist", "Education tools", "CSV export preview"];
+  const freeFeatures = ["Provider-backed dashboard when configured", "Basic screener presets", "Limited watchlist", "Education tools", "CSV export preview"];
   const proFeatures = ["Saved screens roadmap", "Watchlist expansion", "Alert center roadmap", "Advanced F&O workspace", "Cleaner export workflow"];
   const premiumFeatures = ["Custom dashboards roadmap", "Priority alert roadmap", "Sector and options desk", "Research notebook roadmap", "Founder pricing access"];
 
@@ -98,8 +98,8 @@ function Card({ icon: Icon, title, price, text, items, button, onClick, analytic
   return (
     <div className={`rounded-3xl p-7 shadow-xl border ${shell}`}>
       <h3 className="text-2xl font-black flex items-center gap-2"><Icon size={22} className="text-emerald-500" /> {title}</h3>
-      <p className="text-sm mt-2 leading-6 text-slate-500 dark:text-slate-400">{text}</p>
-      <div className="my-6 text-4xl font-black text-emerald-500">{price}</div>
+      <p className={`text-sm mt-2 leading-6 ${dark ? 'text-slate-300 dark:text-slate-600' : 'text-slate-500 dark:text-slate-400'}`}>{text}</p>
+      <div className={`my-6 text-4xl font-black ${dark ? 'text-emerald-300 dark:text-emerald-700' : 'text-emerald-500'}`}>{price}</div>
       <div className="grid gap-3 mb-8">{items.map((item) => <div key={item} className="flex items-start gap-3"><Check size={18} className="text-emerald-500 shrink-0 mt-0.5" /><span className="text-sm font-semibold">{item}</span></div>)}</div>
       <button onClick={onClick} data-analytics-event={analyticsEvent} data-analytics-label={analyticsEvent ? `${title}:${button}` : undefined} className="w-full rounded-2xl px-4 py-3 text-sm font-black bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition">{button}</button>
     </div>
