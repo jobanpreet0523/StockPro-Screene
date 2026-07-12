@@ -235,7 +235,7 @@ export default function LandingPage() {
         <!-- Primary Blue Button to launch the react screen -->
         <a 
           href="/pro" 
-          class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-xs px-4 py-2 rounded transition-all duration-150 flex items-center gap-1.5 shadow-sm shadow-blue-600/25"
+          class="bg-blue-700 hover:bg-blue-800 active:bg-blue-900 text-white font-extrabold text-xs px-4 py-2 rounded transition-all duration-150 flex items-center gap-1.5 shadow-sm shadow-blue-600/25"
         >
           <span>Access Pro Workspace</span>
           <i data-lucide="arrow-right" class="w-3 h-3"></i>
@@ -482,7 +482,7 @@ export default function LandingPage() {
             </div>
 
             <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-              <span>Delayed/sample calculations</span>
+              <span>Provider-backed calculations only</span>
               <span class="text-gray-400">FUT Expiry: 25-JUN</span>
             </div>
           </div>
@@ -551,7 +551,7 @@ export default function LandingPage() {
 
             <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
               <span>PCR classification: <strong class="text-emerald-600 font-bold">${pcrClassification}</strong></span>
-              <span>Delayed/sample educational view</span>
+              <span>Provider-backed educational view</span>
             </div>
           </div>
 
@@ -1160,7 +1160,7 @@ export default function LandingPage() {
       <div class="max-w-7xl mx-auto px-6">
         
         <div class="border-b border-gray-250 pb-5 mb-10 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Derivative Blueprint Engine</span>
+          <span class="text-xs font-black uppercase text-blue-700 tracking-widest font-mono">Derivative Blueprint Engine</span>
           <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
             Options Strategy Blueprint Optimizer
           </h2>
@@ -1243,7 +1243,7 @@ export default function LandingPage() {
             <div class="bg-gray-50 p-4 rounded-xl border border-gray-205 space-y-3 font-mono text-[10px]">
               <div class="flex items-center justify-between border-b border-gray-200 pb-2">
                 <span class="text-gray-500 font-bold">SYSTEM ACTIVE BLUEPRINT</span>
-                <strong id="blueprint-name" class="text-blue-650 font-black">BULL CALL SPREAD</strong>
+                <strong id="blueprint-name" class="text-blue-700 font-black">BULL CALL SPREAD</strong>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -1484,7 +1484,7 @@ export default function LandingPage() {
       <div class="max-w-7xl mx-auto px-6">
         
         <div class="border-b border-gray-200 pb-5 mb-8 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Implied Volatility Analytics</span>
+          <span class="text-xs font-black uppercase text-blue-700 tracking-widest font-mono">Implied Volatility Analytics</span>
           <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
             Implied Volatility (IV) Skew Matrix
           </h2>
@@ -2228,7 +2228,7 @@ export default function LandingPage() {
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="12" r="5" stroke-dasharray="2 2" />
             </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">MCX</span>
+            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-slate-700">MCX</span>
           </div>
 
           <!-- Logo 2: NSE Data Feed -->
@@ -2238,7 +2238,7 @@ export default function LandingPage() {
               <line x1="8" y1="20" x2="20" y2="8" />
               <line x1="4" y1="16" x2="16" y2="4" />
             </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">NSE Data Feed</span>
+            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-slate-700">NSE Data Feed</span>
           </div>
 
           <!-- Logo 3: NSE CONNECT -->
@@ -2247,7 +2247,7 @@ export default function LandingPage() {
               <path d="M12 2a10 10 0 0 1 10 10H12V2z" />
               <path d="M12 12v10a10 10 0 0 1-10-10h10z" />
             </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">NSE CONNECT</span>
+            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-slate-700">NSE CONNECT</span>
           </div>
 
           <!-- Logo 4: BSE reference feed badge -->
@@ -2258,7 +2258,7 @@ export default function LandingPage() {
               <rect x="3" y="14" width="7" height="7" rx="1" />
               <rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">BSE FEED</span>
+            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-slate-700">BSE FEED</span>
           </div>
 
           <!-- Logo 5: CDSL -->
@@ -2266,7 +2266,7 @@ export default function LandingPage() {
             <svg class="w-5 h-5 text-gray-650" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
-            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-gray-750">CDSL</span>
+            <span class="text-[11px] font-black uppercase tracking-wider font-sans text-slate-700">CDSL</span>
           </div>
 
         </div>
@@ -2281,7 +2281,7 @@ export default function LandingPage() {
         <!-- Header -->
         <div class="border-b border-gray-200 pb-5 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div class="space-y-1">
-            <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Derivative Equilibrium</span>
+            <span class="text-xs font-black uppercase text-blue-700 tracking-widest font-mono">Derivative Equilibrium</span>
             <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
               Options Max Pain & Multi-Strike Open Interest
             </h2>
@@ -2408,7 +2408,7 @@ export default function LandingPage() {
         
         <!-- Header -->
         <div class="border-b border-gray-200 pb-5 mb-10 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Volatility Dispersal Index</span>
+          <span class="text-xs font-black uppercase text-blue-700 tracking-widest font-mono">Volatility Dispersal Index</span>
           <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
             Implied Volatility (IV) vs Historical Volatility (HV) Analysis
           </h2>
@@ -2556,7 +2556,7 @@ export default function LandingPage() {
               <tr class="hover:bg-slate-50/50 transition">
                 <td class="py-3 px-6 font-mono text-gray-400 font-bold">10:45:30 IST</td>
                 <td class="py-3 px-6 font-extrabold text-slate-900">RELIANCE JUN 2500 CE</td>
-                <td class="py-3 px-6 text-right font-mono font-black text-blue-650">₹14.2 Cr Order</td>
+                <td class="py-3 px-6 text-right font-mono font-black text-blue-700">₹14.2 Cr Order</td>
                 <td class="py-3 px-6 text-center">
                   <span class="inline-block text-[9px] font-black uppercase text-blue-800 bg-blue-100 py-0.5 px-2.5 rounded-full font-mono">
                     Block Trade
@@ -2630,7 +2630,7 @@ export default function LandingPage() {
         
         <!-- Header -->
         <div class="border-b border-gray-200 pb-5 mb-10 max-w-2xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Macro Hedging Coordinates</span>
+          <span class="text-xs font-black uppercase text-blue-700 tracking-widest font-mono">Macro Hedging Coordinates</span>
           <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
             Global Cross-Asset Options & Macro Indicators
           </h2>
@@ -2725,7 +2725,7 @@ export default function LandingPage() {
         
         <!-- Header -->
         <div class="border-b border-gray-200 pb-5 mb-10 text-center mx-auto max-w-xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Expert Guidance</span>
+          <span class="text-xs font-black uppercase text-blue-700 tracking-widest font-mono">Expert Guidance</span>
           <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
             Frequently Asked Questions
           </h2>
@@ -2796,7 +2796,7 @@ export default function LandingPage() {
 
         <!-- Header -->
         <div class="border-b border-gray-200 pb-5 mb-12 text-center mx-auto max-w-xl">
-          <span class="text-xs font-black uppercase text-blue-650 tracking-widest font-mono">Precision Licensing</span>
+          <span class="text-xs font-black uppercase text-blue-700 tracking-widest font-mono">Precision Licensing</span>
           <h2 class="text-xl sm:text-2xl font-black text-[#111827] mt-1 tracking-tight font-sans leading-none uppercase">
             Select Your Analytical Edge
           </h2>
@@ -2864,7 +2864,7 @@ export default function LandingPage() {
             <div>
               <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
                 <div>
-                  <span class="text-[9px] font-black uppercase text-blue-650 font-mono tracking-wider">Level 02</span>
+                  <span class="text-[9px] font-black uppercase text-blue-700 font-mono tracking-wider">Level 02</span>
                   <h3 class="text-sm font-black text-[#111827] uppercase tracking-wide mt-0.5 font-sans">Pro Trader</h3>
                 </div>
                 <span class="text-[10px] font-black font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">Popular</span>
