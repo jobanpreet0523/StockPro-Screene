@@ -33,7 +33,7 @@ function config(env: ResearchEnv) {
     watchlists: cleanTable(env.SUPABASE_WATCHLISTS_TABLE, 'watchlists'),
     items: cleanTable(env.SUPABASE_WATCHLIST_ITEMS_TABLE, 'watchlist_items'),
     alerts: cleanTable(env.SUPABASE_ALERTS_TABLE, 'alerts'),
-    screens: cleanTable(env.SUPABASE_SAVED_SCREENS_TABLE, 'saved_screens'),
+    screens: cleanTable(env.SUPABASE_SAVED_SCREENS_TABLE, 'saved_screeners'),
   };
 }
 
@@ -80,6 +80,10 @@ export async function handleSavedResearchRequest(request: Request, path: string,
   if (watchlistMatch && request.method === 'DELETE') {
     const response = await rest(env, cfg.watchlists, { method: 'DELETE' }, `?id=eq.${watchlistMatch[1]}&user_id=eq.${encodeURIComponent(userId)}`);
     return json({ status: response.ok ? 'ok' : 'error', message: response.ok ? 'Watchlist deleted.' : 'Watchlist deletion failed.' }, response.ok ? 200 : 502);
+  }
+  if (itemMatch && request.method === 'GET') {
+    const response = await rest(env, cfg.items, { method: 'GET' }, `?watchlist_id=eq.${itemMatch[1]}&user_id=eq.${encodeURIComponent(userId)}&select=id,symbol,exchange,created_at&order=created_at.asc`);
+    return json({ status: response.ok ? 'ok' : 'error', data: response.ok ? await response.json() : [], message: response.ok ? 'Saved watchlist symbols loaded. Prices are not synthesized.' : 'Watchlist symbols unavailable.' }, response.ok ? 200 : 502);
   }
   if (itemMatch && request.method === 'POST') {
     const parsed = watchlistItemSchema.safeParse(await body(request));
