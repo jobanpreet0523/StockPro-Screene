@@ -114,14 +114,14 @@ export default function StartTrialPage() {
         <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
           <div className="bg-slate-950 p-7 text-white sm:p-9">
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300 ring-1 ring-emerald-400/20">
-              <CalendarClock size={13} /> Pro trial foundation
+              <CalendarClock size={13} /> Pro trial test readiness
             </div>
-            <h1 className="mt-5 text-4xl font-black tracking-[-0.05em]">â‚¹0 today</h1>
+            <h1 className="mt-5 text-4xl font-black tracking-[-0.05em]">INR 0 today</h1>
             <p className="mt-2 text-lg font-black text-emerald-300">{FREE_TRIAL_DAYS}-day Pro trial</p>
             <div className="mt-7 grid gap-3 text-sm font-semibold text-slate-300">
-              <TrialPoint text={`After the trial: â‚¹${PRO_MONTHLY_PRICE_INR}/month`} />
+              <TrialPoint text={`After the trial: INR ${PRO_MONTHLY_PRICE_INR}/month`} />
               <TrialPoint text="Cancel anytime before the trial ends" />
-              <TrialPoint text="Educational analytics onlyâ€”not investment advice" />
+              <TrialPoint text="Educational analytics only - not investment advice" />
             </div>
           </div>
 
@@ -156,7 +156,7 @@ export default function StartTrialPage() {
 
             <button
               type="submit"
-              disabled={state === 'submitting' || !turnstileToken}
+              disabled={state === 'submitting' || !turnstileToken || !consent || !user}
               data-analytics-event="trial_cta_click"
               data-analytics-label="start-trial:submit"
               className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
