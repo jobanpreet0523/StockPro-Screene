@@ -46,7 +46,7 @@ export default function DataSourceBadge({ status, compact = false }: Props) {
           </span>
         )}
       </div>
-      <p className="text-[11px] font-semibold leading-5 opacity-80">{status.message}</p>
+      <p className="text-[11px] font-semibold leading-5">{status.message}</p>
       {status.canUpgradeToBrokerLive && (
         <Link to="/connect-broker" className="text-[10px] font-black uppercase tracking-widest underline underline-offset-4">
           View broker live setup
