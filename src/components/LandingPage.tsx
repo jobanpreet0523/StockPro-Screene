@@ -21,12 +21,10 @@ export default function LandingPage() {
   useEffect(() => {
     const root = document.documentElement;
     const restoreDark = root.classList.contains('dark');
-    const enforceLight = () => root.classList.remove('dark');
-    enforceLight();
-    const observer = new MutationObserver(enforceLight);
-    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+    root.classList.remove('dark');
+    const settleTheme = window.setTimeout(() => root.classList.remove('dark'), 0);
     return () => {
-      observer.disconnect();
+      window.clearTimeout(settleTheme);
       if (restoreDark) root.classList.add('dark');
     };
   }, []);
