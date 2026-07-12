@@ -19,6 +19,8 @@ const requiredFiles = [
   'src/components/charts/LightweightStockChart.tsx',
   'src/core/schemas.ts',
   'src/core/apiValidation.ts',
+  'src/core/apiClient.ts',
+  'src/core/authorizedMarketProvider.ts',
   'src/core/supabaseClient.ts',
   'src/core/supabaseServer.ts',
   'src/core/turnstile.ts',
@@ -52,6 +54,16 @@ const requiredFiles = [
   'docs/WATCHLIST_ALERTS_SETUP.md',
   'docs/BILLING_TEST_MODE_SETUP.md',
   'docs/CLOSED_BETA_LAUNCH.md',
+  'docs/SUPABASE_FULL_SCHEMA.sql',
+  'docs/SUPABASE_RLS_POLICIES.sql',
+  'docs/SUPABASE_SETUP_CHECKLIST.md',
+  'docs/SUPABASE_AUTH_SETUP.md',
+  'docs/MARKET_PROVIDER_SETUP.md',
+  'docs/BROKER_USER_TOKEN_TESTING.md',
+  'docs/ALERTS_SETUP.md',
+  'docs/PUBLIC_LAUNCH_V1_CHECKLIST.md',
+  'docs/FRIEND_BROKER_TESTING_GUIDE.md',
+  'tests/production-readiness.spec.ts',
   '.github/workflows/build.yml',
 ];
 
@@ -75,12 +87,14 @@ for (const component of ['<RouteSeo />', '<AnalyticsProvider>']) {
 
 for (const token of [
   '/api/operations/readiness',
+  '/api/database/readiness',
   '/api/search/config',
   '/api/pro/readiness',
   '/api/notifications/request',
   '/api/market/provider-status',
   '/api/crt-scanner/run',
   '/api/watchlists',
+  '/api/broker/test',
   '/api/alerts',
   '/api/auth/signup-check',
   'verifyTurnstileToken',
@@ -118,7 +132,7 @@ for (const route of ['/account', '/login', '/signup', '/beta', '/admin/waitlist'
 }
 
 const posthog = read('src/lib/posthog.ts');
-for (const event of ['landing_visit', 'pricing_click', 'start_trial_click', 'connect_broker_click', 'waitlist_submit', 'crt_scan_click', 'pro_tab_click', 'route_load_error', 'signup', 'crt_scan_run', 'watchlist_created', 'alert_created']) {
+for (const event of ['landing_visit', 'pricing_click', 'start_trial_click', 'trial_click', 'connect_broker_click', 'waitlist_submit', 'crt_scan_click', 'pro_tab_click', 'route_load_error', 'signup', 'crt_scan_run', 'watchlist_created', 'alert_created']) {
   if (!posthog.includes(`'${event}'`)) errors.push(`Analytics allowlist is missing: ${event}`);
 }
 for (const setting of ['autocapture: false', 'disable_session_recording: true', "person_profiles: 'never'"]) {
@@ -155,4 +169,15 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('Launch verification passed for stages 26-45: production foundations, real auth readiness, persisted free CRT scans, light Pro workspace, private saved research, billing-test safeguards, and closed beta readiness are present.');
+const wrangler = read('wrangler.toml');
+if (!wrangler.includes('not_found_handling = "single-page-application"') || !wrangler.includes('run_worker_first = ["/api/*"]')) errors.push('Cloudflare SPA/API routing hardening is missing.');
+const providerInterface = read('src/core/authorizedMarketProvider.ts');
+for (const method of ['getProviderStatus', 'getInstrumentMaster', 'refreshInstrumentMaster', 'getQuotes', 'getHistoricalCandles', 'getOptionChain']) if (!providerInterface.includes(method)) errors.push(`Authorized provider interface is missing: ${method}`);
+
+if (errors.length) {
+  console.error('Stage 46-60 verification failed:');
+  for (const error of errors) console.error(`- ${error}`);
+  process.exit(1);
+}
+
+console.log('Launch verification passed for stages 26-60: direct routing, normalized readiness states, real auth/database/provider foundations, per-user broker isolation, persisted CRT scans, complete saved research CRUD, test-only billing, privacy-safe monitoring, and public launch QA are present.');
