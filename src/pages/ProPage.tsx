@@ -11,6 +11,7 @@ import ProSavedWork from '../components/pro/ProSavedWork';
 import ProAiResearch from '../components/pro/ProAiResearch';
 import ProGettingStarted from '../components/pro/ProGettingStarted';
 import { useProAccess } from '../hooks/useProAccess';
+import { captureSafeEvent } from '../lib/posthog';
 
 const panels: Record<ProSection, React.ComponentType> = {
   dashboard: ProDashboard,
@@ -31,7 +32,7 @@ export default function ProPage() {
 
   return (
     <div className="lg:col-span-12">
-      <ProLayout active={section} onSelect={setSection}>
+      <ProLayout active={section} onSelect={(next) => { setSection(next); captureSafeEvent('pro_tab_click'); }}>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-4 py-3">
           <div>
             <p className="text-xs font-bold uppercase text-emerald-700">Access</p>
