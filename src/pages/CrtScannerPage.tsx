@@ -76,6 +76,7 @@ export default function CrtScannerPage() {
   }, [activeRun?.id, activeRun?.status]);
 
   const runScan = async () => {
+    captureSafeEvent('crt_scan_click');
     if (provider?.status !== 'configured') {
       setState('setup_required');
       setMessage(provider?.message || 'Authorized market provider setup is required before a scan can run.');
