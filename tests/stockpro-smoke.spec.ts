@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mockSetupRequiredApis } from './helpers/mockSetupApis';
 
 const publicRoutes = [
   '/',
@@ -20,6 +21,9 @@ const ignoredConsoleError = (message: string) =>
   /google|gtag|doubleclick|tradingview|favicon|ResizeObserver/i.test(message);
 
 test.describe('StockPro browser smoke', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockSetupRequiredApis(page);
+  });
   for (const route of publicRoutes) {
     test(route + ' loads without app crash', async ({ page }) => {
       const consoleErrors: string[] = [];
