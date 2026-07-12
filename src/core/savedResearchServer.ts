@@ -6,6 +6,8 @@ interface ResearchEnv extends SupabaseServerEnv {
   SUPABASE_WATCHLIST_ITEMS_TABLE?: string;
   SUPABASE_ALERTS_TABLE?: string;
   SUPABASE_SAVED_SCREENS_TABLE?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
 }
 
 interface AuthResult { status: string; user?: { id: string } | null; message?: string }
@@ -18,12 +20,22 @@ const watchlistSchema = z.object({ name: z.string().trim().min(1).max(80) }).str
 const watchlistItemSchema = z.object({ symbol: z.string().trim().min(1).max(40).regex(/^[A-Z0-9._-]+$/), exchange: z.literal('NSE').default('NSE') }).strict();
 const alertSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  type: z.enum(['price', 'oi', 'scanner']),
+  type: z.enum(['price', 'crt', 'oi', 'scanner']),
   symbol: z.string().trim().min(1).max(40).optional(),
   condition: z.enum(['above', 'below', 'change', 'match']),
   threshold: z.number().finite().optional(),
   scannerId: z.string().trim().max(120).optional(),
   emailEnabled: z.boolean().default(false),
+}).strict();
+const alertPatchSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  type: z.enum(['price', 'crt', 'oi', 'scanner']).optional(),
+  symbol: z.string().trim().min(1).max(40).optional(),
+  condition: z.enum(['above', 'below', 'change', 'match']).optional(),
+  threshold: z.number().finite().nullable().optional(),
+  scannerId: z.string().trim().max(120).nullable().optional(),
+  emailEnabled: z.boolean().optional(),
+  status: z.enum(['active', 'paused']).optional(),
 }).strict();
 const savedScreenSchema = z.object({ name: z.string().trim().min(1).max(100), filters: z.record(z.string(), z.unknown()) }).strict();
 
@@ -105,10 +117,17 @@ export async function handleSavedResearchRequest(request: Request, path: string,
       const parsed = alertSchema.safeParse(await body(request));
       if (!parsed.success) return json({ status: 'error', message: 'Alert configuration is invalid.' }, 400);
       const response = await rest(env, cfg.alerts, { method: 'POST', body: JSON.stringify({ user_id: userId, ...parsed.data, status: 'active', delivery_status: 'pending_configuration' }) });
-      return json({ status: response.ok ? 'created' : 'error', data: response.ok ? await response.json() : null, delivery: 'not_sent', message: response.ok ? 'Alert saved. No delivery is claimed until a verified observation triggers it.' : 'Alert could not be saved.' }, response.ok ? 201 : 502);
+      const deliveryConfigured = Boolean(env.RESEND_API_KEY?.trim() && env.RESEND_FROM_EMAIL?.trim());
+      return json({ status: response.ok ? 'created' : 'error', data: response.ok ? await response.json() : null, delivery: 'not_sent', deliveryReadiness: deliveryConfigured ? 'configured' : 'setup_required', message: response.ok ? deliveryConfigured ? 'Alert saved. Email is configured, but nothing is sent until a verified observation triggers it.' : 'Alert saved. Resend setup is required before email delivery; no sent status is claimed.' : 'Alert could not be saved.' }, response.ok ? 201 : 502);
     }
   }
   const alertMatch = path.match(/^\/api\/alerts\/([0-9a-f-]+)$/i);
+  if (alertMatch && request.method === 'PATCH') {
+    const parsed = alertPatchSchema.safeParse(await body(request));
+    if (!parsed.success || !Object.keys(parsed.data).length) return json({ status: 'error', message: 'A valid alert update is required.' }, 400);
+    const response = await rest(env, cfg.alerts, { method: 'PATCH', body: JSON.stringify({ ...parsed.data, updated_at: new Date().toISOString() }) }, `?id=eq.${alertMatch[1]}&user_id=eq.${encodeURIComponent(userId)}`);
+    return json({ status: response.ok ? 'ok' : 'error', message: response.ok ? 'Alert updated.' : 'Alert update failed.' }, response.ok ? 200 : 502);
+  }
   if (alertMatch && request.method === 'DELETE') {
     const response = await rest(env, cfg.alerts, { method: 'DELETE' }, `?id=eq.${alertMatch[1]}&user_id=eq.${encodeURIComponent(userId)}`);
     return json({ status: response.ok ? 'ok' : 'error', message: response.ok ? 'Alert deleted.' : 'Alert deletion failed.' }, response.ok ? 200 : 502);
