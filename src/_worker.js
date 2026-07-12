@@ -1061,6 +1061,70 @@ function handleSearchConfig(request, env) {
   }, 200);
 }
 
+const DATABASE_TABLES = [
+  ['user_profiles', 'user_profiles'],
+  ['waitlist_leads', 'SUPABASE_WAITLIST_TABLE'],
+  ['beta_feedback', 'SUPABASE_BETA_FEEDBACK_TABLE'],
+  ['contact_messages', 'SUPABASE_CONTACT_MESSAGES_TABLE'],
+  ['broker_connections', 'broker_connections'],
+  ['broker_connection_events', 'SUPABASE_BROKER_EVENTS_TABLE'],
+  ['crt_scan_runs', 'SUPABASE_CRT_SCAN_RUNS_TABLE'],
+  ['crt_scan_results', 'SUPABASE_CRT_SCAN_RESULTS_TABLE'],
+  ['market_instruments', 'SUPABASE_MARKET_INSTRUMENTS_TABLE'],
+  ['watchlists', 'SUPABASE_WATCHLISTS_TABLE'],
+  ['watchlist_items', 'SUPABASE_WATCHLIST_ITEMS_TABLE'],
+  ['alerts', 'SUPABASE_ALERTS_TABLE'],
+  ['saved_screeners', 'SUPABASE_SAVED_SCREENS_TABLE'],
+  ['saved_research', 'SUPABASE_SAVED_RESEARCH_TABLE'],
+  ['trial_subscriptions', 'SUPABASE_TRIAL_SUBSCRIPTIONS_TABLE'],
+  ['billing_events', 'SUPABASE_BILLING_EVENTS_TABLE'],
+  ['razorpay_webhook_events', 'SUPABASE_RAZORPAY_WEBHOOK_EVENTS_TABLE'],
+];
+
+async function handleDatabaseReadiness(request, env) {
+  if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
+  const base = getSupabaseTableConfig(env, 'user_profiles');
+  if (!base.configured) {
+    return secureJson(request, {
+      status: 'setup_required',
+      configured: false,
+      severity: 'info',
+      tables: Object.fromEntries(DATABASE_TABLES.map(([name]) => [name, 'setup_required'])),
+      message: 'Supabase server bindings are required before table readiness can be checked.',
+    });
+  }
+
+  const entries = await Promise.all(DATABASE_TABLES.map(async ([fallback, binding]) => {
+    const configuredName = binding.startsWith('SUPABASE_') ? cleanText(env?.[binding], 63) : '';
+    const table = configuredName || fallback;
+    try {
+      const response = await fetch(`${base.supabaseUrl}/rest/v1/${encodeURIComponent(table)}?select=*&limit=0`, {
+        method: 'GET',
+        headers: {
+          apikey: base.serviceRoleKey,
+          Authorization: `Bearer ${base.serviceRoleKey}`,
+          Accept: 'application/json',
+          Range: '0-0',
+        },
+      });
+      return [fallback, response.ok ? 'configured' : response.status === 404 ? 'missing' : 'unavailable'];
+    } catch {
+      return [fallback, 'unavailable'];
+    }
+  }));
+  const tables = Object.fromEntries(entries);
+  const values = Object.values(tables);
+  const unavailable = values.includes('unavailable');
+  const configured = values.every((state) => state === 'configured');
+  return secureJson(request, {
+    status: unavailable ? 'unavailable' : configured ? 'ok' : 'setup_required',
+    configured,
+    severity: unavailable ? 'warning' : 'info',
+    tables,
+    message: configured ? 'All required Supabase tables are reachable.' : unavailable ? 'Supabase table readiness could not be completed.' : 'One or more required Supabase tables are missing.',
+  }, unavailable ? 503 : 200);
+}
+
 function handleOperationsReadiness(request, env) {
   if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
   const broker = getBrokerConfig(env, 'none');
@@ -1172,6 +1236,7 @@ async function handleApi(path, url, request, env, ctx) {
   if (path === '/api/site-config') return json({ gaMeasurementId: env?.VITE_GA_MEASUREMENT_ID || env?.GA_MEASUREMENT_ID || 'G-KK6FYQQ6GV' }, 200, { 'Cache-Control': 'max-age=300' });
   if (path === '/api/ad-config') return handleAdConfig(request, env);
   if (path === '/api/operations/readiness') return handleOperationsReadiness(request, env);
+  if (path === '/api/database/readiness') return handleDatabaseReadiness(request, env);
   if (path === '/api/search/config') return handleSearchConfig(request, env);
   if (path === '/api/pro/readiness') return handleProReadiness(request, env);
   if (path === '/api/notifications/request') return handleNotificationRequest(request, env);
