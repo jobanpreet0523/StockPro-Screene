@@ -67,13 +67,13 @@ export default function Header({ indices, stocks, activeTab, setActiveTab, searc
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white sticky top-0 z-50 shadow-md transition-all duration-300" id="app_header">
       <div className={`bg-slate-50 dark:bg-black/40 border-b border-slate-150 dark:border-slate-850 py-1.5 px-4 overflow-hidden text-[11px] sm:text-xs transition-all duration-300 ${hideMarketDataLabels ? 'hidden' : ''}`}>
         <div className="max-w-7xl mx-auto flex items-center gap-4 whitespace-nowrap">
-          <div className="flex items-center gap-2 shrink-0" title="Free public mode uses 15-minute delayed market data.">
+          <div className="flex items-center gap-2 shrink-0" title="Market data appears only when a configured provider returns it.">
             <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]" style={{ color: marketStatus.color }}>
               <span className={`w-2 h-2 rounded-full ${marketStatus.isOpen ? 'animate-pulse' : ''}`} style={{ backgroundColor: marketStatus.color }} />
               {marketStatus.label}
             </div>
             <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded border leading-none font-mono" style={{ color: marketStatus.color, borderColor: `${marketStatus.color}40`, backgroundColor: `${marketStatus.color}15` }}>
-              15-MIN DELAY
+              {indices.length > 0 ? 'PROVIDER DATA' : 'SETUP REQUIRED'}
             </span>
           </div>
           <div className="flex-1 overflow-hidden relative">
