@@ -353,13 +353,32 @@ select {
   color: #92400e !important;
 }
 
-.dark .text-slate-400,
-.dark .text-slate-500,
-.dark .text-gray-400,
-.dark .text-gray-500 {
+.dark #core_app_layer .text-slate-400,
+.dark #core_app_layer .text-slate-500,
+.dark #core_app_layer .text-gray-400,
+.dark #core_app_layer .text-gray-500 {
   color: #cbd5e1 !important;
 }
 
-.dark .text-emerald-600 {
+.dark #core_app_layer .text-emerald-600 {
   color: #6ee7b7 !important;
+}
+
+
+#landing_page .text-slate-400,
+#landing_page .text-slate-500 {
+  color: #475569 !important;
+}
+
+#landing_page .text-gray-400,
+#landing_page .text-gray-500 {
+  color: #4b5563 !important;
+}
+
+#landing_page .text-emerald-600 {
+  color: #047857 !important;
+}
+
+#landing_page .text-amber-700 {
+  color: #92400e !important;
 }
