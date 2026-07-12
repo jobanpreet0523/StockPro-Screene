@@ -175,6 +175,8 @@ export default function LandingFunctionalPanels() {
   const routeButtons = [
     { label: 'Screener', path: '/screener', icon: TableProperties },
     { label: 'Option Chain', path: '/option-chain', icon: BarChart3 },
+    { label: 'CRT Scanner', path: '/crt-scanner', icon: Signal },
+    { label: 'Pro', path: '/pro', icon: Activity },
     { label: 'Open Interest', path: '/option-chain?focus=oi', icon: Activity },
     { label: 'Live Chart', path: `/screener?symbol=${encodeURIComponent(cleanSymbol(selectedSymbol))}`, icon: BarChart3 },
     { label: 'Daily Brief', path: '/daily-brief', icon: CalendarDays },
@@ -195,7 +197,7 @@ export default function LandingFunctionalPanels() {
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-600">Market workspace</div>
             <h2 id="landing-market-workspace-title" className="mt-2 text-2xl font-black tracking-tight text-slate-950">Research a stock with provider-backed tools</h2>
-            <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-slate-500">Educational analytics only, not investment advice. Quotes and option-chain values are delayed/sample until provider setup.</p>
+            <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-slate-500">Educational analytics only, not investment advice. Provider-backed values appear only when an authorized source is configured.</p>
           </div>
           <div className="w-full lg:w-96">{searchControl}</div>
         </div>
