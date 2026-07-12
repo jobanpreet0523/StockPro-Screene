@@ -393,7 +393,7 @@ export default function LandingPage() {
                 <!-- Corner Labels and badges overlay to increase StockPro authenticity -->
                 <div class="absolute bottom-2 left-2 bg-slate-950/95 border border-slate-700 text-[9px] text-blue-400 font-mono font-bold px-2 py-0.5 rounded flex items-center gap-1">
                   <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                  <span>PCR VIEW: DELAYED / SAMPLE</span>
+                  <span>PCR VIEW: PROVIDER REQUIRED</span>
                 </div>
                 <div class="absolute top-2 right-2 bg-emerald-950/95 border border-emerald-700 text-[9px] text-emerald-400 font-mono font-bold px-2 py-0.5 rounded">
                   IV SKEW: ${options.length > 0 ? `+${(Number(atmIv || 0) * 0.33).toFixed(2)}%` : 'Unavailable'}
@@ -765,7 +765,7 @@ export default function LandingPage() {
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between text-[7.5px] text-slate-500 uppercase font-black tracking-wider px-0.5">
                     <span>INSTITUTIONAL BBO volume profile</span>
-                    <span>Sample split — provider setup required</span>
+                    <span>Provider-backed split unavailable</span>
                   </div>
                   
                   <div class="grid grid-cols-12 gap-1.5 h-10 items-end px-1 bg-slate-950/60 p-2 rounded border border-slate-900 select-none">
@@ -849,7 +849,7 @@ export default function LandingPage() {
                   <!-- Header details -->
                   <div class="flex items-center justify-between text-slate-500 pt-1 pb-1 text-[7px] border-b border-slate-900">
                     <span>ANALYTICS_MOBILE</span>
-                    <span class="text-amber-300 font-bold">DELAYED / SAMPLE VIEW</span>
+                    <span class="text-amber-300 font-bold">PROVIDER REQUIRED</span>
                   </div>
 
                   <!-- Live core stats -->
@@ -919,7 +919,7 @@ export default function LandingPage() {
               Illustrative Open Interest (OI) Sector Heatmap
             </h2>
             <p class="text-xs text-gray-500 font-sans">
-              Illustrative cross-sector derivatives-position map. High-intensity colors demonstrate the interface using sample values.
+              Illustrative cross-sector derivatives-position map. High-intensity colors demonstrate the interface without displaying market values.
             </p>
           </div>
           
@@ -2211,7 +2211,7 @@ export default function LandingPage() {
                 Example: compare implied volatility across strike prices
               </h4>
               <p class="text-xs text-gray-500 font-normal mt-1.5 leading-relaxed">
-                A volatility-smile view can help explain relative option pricing. The sample does not prescribe or recommend an options strategy.
+                A volatility-smile view can help explain relative option pricing. This visualization does not prescribe or recommend an options strategy.
               </p>
             </div>
           </div>
@@ -2529,7 +2529,7 @@ export default function LandingPage() {
       </div>
     </section>
 
-    <!-- SECTION 11: SAMPLE INSTITUTIONAL FLOW & VOLUME BOARD -->
+    <!-- SECTION 11: PROVIDER-REQUIRED INSTITUTIONAL FLOW & VOLUME BOARD -->
     <section id="block-trades" aria-hidden="true" class="hidden bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
@@ -2541,11 +2541,11 @@ export default function LandingPage() {
               Illustrative Institutional Flow & Volume Board
             </h2>
             <p class="text-xs text-gray-500 font-sans">
-              Sample tracking matrix for educational FII/DII and multi-strike volume concepts. Configure a licensed provider for live flow data.
+              Provider-required tracking matrix for educational FII/DII and multi-strike volume concepts. Configure a licensed provider for live flow data.
             </p>
           </div>
           <span class="text-[9.5px] font-mono text-slate-500 border border-slate-200 bg-white px-2.5 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5 animate-pulse">
-            <span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span> Sample interface — no live ledger connected
+            <span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span> Provider required — no live ledger connected
           </span>
         </div>
 
@@ -2702,7 +2702,7 @@ export default function LandingPage() {
               <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">5,420.25</div>
               <div class="text-[8.5px] text-gray-400 font-mono mt-1 flex justify-between uppercase">
                 <span>Volume: Provider required</span>
-                <span>Trend: Sample only</span>
+                <span>Trend: Unavailable</span>
               </div>
             </div>
           </div>
@@ -2714,7 +2714,7 @@ export default function LandingPage() {
                 <span class="text-[9px] font-black uppercase text-gray-400 font-mono tracking-wider">Commodity Spreads</span>
                 <h4 class="text-xs font-black text-[#111827] uppercase mt-0.5 font-sans leading-none">Brent Crude Option LTP</h4>
               </div>
-              <span class="text-[9px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-black uppercase">Sample</span>
+              <span class="text-[9px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-black uppercase">Unavailable</span>
             </div>
             <div>
               <div class="text-xl font-bold text-[#111827] font-mono tracking-tight">Unavailable</div>
@@ -2741,7 +2741,7 @@ export default function LandingPage() {
             Frequently Asked Questions
           </h2>
           <p class="text-xs text-gray-500 mt-2 font-sans">
-            Ask about educational analytics, delayed data-source setup, and product access. StockPro does not provide investment advice.
+            Ask about educational analytics, provider data-source setup, and product access. StockPro does not provide investment advice.
           </p>
         </div>
 
@@ -3021,7 +3021,7 @@ export default function LandingPage() {
         <div class="border-t border-gray-250 pt-8 mt-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-[10.5px] text-gray-500 font-mono">
           <div>
             <span class="font-extrabold uppercase text-slate-700 block mb-1">NSE DATA FEED</span>
-            <span>DELAYED / SAMPLE UNTIL PROVIDER SETUP</span>
+            <span>PROVIDER SETUP REQUIRED</span>
           </div>
           <div>
             <span class="font-extrabold uppercase text-slate-700 block mb-1">CONNECTION SECURITY</span>
