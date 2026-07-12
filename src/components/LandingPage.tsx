@@ -234,10 +234,10 @@ export default function LandingPage() {
         
         <!-- Primary Blue Button to launch the react screen -->
         <a 
-          href="/screener" 
+          href="/pro" 
           class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold text-xs px-4 py-2 rounded transition-all duration-150 flex items-center gap-1.5 shadow-sm shadow-blue-600/25"
         >
-          <span>Access Pro Terminal</span>
+          <span>Access Pro Workspace</span>
           <i data-lucide="arrow-right" class="w-3 h-3"></i>
         </a>
       </div>
@@ -336,7 +336,7 @@ export default function LandingPage() {
             
             <!-- Long editorial descriptives - legible crisp grey -->
             <p class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              StockPro brings delayed market context, option-chain analytics, and educational screening workflows into one focused research workspace. It is designed for learning and analysis, not investment advice or trade execution.
+              StockPro brings provider-aware market context, option-chain analytics, and educational screening workflows into one focused research workspace. It is designed for learning and analysis, not investment advice or trade execution.
             </p>
             
             <!-- Actions matching image layout perfectly with strong contrasting layout -->
@@ -560,7 +560,7 @@ export default function LandingPage() {
     </main>
 
     <!-- 3b. STOCKPRO TERMINAL IN ACTION STAGGERED SHOWCASE SECTION (Pure White Light-mode, Orange/Amber backdrops) -->
-    <section id="terminal-in-action" class="bg-white border-b border-gray-200 py-16 sm:py-24">
+    <section id="terminal-in-action" aria-hidden="true" class="hidden bg-white border-b border-gray-200 py-16 sm:py-24">
       <div class="max-w-7xl mx-auto px-6 space-y-20 sm:space-y-32">
         
         <!-- SECTION TITLE & SUBHEADING (StockPro Editorial Styling) -->
@@ -897,7 +897,7 @@ export default function LandingPage() {
     <!-- 3c. ADVANCED LIGHT-THEME FINANCIAL ANALYTICS SUITE (Staggered High-Density Desktop Modules) -->
     
     <!-- SECTION 1: DYNAMIC F&O HEATMAP (Open Interest Sector Heatmap) -->
-    <section id="oi-heatmap" class="bg-gray-50 border-b border-gray-200 py-16">
+    <section id="oi-heatmap" aria-hidden="true" class="hidden bg-gray-50 border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <!-- Header element with scannable title and elegant layout legend -->
@@ -1156,7 +1156,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 2: INTERACTIVE STRATEGY OPTIMIZER (Payoff Curves) -->
-    <section id="strategy-optimizer" class="bg-white border-b border-gray-200 py-16">
+    <section id="strategy-optimizer" aria-hidden="true" class="hidden bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <div class="border-b border-gray-250 pb-5 mb-10 max-w-2xl">
@@ -1344,7 +1344,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 3: INSTITUTIONAL FLOW TICKER (FII / DII Tracker) -->
-    <section id="order-flow-ledger" class="bg-gray-50 border-b border-gray-200 py-16">
+    <section id="order-flow-ledger" aria-hidden="true" class="hidden bg-gray-50 border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <div class="border-b border-gray-200 pb-5 mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -1480,7 +1480,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 4: VOLATILITY SMILE & SKEW ANALYTICS CHART -->
-    <section id="iv-skew" class="bg-white border-b border-gray-200 py-16">
+    <section id="iv-skew" aria-hidden="true" class="hidden bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <div class="border-b border-gray-200 pb-5 mb-8 max-w-2xl">
@@ -1873,7 +1873,7 @@ export default function LandingPage() {
     <!-- 3d. ADDITIONAL PREMIUM STRUCTURAL BLOCKS (LIGHT THEME) -->
 
     <!-- SECTION 5: MULTI-DEVICE RESPONSIVE CANVAS (Trade Seamlessly Across Hardware) -->
-    <section id="multi-device" class="bg-gray-50 border-b border-gray-200 py-20 overflow-hidden">
+    <section id="multi-device" aria-hidden="true" class="hidden bg-gray-50 border-b border-gray-200 py-20 overflow-hidden">
       <div class="max-w-7xl mx-auto px-6">
         
         <!-- Section Header detailing coordinated synchronization across hardware layout -->
@@ -2059,7 +2059,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 6: DELAYED/SAMPLE OPTION CHAIN PREVIEW (Lightning-Fast Execution Option Matrix) -->
-    <section id="option-matrix" class="bg-white border-b border-gray-200 py-16">
+    <section id="option-matrix" aria-hidden="true" class="hidden bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <!-- Header layout with descriptive detail -->
@@ -2113,7 +2113,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 7: AUTOMATED ALGORITHMIC SIGNAL FEED (Real-Time AI Signal Intelligence) -->
-    <section id="ai-feed" class="bg-gray-50 border-b border-gray-200 py-16">
+    <section id="ai-feed" aria-hidden="true" class="hidden bg-gray-50 border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <!-- Section Header identifying timeline triggers and AI metrics -->
@@ -2275,7 +2275,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 9: MAX PAIN & MULTI-STRIKE OI GRID CHART -->
-    <section id="max-pain-section" class="bg-white border-b border-gray-200 py-16">
+    <section id="max-pain-section" aria-hidden="true" class="hidden bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <!-- Header -->
@@ -2403,7 +2403,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 10: IMPLIED VS HISTORICAL VOLATILITY OVERLAY GRAPH -->
-    <section id="volatility-overlay" class="bg-gray-50 border-b border-gray-200 py-16">
+    <section id="volatility-overlay" aria-hidden="true" class="hidden bg-gray-50 border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <!-- Header -->
@@ -2519,7 +2519,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 11: SAMPLE INSTITUTIONAL FLOW & VOLUME BOARD -->
-    <section id="block-trades" class="bg-white border-b border-gray-200 py-16">
+    <section id="block-trades" aria-hidden="true" class="hidden bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <!-- Header -->
@@ -2625,7 +2625,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 12: GLOBAL CROSS-ASSET DERIVATIVES TICKER MATRIX -->
-    <section id="global-matrix" class="bg-gray-50 border-b border-gray-200 py-16">
+    <section id="global-matrix" aria-hidden="true" class="hidden bg-gray-50 border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
         <!-- Header -->
@@ -2791,7 +2791,7 @@ export default function LandingPage() {
     </section>
 
     <!-- SECTION 14: TIRED SUBSCRIPTION PRICING CARDS -->
-    <section id="pricing-section" class="bg-gray-50 border-b border-gray-200 py-16">
+    <section id="pricing-section" aria-hidden="true" class="hidden bg-gray-50 border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
 
         <!-- Header -->
@@ -2893,7 +2893,7 @@ export default function LandingPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>AI Breakout Signal Streams</span>
+                  <span>AI research provider setup required</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -2978,10 +2978,10 @@ export default function LandingPage() {
           <div>
             <h4 class="text-slate-900 text-xs font-black tracking-widest uppercase mb-4 font-mono">Platform</h4>
             <ul class="space-y-2.5 text-xs text-slate-600">
-              <li><a href="/#option-matrix" class="hover:text-blue-600 transition font-medium">Strike Option Matrix</a></li>
-              <li><a href="/#max-pain-section" class="hover:text-blue-600 transition font-medium">Open Interest Bars</a></li>
-              <li><a href="/#volatility-overlay" class="hover:text-blue-600 transition font-medium font-sans">IV/HV Volatility Curves</a></li>
-              <li><a href="/#block-trades" class="hover:text-blue-600 transition font-medium font-sans">FII/DII Block Trade Ledgers</a></li>
+              <li><a href="/option-chain" class="hover:text-blue-600 transition font-medium">Strike Option Matrix</a></li>
+              <li><a href="/option-chain?focus=oi" class="hover:text-blue-600 transition font-medium">Open Interest Bars</a></li>
+              <li><a href="/option-chain?focus=iv" class="hover:text-blue-600 transition font-medium font-sans">IV/HV Volatility Curves</a></li>
+              <li><a href="/fii-dii" class="hover:text-blue-600 transition font-medium font-sans">FII/DII Block Trade Ledgers</a></li>
             </ul>
           </div>
 
@@ -2991,7 +2991,7 @@ export default function LandingPage() {
               <li><a href="/screener" class="hover:text-blue-600 transition font-medium">Algorithmic Screener Core</a></li>
               <li><a href="/screener" class="hover:text-blue-600 transition font-medium font-sans">Multi-Monitor Terminals</a></li>
               <li><a href="/screener" class="hover:text-blue-600 transition font-medium font-sans">Exchange Connectivity SAPI</a></li>
-              <li><a href="/screener" class="hover:text-blue-600 transition font-medium">ProPicks AI Strategy</a></li>
+              <li><a href="/screener" class="hover:text-blue-600 transition font-medium">Source-backed research workspace</a></li>
             </ul>
           </div>
 
@@ -3070,7 +3070,7 @@ function VisitorJourney() {
   const steps = [
     {
       title: 'View delayed educational analytics',
-      text: 'Public visitors can explore delayed/sample dashboards while provider setup is pending.',
+      text: 'Public visitors see clean unavailable states until an authorized market provider is configured.',
       to: '/screener',
     },
     {
