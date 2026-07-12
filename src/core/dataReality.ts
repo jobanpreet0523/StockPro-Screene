@@ -16,7 +16,7 @@ export function getDataLabel(envelope: DataRealityInput) {
   if (isRealProviderData(envelope)) return 'Live provider connected';
   if (envelope?.status === 'setup_required' || envelope?.providerStatus === 'setup_required') return 'Live provider setup required';
   if (envelope?.status === 'provider_unavailable' || envelope?.providerStatus === 'provider_unavailable') return 'Connect broker for live data';
-  return '15-minute delayed/sample until provider setup';
+  return 'Provider setup required';
 }
 
 export function formatTimestamp(timestamp?: string | null) {
