@@ -116,7 +116,7 @@ export async function handleSavedResearchRequest(request: Request, path: string,
     if (request.method === 'POST') {
       const parsed = alertSchema.safeParse(await body(request));
       if (!parsed.success) return json({ status: 'error', message: 'Alert configuration is invalid.' }, 400);
-      const response = await rest(env, cfg.alerts, { method: 'POST', body: JSON.stringify({ user_id: userId, ...parsed.data, status: 'active', delivery_status: 'pending_configuration' }) });
+      const response = await rest(env, cfg.alerts, { method: 'POST', body: JSON.stringify({ user_id: userId, name: parsed.data.name, type: parsed.data.type === 'scanner' ? 'crt' : parsed.data.type, symbol: parsed.data.symbol || null, condition: parsed.data.condition, threshold: parsed.data.threshold ?? null, scanner_id: parsed.data.scannerId || null, email_enabled: parsed.data.emailEnabled, status: 'active', delivery_status: 'pending_configuration' }) });
       const deliveryConfigured = Boolean(env.RESEND_API_KEY?.trim() && env.RESEND_FROM_EMAIL?.trim());
       return json({ status: response.ok ? 'created' : 'error', data: response.ok ? await response.json() : null, delivery: 'not_sent', deliveryReadiness: deliveryConfigured ? 'configured' : 'setup_required', message: response.ok ? deliveryConfigured ? 'Alert saved. Email is configured, but nothing is sent until a verified observation triggers it.' : 'Alert saved. Resend setup is required before email delivery; no sent status is claimed.' : 'Alert could not be saved.' }, response.ok ? 201 : 502);
     }
@@ -125,7 +125,19 @@ export async function handleSavedResearchRequest(request: Request, path: string,
   if (alertMatch && request.method === 'PATCH') {
     const parsed = alertPatchSchema.safeParse(await body(request));
     if (!parsed.success || !Object.keys(parsed.data).length) return json({ status: 'error', message: 'A valid alert update is required.' }, 400);
-    const response = await rest(env, cfg.alerts, { method: 'PATCH', body: JSON.stringify({ ...parsed.data, updated_at: new Date().toISOString() }) }, `?id=eq.${alertMatch[1]}&user_id=eq.${encodeURIComponent(userId)}`);
+    const update = parsed.data;
+    const databaseUpdate = {
+      ...(update.name !== undefined ? { name: update.name } : {}),
+      ...(update.type !== undefined ? { type: update.type === 'scanner' ? 'crt' : update.type } : {}),
+      ...(update.symbol !== undefined ? { symbol: update.symbol } : {}),
+      ...(update.condition !== undefined ? { condition: update.condition } : {}),
+      ...(update.threshold !== undefined ? { threshold: update.threshold } : {}),
+      ...(update.scannerId !== undefined ? { scanner_id: update.scannerId } : {}),
+      ...(update.emailEnabled !== undefined ? { email_enabled: update.emailEnabled } : {}),
+      ...(update.status !== undefined ? { status: update.status } : {}),
+      updated_at: new Date().toISOString(),
+    };
+    const response = await rest(env, cfg.alerts, { method: 'PATCH', body: JSON.stringify(databaseUpdate) }, `?id=eq.${alertMatch[1]}&user_id=eq.${encodeURIComponent(userId)}`);
     return json({ status: response.ok ? 'ok' : 'error', message: response.ok ? 'Alert updated.' : 'Alert update failed.' }, response.ok ? 200 : 502);
   }
   if (alertMatch && request.method === 'DELETE') {
