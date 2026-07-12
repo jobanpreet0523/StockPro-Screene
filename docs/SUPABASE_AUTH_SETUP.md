@@ -1,53 +1,36 @@
-# Supabase Auth setup
+# Supabase Auth production setup
 
-Stage 20 adds honest Supabase Auth scaffolding for StockPro. It does not create fake users, fake sessions, fake subscriptions, or fake broker connections.
+StockPro uses the Supabase browser client for email/password authentication and verifies every access token again in the Worker before returning private account data. It never creates a fake user or session.
 
-## Required Worker environment
+## Required server bindings
 
-Configure these values as server-side Cloudflare Worker secrets or environment bindings:
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_AUTH_ENABLED=true` or `AUTH_ENABLED=true`
 
-```bash
-AUTH_ENABLED=true
-SUPABASE_AUTH_ENABLED=true # optional legacy alias
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-public-anon-key
-SUPABASE_AUTH_REDIRECT_URL=https://stockpro1.qzz.io/account
-```
+The service-role key is server-only. Never use a `VITE_` prefix for it.
 
-Do not expose `SUPABASE_SERVICE_ROLE_KEY` in frontend code. The service-role key is only for Worker-side admin/table operations.
+## Required browser build variables
 
-## Optional frontend environment
+- `VITE_AUTH_ENABLED=true`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY` (preferred) or `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_AUTH_REDIRECT_URL=https://stockpro1.qzz.io/account`
 
-If a future frontend Supabase client is approved, use publishable/anon values only:
+## Supabase dashboard
 
-```bash
-VITE_AUTH_ENABLED=true
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-public-anon-key
-VITE_SUPABASE_AUTH_REDIRECT_URL=https://stockpro1.qzz.io/account
-```
+1. Enable Email authentication.
+2. Add `https://stockpro1.qzz.io/account` to allowed redirect URLs.
+3. Configure email confirmation for production accounts.
+4. Apply `SUPABASE_FULL_SCHEMA.sql` and `SUPABASE_RLS_POLICIES.sql`.
+5. Keep leaked-password protection and rate limits enabled.
 
-The current `/login` and `/signup` pages remain conservative. If these values are absent, they show `setup_required` and do not invent a user.
+## Verification
 
-## Worker session source of truth
+1. Create an account at `/signup` after Turnstile verification.
+2. Confirm the account by email and log in at `/login`.
+3. Confirm `/api/auth/session` reports `authenticated` without returning any token.
+4. Refresh `/account`, then sign out and confirm `unauthenticated`.
 
-The frontend calls:
-
-- `GET /api/auth/session`
-- `POST /api/auth/logout`
-
-`/api/auth/session` validates a Bearer token or `stockpro_session` cookie against Supabase Auth. If auth is not configured, it returns `setup_required`. If no session is present, it returns `unauthenticated`. It never returns a synthetic "Free User".
-
-## Redirect URL
-
-In Supabase dashboard, allow:
-
-- `https://stockpro1.qzz.io/account`
-- local development callback URLs only when actively testing
-
-## Security notes
-
-- Never use `raw_user_meta_data` for authorization decisions.
-- Never store access tokens, refresh tokens, broker tokens, OTPs, or passwords in `localStorage`.
-- Keep broker and billing actions server-mediated.
-- Keep StockPro positioned as educational analytics, not investment advice.
+Never store Supabase or broker tokens in application-managed local or session storage. Supabase may persist its own auth session through its audited client library.
