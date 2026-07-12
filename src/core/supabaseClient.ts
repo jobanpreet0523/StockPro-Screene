@@ -4,7 +4,7 @@ let client: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient | null {
   const url = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
-  const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+  const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
   if (!url || !publishableKey) return null;
 
   if (!client) {
