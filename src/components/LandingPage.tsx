@@ -17,6 +17,15 @@ interface LiveIndex {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const restoreDark = root.classList.contains('dark');
+    root.classList.remove('dark');
+    return () => {
+      if (restoreDark) root.classList.add('dark');
+    };
+  }, []);
   const [market, setMarket] = useState(() => getMarketStatus());
   const [liveIndices, setLiveIndices] = useState<LiveIndex[]>([]);
   const [liveChain, setLiveChain] = useState<any>(null);
@@ -499,7 +508,7 @@ export default function LandingPage() {
               </div>
 
               <p class="text-xs text-gray-500 mb-4 leading-relaxed font-normal">
-                A directional visualization of the delayed/sample put-call ratio. It describes observed positioning only and is not a recommendation or prediction.
+                A directional visualization of provider-backed put-call ratio data when configured. It describes observed positioning only and is not a recommendation or prediction.
               </p>
 
               <!-- Track block and labels -->
@@ -811,7 +820,7 @@ export default function LandingPage() {
               Never miss a beat.
             </h3>
             <p class="text-slate-600 text-xs sm:text-sm leading-relaxed max-w-xl font-normal font-sans">
-              Access educational derivative layouts and delayed/sample PCR parameters across devices.
+              Access educational derivative layouts and provider-backed PCR parameters across devices.
             </p>
             <div class="pt-2">
               <span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 font-mono tracking-wider bg-orange-50 px-2 py-1 rounded">
@@ -1883,7 +1892,7 @@ export default function LandingPage() {
             Trade Seamlessly Across Hardware
           </h2>
           <p class="text-xs text-gray-500 mt-2 font-sans">
-            Explore responsive educational dashboards, derivatives calculators, and delayed/sample analytics across devices.
+            Explore responsive educational dashboards, derivatives calculators, and provider-backed analytics across devices.
           </p>
         </div>
 
@@ -2058,7 +2067,7 @@ export default function LandingPage() {
       </div>
     </section>
 
-    <!-- SECTION 6: DELAYED/SAMPLE OPTION CHAIN PREVIEW (Lightning-Fast Execution Option Matrix) -->
+    <!-- SECTION 6: PROVIDER-BACKED OPTION CHAIN PREVIEW (Lightning-Fast Execution Option Matrix) -->
     <section id="option-matrix" aria-hidden="true" class="hidden bg-white border-b border-gray-200 py-16">
       <div class="max-w-7xl mx-auto px-6">
         
@@ -2070,11 +2079,11 @@ export default function LandingPage() {
               Lightning-Fast Execution Option Matrix
             </h2>
             <p class="text-xs text-gray-500 font-sans">
-              Educational derivatives panel with delayed/sample volatility estimates split by strike nodes. Highlights illustrate analytical ranges.
+              Educational derivatives panel with provider-backed volatility estimates split by strike nodes. Highlights illustrate analytical ranges.
             </p>
           </div>
           <span class="text-[9.5px] font-mono text-slate-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded shadow-sm self-start md:self-auto uppercase font-bold flex items-center gap-1.5">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span> Delayed/sample option-chain preview
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span> Provider setup required for option-chain preview
           </span>
         </div>
 
@@ -2749,7 +2758,7 @@ export default function LandingPage() {
               </span>
             </summary>
             <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              StockPro uses a central provider layer. The default mode is explicitly delayed/sample; a real live feed requires licensed provider credentials and reports its own status and timestamp.
+              StockPro uses a central provider layer. No substitute market data is generated; a real feed requires licensed provider credentials and reports its own status and timestamp.
             </p>
           </details>
 
@@ -2765,7 +2774,7 @@ export default function LandingPage() {
               </span>
             </summary>
             <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-sans border-t border-gray-150 pt-3">
-              The Basic workspace uses delayed/sample data until a licensed provider is configured. Checkout remains disabled; displayed tiers do not enable a live feed.
+              The Basic workspace shows no market data until a licensed provider is configured. Checkout remains disabled; displayed tiers do not enable a live feed.
             </p>
           </details>
 
@@ -2971,7 +2980,7 @@ export default function LandingPage() {
               StockPro Screener <span class="bg-blue-600 text-white text-[8px] font-mono px-1.5 py-0.5 rounded tracking-wide">Elite</span>
             </span>
             <p class="text-xs text-gray-550 font-normal leading-relaxed">
-              Educational derivatives-screening analytics with delayed/sample market context. StockPro provides research tools, not investment advice or trade execution.
+              Educational derivatives-screening analytics with provider-backed market context. StockPro provides research tools, not investment advice or trade execution.
             </p>
           </div>
 
