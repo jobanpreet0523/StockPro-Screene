@@ -6,6 +6,7 @@ const routes = ['/', '/pro', '/crt-scanner', '/connect-broker', '/account', '/pr
 
 test.describe('StockPro accessibility smoke', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('theme', 'light'));
     await mockSetupRequiredApis(page);
   });
   for (const route of routes) {
