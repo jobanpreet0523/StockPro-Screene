@@ -101,7 +101,7 @@ export default function Header({ indices, stocks, activeTab, setActiveTab, searc
               <span className="font-sans font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">Stock<span className="text-emerald-500 dark:text-emerald-400 font-extrabold">Pro</span></span>
               <span className="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40 uppercase">Screener</span>
             </div>
-            {user ? <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">Welcome back, {user.displayName?.split(' ')[0]}</p> : <p className="text-[10px] text-slate-500 dark:text-slate-400">{hideMarketDataLabels ? 'Educational analytics' : '15-minute delayed analytics'}</p>}
+            {user ? <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">Welcome back, {user.displayName?.split(' ')[0]}</p> : <p className="text-[10px] text-slate-500 dark:text-slate-400">{hideMarketDataLabels ? 'Educational analytics' : 'Provider-backed analytics'}</p>}
           </div>
         </div>
 
