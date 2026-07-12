@@ -170,7 +170,7 @@ if (errors.length) {
 }
 
 const wrangler = read('wrangler.toml');
-if (!wrangler.includes('not_found_handling = "single-page-application"') || !wrangler.includes('run_worker_first = ["/api/*"]')) errors.push('Cloudflare SPA/API routing hardening is missing.');
+if (!wrangler.includes('not_found_handling = "single-page-application"') || !wrangler.includes('run_worker_first = true')) errors.push('Cloudflare SPA/API routing hardening is missing.');
 const providerInterface = read('src/core/authorizedMarketProvider.ts');
 for (const method of ['getProviderStatus', 'getInstrumentMaster', 'refreshInstrumentMaster', 'getQuotes', 'getHistoricalCandles', 'getOptionChain']) if (!providerInterface.includes(method)) errors.push(`Authorized provider interface is missing: ${method}`);
 
