@@ -330,3 +330,34 @@ select {
     min-width: 86px;
   }
 }
+
+
+/* WCAG AA contrast floor for compact operational labels. */
+:root:not(.dark) .text-slate-400,
+:root:not(.dark) .text-slate-500 {
+  color: #475569 !important;
+}
+
+:root:not(.dark) .text-gray-400,
+:root:not(.dark) .text-gray-500 {
+  color: #4b5563 !important;
+}
+
+:root:not(.dark) .text-emerald-600 {
+  color: #047857 !important;
+}
+
+:root:not(.dark) .text-amber-700 {
+  color: #92400e !important;
+}
+
+.dark .text-slate-400,
+.dark .text-slate-500,
+.dark .text-gray-400,
+.dark .text-gray-500 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-emerald-600 {
+  color: #6ee7b7 !important;
+}
