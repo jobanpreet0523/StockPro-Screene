@@ -227,8 +227,8 @@ function parseFilters(input: unknown): CrtScanFilters | null {
 export async function handleCrtScannerRequest(request: Request, path: string, env: CrtEnv, ctx: ExecutionContextLike | undefined, allowRequest: () => Promise<boolean>) {
   const provider = providerConfig(env);
   const db = dbConfig(env);
-  if (path === '/api/market/provider-status') return reply({ status: provider.configured ? 'configured' : 'setup_required', provider: provider.provider || 'none', message: provider.message });
-  if (!db.supabase.configured) return reply({ status: 'setup_required', message: 'CRT Scanner requires server-side Supabase storage.' }, 503);
+  if (path === '/api/market/provider-status') return reply({ status: provider.configured ? 'configured' : 'setup_required', configured: provider.configured, severity: 'info', provider: provider.provider || 'none', message: provider.message });
+  if (!db.supabase.configured) return reply({ status: 'setup_required', configured: false, severity: 'info', data: [], message: 'CRT Scanner requires server-side Supabase storage.' });
 
   if (path === '/api/market/instruments' && request.method === 'GET') {
     const url = new URL(request.url);
@@ -240,14 +240,14 @@ export async function handleCrtScannerRequest(request: Request, path: string, en
   if (path === '/api/market/instruments/refresh' && request.method === 'POST') {
     const adminToken = clean(env.ADMIN_ACCESS_TOKEN);
     if (!tokenEquals(clean(request.headers.get('X-Admin-Token')), adminToken)) return reply({ status: 'unauthorized', message: 'Instrument refresh requires server-configured admin access.' }, 401);
-    if (!provider.configured) return reply({ status: 'setup_required', message: provider.message }, 503);
+    if (!provider.configured) return reply({ status: 'setup_required', configured: false, severity: 'info', message: provider.message });
     if (!(await allowRequest())) return reply({ status: 'error', message: 'Instrument refresh rate limit reached.' }, 429);
     try { return reply({ status: 'ok', count: await refreshInstruments(env), message: 'Authorized provider instrument master refreshed and stored.' }); }
     catch (error) { return reply({ status: 'error', message: error instanceof Error ? error.message : 'Instrument refresh failed.' }, 502); }
   }
 
   if (path === '/api/crt-scanner/run' && request.method === 'POST') {
-    if (!provider.configured) return reply({ status: 'setup_required', message: provider.message }, 503);
+    if (!provider.configured) return reply({ status: 'setup_required', configured: false, severity: 'info', message: provider.message });
     if (!(await allowRequest())) return reply({ status: 'error', message: 'Scan rate limit reached. Retry later.' }, 429);
     const body = await request.json().catch(() => null) as { filters?: unknown } | null;
     const filters = parseFilters(body?.filters);
