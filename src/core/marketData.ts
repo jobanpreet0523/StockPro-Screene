@@ -34,7 +34,7 @@ export interface MarketDataStatus {
 }
 
 export const LIVE_PLAN_PRICE_INR = 299;
-export const FREE_DATA_DELAY_LABEL = '15-Min Delayed Data';
+export const FREE_DATA_DELAY_LABEL = 'Provider setup required';
 
 export const getStoredBrokerConnection = (): BrokerConnectionState | null => {
   return null;
@@ -83,8 +83,8 @@ export const getMarketDataStatus = (hasError = false, providerStatus?: ProviderM
 
   if (providerStatus) {
     return {
-      source: 'delayed',
-      label: '15-minute delayed/sample until provider setup',
+      source: 'fallback',
+      label: 'Provider setup required',
       provider: providerStatus.source,
       isRealtime: false,
       canUpgradeToBrokerLive: true,
@@ -106,20 +106,20 @@ export const getMarketDataStatus = (hasError = false, providerStatus?: ProviderM
   }
 
   return {
-    source: 'delayed',
+    source: 'fallback',
     label: FREE_DATA_DELAY_LABEL,
-    provider: '15-minute delayed market feed',
+    provider: 'none',
     isRealtime: false,
     canUpgradeToBrokerLive: true,
-    timestamp: new Date().toISOString(),
-    message: `Free mode includes 15-minute delayed market data. The ₹${LIVE_PLAN_PRICE_INR} live plan requires payment verification and secure broker setup before realtime data is enabled.`,
+    timestamp: '',
+    message: 'Authorized market provider setup is required. No substitute market values are shown.',
   };
 };
 
 export const DATA_SOURCE_HELP = {
-  broker_live: 'Realtime mode is enabled only after paid-plan verification and secure broker setup.',
-  delayed: 'Free mode uses 15-minute delayed market data.',
+  broker_live: 'Realtime data is available only to the authenticated user through their own verified broker connection.',
+  delayed: 'Delayed provider data is shown only when a configured authorized provider explicitly supplies it.',
   fallback: 'The selected market-data provider is unavailable or requires setup. No substitute values are shown.',
-  demo: 'Demo or simulated data; not suitable for trading decisions.',
+  demo: 'Disabled. StockPro does not generate demo or simulated market values.',
   market_closed: 'Market is closed; values may show last available close.',
 } satisfies Record<MarketDataSource, string>;
