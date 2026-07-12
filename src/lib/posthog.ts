@@ -4,6 +4,7 @@ export const SAFE_ANALYTICS_EVENTS = [
   'landing_visit',
   'pricing_click',
   'start_trial_click',
+  'trial_click',
   'connect_broker_click',
   'waitlist_submit',
   'crt_scan_click',
