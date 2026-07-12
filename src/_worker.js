@@ -36,7 +36,7 @@ export default {
     if (path.startsWith('/api/')) return handleApi(path, url, request, env, ctx);
 
     if (request.method === 'GET' && !path.split('/').pop()?.includes('.')) {
-      return env.ASSETS.fetch(new Request(new URL('/index.html', url.origin), request));
+      return env.ASSETS.fetch(new Request(new URL('/', url.origin), request));
     }
 
     return env.ASSETS.fetch(request);
