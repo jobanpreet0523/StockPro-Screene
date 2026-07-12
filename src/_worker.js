@@ -1267,11 +1267,13 @@ function handleOperationsReadiness(request, env) {
   return secureJson(request, {
     status: 'ok',
     services: {
+      auth: configured(getSupabaseAuthConfig(env).configured),
       turnstile: configured(cleanText(env?.TURNSTILE_SECRET_KEY, 500)),
       email: emailReadiness(env),
       search: configured(searchConfigured),
       supabase: configured(getWaitlistConfig(env).configured),
       marketProvider: configured(cleanText(env?.MARKET_DATA_PROVIDER, 40)),
+      brokerProvider: configured(cleanText(env?.UPSTOX_CLIENT_ID, 200) || cleanText(env?.AUTHORIZED_VENDOR_API_KEY, 500)),
       brokerVault: configured(broker.supabase.configured && broker.vault.status === 'ok'),
       billingTest: billing.status === 'test_ready' ? 'configured' : 'setup_required',
       paymentLive: 'disabled',
