@@ -20,9 +20,9 @@ export default function ConnectBrokerPage() {
               <Radio size={13} /> Per-user broker foundation
             </div>
             <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white md:text-4xl">Connect your own broker for future live data.</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">The public workspace remains delayed. Broker authorization must be user-specific, encrypted server-side, and limited to data access.</p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">The public workspace shows no substitute market data. Broker authorization is user-specific, encrypted server-side, and limited to data access.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <MiniStat icon={Wifi} label="Public mode" value="Delayed" />
+              <MiniStat icon={Wifi} label="Public mode" value="Provider required" />
               <MiniStat icon={CreditCard} label="Orders" value="Disabled" />
               <MiniStat icon={ShieldCheck} label="Token model" value="Per user" />
             </div>
