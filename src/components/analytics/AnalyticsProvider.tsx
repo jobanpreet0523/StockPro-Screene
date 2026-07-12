@@ -7,6 +7,7 @@ const explicitEventMap: Record<string, SafeAnalyticsEvent> = {
   pricing_click: 'pricing_click',
   trial_cta_click: 'start_trial_click',
   start_trial_click: 'start_trial_click',
+  trial_click: 'trial_click',
   broker_connect_click: 'connect_broker_click',
   connect_broker_click: 'connect_broker_click',
   waitlist_submit: 'waitlist_submit',
@@ -24,7 +25,7 @@ function eventForTarget(target: HTMLElement): SafeAnalyticsEvent | null {
 
   const href = target instanceof HTMLAnchorElement ? target.getAttribute('href') || '' : '';
   if (href.startsWith('/pricing')) return 'pricing_click';
-  if (href.startsWith('/start-trial')) return 'start_trial_click';
+  if (href.startsWith('/start-trial')) return 'trial_click';
   if (href.startsWith('/connect-broker')) return 'connect_broker_click';
   if (href.startsWith('/pro')) return 'pro_tab_click';
   return null;
