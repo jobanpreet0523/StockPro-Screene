@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "./option-chain-mobile.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light;
   --premium-bg: #f8fafc;
