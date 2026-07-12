@@ -34,7 +34,7 @@ export default function CrtScannerPage() {
   const [activeRun, setActiveRun] = useState<ScanRun | null>(null);
   const [results, setResults] = useState<CrtResult[]>([]);
   const [chartResult, setChartResult] = useState<CrtResult | null>(null);
-  const [state, setState] = useState<'idle' | 'scanning' | 'error'>('idle');
+  const [state, setState] = useState<'idle' | 'scanning' | 'setup_required' | 'error'>('idle');
   const [message, setMessage] = useState('Filters will apply on next scan.');
 
   const loadRuns = async () => {
@@ -44,7 +44,10 @@ export default function CrtScannerPage() {
 
   useEffect(() => {
     void readJson<ProviderStatus>('/api/market/provider-status').then(setProvider).catch((error) => setMessage(error.message));
-    void loadRuns().catch(() => {});
+    void loadRuns().catch((error) => {
+      setState('error');
+      setMessage(error instanceof Error ? error.message : 'Previous scan history is unavailable.');
+    });
   }, []);
 
   useEffect(() => {
@@ -74,8 +77,8 @@ export default function CrtScannerPage() {
 
   const runScan = async () => {
     if (provider?.status !== 'configured') {
-      setState('error');
-      setMessage(provider?.message || 'Live market data provider not configured. CRT Scanner cannot run without authorized market data.');
+      setState('setup_required');
+      setMessage(provider?.message || 'Authorized market provider setup is required before a scan can run.');
       return;
     }
     setState('scanning');
@@ -178,10 +181,10 @@ export default function CrtScannerPage() {
           <Toggle label="Show weak setups" checked={filters.showWeakSetups} onChange={(value) => setFilters((f) => ({ ...f, showWeakSetups: value }))} />
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
-          <button type="button" onClick={() => void runScan()} disabled={state === 'scanning'} className="inline-flex items-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-50"><Play size={16} /> {state === 'scanning' ? 'Scanning market data...' : 'Run CRT Scan'}</button>
+          <button type="button" onClick={() => void runScan()} disabled={state === 'scanning' || provider?.status !== 'configured'} className="inline-flex items-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-50"><Play size={16} /> {state === 'scanning' ? 'Scanning market data...' : 'Run CRT Scan'}</button>
           <button type="button" onClick={() => void runScan()} disabled={state === 'scanning' || !activeRun} className="inline-flex items-center gap-2 border border-slate-300 px-5 py-3 text-sm font-black disabled:opacity-50 dark:border-slate-700"><RefreshCw size={16} /> Refresh Market Data &amp; Scan Again</button>
         </div>
-        <p className={`mt-4 flex items-start gap-2 text-sm font-semibold ${state === 'error' ? 'text-rose-700' : 'text-slate-600'}`}>{state === 'error' ? <AlertTriangle size={16} /> : <Activity size={16} />}{message}</p>
+        <p className={`mt-4 flex items-start gap-2 text-sm font-semibold ${state === 'error' ? 'text-rose-700' : state === 'setup_required' ? 'text-amber-700' : 'text-slate-600'}`}>{state === 'error' || state === 'setup_required' ? <AlertTriangle size={16} /> : <Activity size={16} />}{message}</p>
       </section>
 
       {chartResult && <section className="border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-950">
