@@ -40,11 +40,13 @@ function clientItems(): ReadinessItem[] {
 }
 
 const runtimeLabels: Record<string, string> = {
+  auth: 'Supabase Auth',
   turnstile: 'Turnstile server verification',
   email: 'Email',
   search: 'Search indexes and admin setup',
   supabase: 'Supabase storage',
   marketProvider: 'Market provider',
+  brokerProvider: 'Broker provider application',
   brokerVault: 'Broker vault',
   billingTest: 'Billing test readiness',
   paymentLive: 'Payment live',
@@ -92,7 +94,25 @@ export default function StatusPage() {
     state: state === 'configured' ? 'configured' : 'setup_required',
     message: state === 'configured' ? 'Required table is reachable.' : state === 'missing' ? 'Required table is missing.' : state === 'unavailable' ? 'Table check is temporarily unavailable.' : 'Supabase setup is required.',
   }));
-  const items = [...clientItems(), ...runtimeItems, ...databaseItems];
+  const clients = clientItems();
+  const items = [...clients, ...runtimeItems, ...databaseItems];
+  const service = query.data?.services || {};
+  const tables = databaseQuery.data?.tables || {};
+  const clientState = (key: string) => clients.find((item) => item.key === key)?.state || 'setup_required';
+  const launchChecklist: ReadinessItem[] = [
+    { key: 'launch-supabase', label: 'Supabase configured', state: service.supabase || 'setup_required', message: 'Server-side database bindings.' },
+    { key: 'launch-auth', label: 'Auth configured', state: service.auth || 'setup_required', message: 'Verified Supabase Auth sessions.' },
+    { key: 'launch-broker-provider', label: 'Broker provider configured', state: service.brokerProvider || 'setup_required', message: 'Approved broker application configuration.' },
+    { key: 'launch-broker-vault', label: 'Broker vault encrypted', state: service.brokerVault || 'setup_required', message: 'Per-user AES-GCM token vault.' },
+    { key: 'launch-crt', label: 'CRT scanner provider configured', state: service.crtProvider || 'setup_required', message: 'Authorized CRT market source.' },
+    { key: 'launch-watchlists', label: 'Watchlist table configured', state: tables.watchlists === 'configured' ? 'configured' : 'setup_required', message: 'Private watchlist storage.' },
+    { key: 'launch-alerts', label: 'Alerts table configured', state: tables.alerts === 'configured' ? 'configured' : 'setup_required', message: 'Private alert definitions.' },
+    { key: 'launch-resend', label: 'Resend configured', state: service.email || 'setup_required', message: 'Verified email delivery provider.' },
+    { key: 'launch-turnstile', label: 'Turnstile configured', state: service.turnstile || 'setup_required', message: 'Server-side anti-spam verification.' },
+    { key: 'launch-sentry', label: 'Sentry configured', state: clientState('sentry'), message: 'PII-safe error monitoring.' },
+    { key: 'launch-posthog', label: 'PostHog configured', state: clientState('posthog'), message: 'Allowlisted events without recording or profiles.' },
+    { key: 'launch-payment', label: 'Payment live disabled', state: service.paymentLive === 'disabled' ? 'disabled' : 'setup_required', message: 'Live charging remains blocked.' },
+  ];
 
   return (
     <div className="lg:col-span-12">
@@ -117,6 +137,13 @@ export default function StatusPage() {
             </article>
           ))}
         </div>
+
+        <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">
+          <h2 className="text-lg font-black text-slate-950 dark:text-white">Public launch checklist</h2>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {launchChecklist.map((item) => <div key={item.key} className="flex items-start justify-between gap-3 border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950"><div><p className="text-xs font-black">{item.label}</p><p className="mt-1 text-[10px] font-semibold text-slate-500">{item.message}</p></div><span className={`rounded px-2 py-1 text-[9px] font-bold uppercase ${item.state === 'configured' ? 'bg-emerald-100 text-emerald-700' : item.state === 'disabled' ? 'bg-slate-200 text-slate-700' : 'bg-amber-100 text-amber-800'}`}>{item.state.replace('_', ' ')}</span></div>)}
+          </div>
+        </section>
 
         <p className="mt-6 flex items-start gap-2 text-xs font-semibold text-slate-500"><Activity size={15} className="shrink-0 text-emerald-500" /> Payment live mode remains disabled. Broker tokens remain encrypted, server-side, and per-user. This page is operational context, not investment advice.</p>
       </section>
