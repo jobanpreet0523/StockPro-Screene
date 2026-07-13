@@ -56,6 +56,8 @@ create table if not exists public.broker_connections (
   token_iv text not null,
   token_algorithm text not null default 'AES-GCM',
   encrypted_refresh_token text,
+  refresh_token_iv text,
+  scopes text[] not null default '{}'::text[],
   status text not null default 'pending_verification' check (status in ('pending_verification','connected','reconnect_required','disconnected')),
   connected_at timestamptz,
   expires_at timestamptz,
@@ -76,6 +78,19 @@ create table if not exists public.broker_connection_events (
   safe_metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+create table if not exists public.broker_oauth_states (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  provider text not null check (provider in ('upstox','dhan')),
+  state_hash text not null unique,
+  expires_at timestamptz not null,
+  consumed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists broker_oauth_states_active_idx
+  on public.broker_oauth_states(provider, expires_at)
+  where consumed_at is null;
 
 create table if not exists public.market_instruments (
   id uuid primary key default gen_random_uuid(),

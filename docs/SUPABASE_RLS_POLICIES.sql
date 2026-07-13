@@ -7,6 +7,7 @@ alter table public.beta_feedback enable row level security;
 alter table public.contact_messages enable row level security;
 alter table public.broker_connections enable row level security;
 alter table public.broker_connection_events enable row level security;
+alter table public.broker_oauth_states enable row level security;
 alter table public.crt_scan_runs enable row level security;
 alter table public.crt_scan_results enable row level security;
 alter table public.market_instruments enable row level security;
@@ -48,7 +49,8 @@ create policy "crt_results_select_own" on public.crt_scan_results for select to 
 
 -- Intentionally no browser policies:
 -- waitlist_leads/contact_messages are accepted only by validated Worker endpoints.
--- broker_connections and broker_connection_events contain vault/audit records.
+-- broker_connections, broker_connection_events, and broker_oauth_states contain
+-- vault, audit, and one-time OAuth records.
 -- market_instruments and CRT writes are provider ingestion records.
 -- trial_subscriptions, billing_events, and razorpay_webhook_events are webhook-controlled.
 -- Admin views use the Worker service role plus a separate server-side admin token.
