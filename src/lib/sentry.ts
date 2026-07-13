@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { normalizeRouteError } from './normalizeRouteError';
 
 let initialized = false;
 
@@ -29,7 +30,7 @@ export function initSentry() {
 
 export function captureRouteError(error: unknown, path: string) {
   if (!initialized) return;
-  Sentry.captureException(error, { tags: { event: 'route_load_error', path } });
+  Sentry.captureException(normalizeRouteError(error), { tags: { event: 'route_load_error', path: path.slice(0, 300) } });
 }
 
 export function sentryReadiness() {

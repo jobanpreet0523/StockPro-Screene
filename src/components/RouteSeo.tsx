@@ -94,7 +94,7 @@ const routeSeo: Record<string, { title: string; description: string; robots?: st
   },
   '/data-methodology': {
     title: 'Market-Data Methodology — StockPro',
-    description: 'Understand StockPro delayed and sample data, external provider mode, broker-connected mode, timestamps, staleness, and provider-status labels.',
+    description: 'Understand StockPro authorized provider modes, broker-connected data, timestamps, staleness, and provider-status labels.',
   },
   '/support-policy': {
     title: 'Support Policy — StockPro',

@@ -252,7 +252,7 @@ export default function Layout() {
             <Link to="/account" className={footerLinkClass}>Account</Link>
             <Link to="/data-methodology" className={footerLinkClass}>Data Methodology</Link>
             <Link to="/status" className={footerLinkClass}>Service Status</Link>
-            <p className="leading-relaxed">Free public mode uses 15-minute delayed data. Broker mode activates only after payment verification and secure setup.</p>
+            <p className="leading-relaxed">Public tools show provider setup or availability honestly. Broker data activates only after secure per-user authorization.</p>
           </div>
           <div className="flex flex-col gap-2">
             <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Support</h4>

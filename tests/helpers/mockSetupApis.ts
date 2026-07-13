@@ -72,6 +72,37 @@ export async function mockSetupRequiredApis(page: Page) {
       };
     }
 
+    if (path === '/api/crt-scanner/providers') {
+      payload = {
+        status: 'ok',
+        data: [
+          { provider: 'upstox', enabled: false, connected: false, reason: 'connection_required' },
+          { provider: 'dhan', enabled: false, connected: false, reason: 'connection_required' },
+          { provider: 'angelone', enabled: false, connected: false, reason: 'approval_pending' },
+        ],
+        message: 'Broker provider readiness checked.',
+      };
+    }
+
+    if (path === '/api/broker/angelone/status') {
+      payload = {
+        status: 'setup_pending',
+        configured: false,
+        provider: 'angelone',
+        isConnected: false,
+        reason: 'approval_pending',
+        message: 'Angel One provider approval is pending.',
+      };
+    }
+
+    if (path === '/api/alerts') {
+      payload = { status: 'setup_required', configured: false, data: [], message: 'Alert storage setup is required.' };
+    }
+
+    if (path === '/api/trial/status') {
+      payload = { status: 'setup_required', configured: false, message: 'Test trial storage setup is required.' };
+    }
+
     if (path === '/api/crt-scanner/runs' || path === '/api/watchlists' || path === '/api/saved-work') {
       payload = {
         ...payload,

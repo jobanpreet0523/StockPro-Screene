@@ -1,9 +1,9 @@
-export type LivePlanStatus = 'free_delayed' | 'setup_required' | 'setup_pending' | 'live_ready';
+export type LivePlanStatus = 'setup_required' | 'setup_pending' | 'live_ready';
 
 export interface LivePlanApiStatus {
   status: LivePlanStatus;
   priceInr: number;
-  dataMode: 'delayed' | 'live';
+  dataMode: 'unavailable' | 'live';
   message: string;
   provider?: 'upstox' | 'zerodha';
 }
@@ -24,10 +24,10 @@ export async function getLivePlanStatus(): Promise<LivePlanApiStatus> {
     return await response.json();
   } catch {
     return {
-      status: 'free_delayed',
+      status: 'setup_required',
       priceInr: 299,
-      dataMode: 'delayed',
-      message: 'Free 15-minute delayed data is active. Live setup is not connected yet.',
+      dataMode: 'unavailable',
+      message: 'Market-data provider setup is required. No substitute values are active.',
     };
   }
 }
@@ -63,8 +63,8 @@ export async function verifyLivePlanOrder(payload: Record<string, string>): Prom
     return {
       status: 'setup_required',
       priceInr: 299,
-      dataMode: 'delayed',
-      message: 'Payment verification is disabled until launch readiness is complete. Free 15-minute delayed data remains active.',
+      dataMode: 'unavailable',
+      message: 'Payment verification is disabled until launch readiness is complete. Market-data setup remains required.',
     };
   }
 }

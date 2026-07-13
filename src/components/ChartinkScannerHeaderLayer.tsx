@@ -44,7 +44,7 @@ export default function ChartinkScannerHeaderLayer() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-violet-50 px-4 py-3 text-sm font-bold text-violet-700 dark:bg-violet-950/20 dark:text-violet-200">
-        <span className="inline-flex items-center gap-2"><Sparkles size={16} /> Educational scanner alerts use delayed/sample data until provider setup.</span>
+        <span className="inline-flex items-center gap-2"><Sparkles size={16} /> Educational scanner data requires a configured authorized provider.</span>
         <span className="text-xs font-black uppercase tracking-widest">Scanner Guide · Examples · Feedback</span>
       </div>
     </section>

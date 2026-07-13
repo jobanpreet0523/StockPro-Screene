@@ -13,10 +13,10 @@ const respond = (data, status = 200) => new Response(JSON.stringify(data), {
 export async function handlePlanRoutes(path, request, env) {
   if (path === '/api/live-plan/status') {
     return respond({
-      status: 'free_delayed',
+      status: 'setup_required',
       priceInr: PRICE_INR,
-      dataMode: 'delayed',
-      message: 'Free delayed data is active. Live mode is not enabled yet.',
+      dataMode: 'unavailable',
+      message: 'Market-data provider setup is required. No substitute values are active.',
     });
   }
 
@@ -25,16 +25,16 @@ export async function handlePlanRoutes(path, request, env) {
       status: 'setup_required',
       priceInr: PRICE_INR,
       message: 'Order route exists. Add server verification before accepting live users.',
-    }, 503);
+    });
   }
 
   if (path === '/api/live-plan/verify-payment' && request.method === 'POST') {
     return respond({
       status: 'setup_required',
       priceInr: PRICE_INR,
-      dataMode: 'delayed',
+      dataMode: 'unavailable',
       message: 'Payment verification is disabled until launch readiness is complete.',
-    }, 503);
+    });
   }
 
   const match = path.match(/^\/api\/provider\/(upstox|zerodha)\/(start|callback)$/);
@@ -44,13 +44,13 @@ export async function handlePlanRoutes(path, request, env) {
       provider: match[1],
       step: match[2],
       message: 'Setup route exists. Connect backend redirect and callback before enabling live mode.',
-    }, 503);
+    });
   }
 
   if (path === '/api/live-feed/status') {
     return respond({
       status: 'disabled',
-      dataMode: 'delayed',
+      dataMode: 'unavailable',
       message: 'Live feed relay is not active.',
     });
   }

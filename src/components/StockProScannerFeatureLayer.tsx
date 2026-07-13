@@ -121,7 +121,7 @@ export default function StockProScannerFeatureLayer({ stocks }: Props) {
           <button onClick={() => notify('More menu opened')} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"><MoreHorizontal size={16} /> More</button>
           <span className="ml-auto inline-flex items-center gap-2 text-sm font-bold text-slate-500"><Heart size={17} className="text-rose-500" /> 629 people love this</span>
         </div>
-        <div className="mt-3 rounded-xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800 dark:bg-violet-950/20 dark:text-violet-200">Scanner results use 15-minute delayed/sample data until provider setup.</div>
+        <div className="mt-3 rounded-xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800 dark:bg-violet-950/20 dark:text-violet-200">Scanner results require a configured authorized provider; no substitute values are returned.</div>
       </section>
 
       <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">

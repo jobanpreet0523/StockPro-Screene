@@ -31,7 +31,7 @@ test.describe('Stages 46-60 production readiness', () => {
     page.on('request', (request) => { if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/crt-scanner/run') runRequests += 1; });
     await page.goto('/crt-scanner');
     await expect(page.getByRole('heading', { name: 'CRT Scanner' })).toBeVisible();
-    await expect(page.getByText('setup required', { exact: true })).toBeVisible();
+    await expect(page.getByText('connection required', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Run CRT Scan' })).toBeDisabled();
     await expect(page.locator('body')).toContainText('No saved scan runs are available.');
     expect(runRequests).toBe(0);
@@ -50,10 +50,10 @@ test.describe('Stages 46-60 production readiness', () => {
   test('landing routes to real CRT and Pro flows', async ({ page }) => {
     await mockSetupRequiredApis(page);
     await page.goto('/');
-    await page.getByRole('button', { name: 'CRT Scanner', exact: true }).click();
+    await page.locator('main').getByRole('link', { name: 'Run CRT Scanner', exact: true }).first().click();
     await expect(page).toHaveURL(/\/crt-scanner$/);
     await page.goto('/');
-    await page.getByRole('button', { name: 'Pro', exact: true }).click();
+    await page.locator('main').getByRole('link', { name: 'Explore Pro', exact: true }).first().click();
     await expect(page).toHaveURL(/\/pro$/);
   });
 

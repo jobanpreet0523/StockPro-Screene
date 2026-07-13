@@ -38,7 +38,7 @@ export default function ProductGrowthPanel({ setActiveTab }: ProductGrowthPanelP
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300"><ShieldCheck size={14} /> Trust layer</div>
         <h3 className="mt-3 text-2xl font-black tracking-[-0.03em]">Clear, honest positioning</h3>
         <div className="mt-4 grid gap-2 text-xs font-bold text-slate-200">
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">15-minute delayed free market data</div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">Authorized provider data when configured</div>
           <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">Educational analytics and research tools</div>
           <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">Watchlists, screens, alerts, and exports roadmap</div>
         </div>
