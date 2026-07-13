@@ -9,6 +9,8 @@ import { sendNotification } from './core/notifications.ts';
 import { emailReadiness } from './core/email.ts';
 import { handleCrtScannerRequest } from './core/crtScannerServer.ts';
 import { handleSavedResearchRequest } from './core/savedResearchServer.ts';
+import { handleBrokerV2Request } from './core/brokerServer.ts';
+import { handleBrokerCrtRequest } from './core/crtScannerBrokerServer.ts';
 
 export default {
   async fetch(request, env, ctx) {
@@ -189,7 +191,7 @@ async function allowPublicRequest(request, env, bucket, maxRequests = 5) {
 }
 
 function turnstileFailure(request, verification) {
-  const status = verification.status === 'setup_required' ? 503 : verification.status === 'invalid' ? 400 : 502;
+  const status = verification.status === 'setup_required' ? 200 : verification.status === 'invalid' ? 400 : 502;
   return secureJson(request, { status: verification.status, message: verification.message }, status);
 }
 
@@ -578,7 +580,7 @@ function handleBrokerStreamStatus(request, env) {
       isStreaming: false,
       reconnectBackoffMs: 0,
       message: 'Stream setup required. REST polling remains the fallback.',
-    }, 503);
+    });
   }
   return secureJson(request, {
     status: 'provider_unavailable',
@@ -773,7 +775,7 @@ async function handleBroker(request, action, provider, env) {
       userId: auth.user.id,
       authorizationUrl: authorizationUrl || null,
       message: 'Upstox OAuth start scaffold is present, but token exchange and encrypted storage require final provider approval. No broker connection was created.',
-    }, 503);
+    });
   }
 
   if (action === 'upstox_callback') {
@@ -787,7 +789,7 @@ async function handleBroker(request, action, provider, env) {
       userId: auth.user.id,
       receivedAuthorizationCode: hasCode,
       message: 'Upstox callback scaffold received the request, but no token exchange or connected state is enabled until per-user encrypted storage is approved.',
-    }, 503);
+    });
   }
 
   return brokerSetupRequired(request, provider, 'This broker authorization route is still setup_required. No broker account is connected.');
@@ -959,7 +961,7 @@ async function handleAffiliateClick(request, env) {
       status: 'setup_required',
       conversion: false,
       message: 'Approved affiliate URL and server-side click storage are required. No click or conversion was recorded.',
-    }, 503);
+    });
   }
 
   try {
@@ -1008,7 +1010,7 @@ async function handleBetaFeedback(request, env) {
     return secureJson(request, {
       status: 'setup_required',
       message: 'Beta feedback storage is not configured. No fake feedback success was shown.',
-    }, 503);
+    });
   }
 
   const auth = await getAuthenticatedUser(request, env);
@@ -1170,7 +1172,7 @@ async function handleNotificationRequest(request, env) {
   const verification = await verifyTurnstileToken(validated.data.turnstileToken, env?.TURNSTILE_SECRET_KEY, request.headers.get('CF-Connecting-IP'));
   if (!verification.success) return turnstileFailure(request, verification);
   const result = await sendNotification(env, validated.data);
-  return secureJson(request, result, result.status === 'sent' ? 202 : result.status === 'setup_required' ? 503 : 502);
+  return secureJson(request, result, result.status === 'sent' ? 202 : result.status === 'setup_required' ? 200 : 502);
 }
 
 function configured(value) {
@@ -1358,6 +1360,10 @@ async function handleAdminBetaFeedback(request, env) {
 
 // launch verification route token: /api/provider
 async function handleApi(path, url, request, env, ctx) {
+  const brokerResponse = await handleBrokerV2Request({ request, path, env, authResolver: getAuthenticatedUser });
+  if (brokerResponse) return brokerResponse;
+  const brokerCrtResponse = await handleBrokerCrtRequest({ request, path, env, ctx, authResolver: getAuthenticatedUser, allowRequest: () => allowPublicRequest(request, env, 'crt-scanner', 3) });
+  if (brokerCrtResponse) return brokerCrtResponse;
   if (path === '/api/auth/signup-check') return handleSignupCheck(request, env);
   if (path === '/api/admin/beta-feedback') return handleAdminBetaFeedback(request, env);
   if (path === '/api/market/provider-status' || path.startsWith('/api/market/instruments') || path.startsWith('/api/crt-scanner/')) return handleCrtScannerRequest(request, path, env, ctx, () => allowPublicRequest(request, env, 'crt-scanner', 3));
@@ -1392,13 +1398,13 @@ async function handleApi(path, url, request, env, ctx) {
   if (path === '/api/broker/logout') return handleBroker(request, 'logout', 'none', env);
   if (path === '/api/affiliate/click') return handleAffiliateClick(request, env);
   if (path === '/api/beta/feedback') return handleBetaFeedback(request, env);
-  if (path === '/api/live-plan/status') return json({ status: 'free_delayed', priceInr: 299, dataMode: 'delayed', delayMinutes: 15, message: 'Free 15-minute delayed data is active.' });
-  if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' }, 503);
-  if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'setup_required', dataMode: 'delayed', delayMinutes: 15, message: 'Payment verification is disabled until launch readiness is complete.' }, 503);
-  if (path === '/api/live-feed/status') return json({ status: 'disabled', dataMode: 'delayed', delayMinutes: 15, message: 'Advanced feed is not active.' });
+  if (path === '/api/live-plan/status') return json({ status: 'setup_required', priceInr: 299, dataMode: 'unavailable', message: 'Market-data provider setup is required. No substitute values are active.' });
+  if (path === '/api/live-plan/create-order' && request.method === 'POST') return json({ status: 'setup_required', priceInr: 299, message: 'Setup is not active yet.' });
+  if (path === '/api/live-plan/verify-payment' && request.method === 'POST') return json({ status: 'setup_required', dataMode: 'unavailable', message: 'Payment verification is disabled until launch readiness is complete.' });
+  if (path === '/api/live-feed/status') return json({ status: 'disabled', dataMode: 'unavailable', message: 'Advanced feed is not active.' });
 
   const providerMatch = path.match(/^\/api\/provider\/(upstox|zerodha)\/(start|callback)$/);
-  if (providerMatch) return json({ status: 'setup_required', provider: providerMatch[1], step: providerMatch[2], message: 'Provider setup is not active yet.' }, 503);
+  if (providerMatch) return json({ status: 'setup_required', provider: providerMatch[1], step: providerMatch[2], message: 'Provider setup is not active yet.' });
 
   const marketProvider = await createRequestMarketDataProvider(request, env);
   const liveQuoteMatch = path.match(/^\/api\/live\/quote\/(.+)$/);
