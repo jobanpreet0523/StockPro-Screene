@@ -204,4 +204,3 @@ export function normalizeBrokerCandle(input: unknown, expected: { provider: Read
   if (!clean(expected.symbol) || !clean(expected.exchange) || !clean(expected.instrumentToken)) throw new Error('Expected symbol, exchange, and instrument token are required.');
   return { symbol: expected.symbol, exchange: expected.exchange, instrumentToken: expected.instrumentToken, timestamp, open, high, low, close, volume, lastPrice: close, provider: expected.provider };
 }
-

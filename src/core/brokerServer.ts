@@ -403,4 +403,3 @@ export async function handleBrokerV2Request(options: { request: Request; path: s
   if (action === 'disconnect') return disconnectProvider(request, env, authResolver, provider);
   return null;
 }
-

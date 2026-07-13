@@ -13,4 +13,3 @@ test('real Error instances retain their original stack and message', () => {
   const original = new TypeError('Focused regression');
   expect(normalizeRouteError(original)).toBe(original);
 });
-

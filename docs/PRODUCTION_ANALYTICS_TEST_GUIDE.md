@@ -11,4 +11,3 @@ Use a temporary non-personal browser profile. Never place broker tokens, emails,
 7. Remove the temporary test activity from any operational dashboard before measuring real funnels.
 
 Expected events are defined in `src/lib/posthog.ts`. A missing key must leave analytics disabled rather than reporting a synthetic success state.
-

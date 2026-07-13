@@ -10,4 +10,3 @@ Configure `RESEND_API_KEY`, a verified `RESEND_FROM_EMAIL`, and `SUPPORT_EMAIL` 
 6. Remove test recipient data from application storage when the audit is complete.
 
 When configuration is missing, the endpoint must return an informational `setup_required` response and must not claim delivery.
-

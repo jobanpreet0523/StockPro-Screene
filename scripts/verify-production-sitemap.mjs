@@ -40,4 +40,3 @@ if (errors.length) {
 }
 console.log(`Production sitemap passed for normal and Googlebot requests with ${urls.length} canonical public URLs.`);
 console.log('Search Console must be resubmitted and allowed time to reprocess.');
-

@@ -10,4 +10,3 @@ Future server-only placeholders are documented in `.env.example`:
 - `ANGELONE_REDIRECT_URI`
 
 After approval, implement the shared `ReadOnlyBrokerAdapter` contract, provider-response validation, per-user encrypted storage, disconnect behavior, and mocked official response-shape tests. Do not add order routes or enable a connected state from credential presence alone.
-

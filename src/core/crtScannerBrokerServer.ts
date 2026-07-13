@@ -236,4 +236,3 @@ export async function handleBrokerCrtRequest(options: { request: Request; path: 
   }
   return reply({ status: 'error', message: 'CRT Scanner API route not found.' }, 404);
 }
-
