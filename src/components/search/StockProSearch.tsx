@@ -61,10 +61,10 @@ export default function StockProSearch() {
         <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input value={query} onChange={(event) => setQuery(event.target.value)} disabled={unavailable} placeholder={unavailable ? 'Search setup required' : 'Search stocks, sectors, and guides'} className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950" />
       </label>
-      {(results.length > 0 || message || unavailable) && (
+      {(results.length > 0 || message) && (
         <div className="absolute z-50 mt-2 max-h-80 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950">
           {results.map((result) => <SearchResultCard key={result.objectID} result={result} />)}
-          {(message || unavailable) && <p className="p-4 text-xs font-semibold text-slate-500">{unavailable ? runtime.message : message}</p>}
+          {message && <p className="p-4 text-xs font-semibold text-slate-500">{message}</p>}
         </div>
       )}
     </div>
