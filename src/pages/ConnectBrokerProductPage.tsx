@@ -126,7 +126,7 @@ export default function ConnectBrokerProductPage() {
       </section>
 
       <div role="status" aria-live="polite" className="border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-6 text-amber-950 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100">{message}</div>
-      <section className="border border-slate-200 bg-slate-50 p-5 text-xs font-bold leading-6 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"><div className="flex gap-2"><LockKeyhole size={15} className="mt-1 shrink-0" aria-hidden />Credentials remain backend-only and encrypted per authenticated user.</div><div className="flex gap-2"><UserRound size={15} className="mt-1 shrink-0" aria-hidden />Friends and testers connect their own broker account.</div><div className="flex gap-2"><AlertTriangle size={15} className="mt-1 shrink-0" aria-hidden />No password, PIN, OTP, TOTP secret, order placement, or trade execution.</div></section>
+      <section className="border border-slate-200 bg-slate-50 p-5 text-xs font-bold leading-6 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"><div className="flex gap-2"><LockKeyhole size={15} className="mt-1 shrink-0" aria-hidden />Credentials remain backend-only and encrypted per authenticated user.</div><div className="flex gap-2"><UserRound size={15} className="mt-1 shrink-0" aria-hidden />Friends and testers must connect their own broker account.</div><div className="flex gap-2"><AlertTriangle size={15} className="mt-1 shrink-0" aria-hidden />No password, PIN, OTP, TOTP secret, order placement, or trade execution.</div></section>
     </div>
   );
 }

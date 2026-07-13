@@ -35,7 +35,7 @@ test.describe('complete StockPro landing experience', () => {
     ] as const;
     for (const [label, route] of cases) {
       await page.goto('/');
-      await page.getByRole('link', { name: label, exact: true }).first().click();
+      await page.locator('main').getByRole('link', { name: label, exact: true }).first().click();
       await expect(page).toHaveURL(new RegExp(`${route.replace('/', '\\/')}(?:[?#]|$)`));
     }
     await page.goto('/');

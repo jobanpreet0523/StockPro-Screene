@@ -21,7 +21,7 @@ const baseEnv = {
   DHAN_REDIRECT_URI: 'https://stockpro1.qzz.io/api/broker/dhan/callback',
 };
 const auth = async () => ({ status: 'authenticated', user: { id: 'user-a' }, message: 'Authenticated.' });
-const json = (payload: unknown, status = 200) => new Response(JSON.stringify(payload), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (payload: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(payload), { status, headers: { 'Content-Type': 'application/json' } });
 
 test.afterEach(() => { globalThis.fetch = originalFetch; });
 
