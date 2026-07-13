@@ -1,6 +1,6 @@
 import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from './components/LandingPage';
+import LandingPage from './components/LandingProductPage';
 import Layout from './components/Layout';
 import ParticleBackground from './components/ParticleBackground';
 import RouteSeo from './components/RouteSeo';
@@ -20,7 +20,7 @@ import PricingPage from './pages/PricingPage';
 import BlogPage from './pages/BlogPage';
 import DailyBriefPage from './pages/DailyBriefPage';
 import SignalsPage from './pages/SignalsPage';
-import ConnectBrokerPage from './pages/ConnectBrokerPage';
+import ConnectBrokerPage from './pages/ConnectBrokerProductPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import RiskDisclosurePage from './pages/RiskDisclosurePage';
@@ -78,13 +78,12 @@ export default function App() {
         <AnalyticsProvider>
           <RouteSeo />
         <StructuredData />
-        <ParticleBackground />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/admin/waitlist" element={<AdminWaitlistPage />} />
           <Route path="/admin/beta-feedback" element={<AdminBetaFeedbackPage />} />
-          <Route element={<Layout />}>
+          <Route element={<><ParticleBackground /><Layout /></>}>
             <Route path="/screener" element={<ScreenerPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/crt-scanner" element={<CrtScannerPage />} />

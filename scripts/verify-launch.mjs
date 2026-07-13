@@ -37,6 +37,10 @@ const requiredFiles = [
   'src/core/crtScanner.ts',
   'src/core/crtScannerServer.ts',
   'src/core/savedResearchServer.ts',
+  'src/core/brokerProvider.ts',
+  'src/core/brokerServer.ts',
+  'src/core/crtScannerBrokerServer.ts',
+  'src/pages/ConnectBrokerProductPage.tsx',
   'src/components/pro/ProLayout.tsx',
   'src/components/pro/ProDashboard.tsx',
   'src/hooks/useAuthSession.ts',
@@ -45,7 +49,14 @@ const requiredFiles = [
   'src/pages/StatusPage.tsx',
   'scripts/seo-audit.mjs',
   'scripts/validate-sitemap.mjs',
+  'scripts/verify-landing-links.mjs',
+  'scripts/verify-production-sitemap.mjs',
   'docs/TESTING_AND_AUDIT_SETUP.md',
+  'docs/BROKER_OAUTH_AND_DHAN_GATEWAY.md',
+  'docs/SUPABASE_BROKER_OAUTH_MIGRATION.sql',
+  'docs/LANDING_INTERACTION_INVENTORY.md',
+  'docs/PRODUCTION_ANALYTICS_TEST_GUIDE.md',
+  'docs/RESEND_DELIVERY_TEST.md',
   'docs/MONITORING_ANALYTICS_SETUP.md',
   'docs/PRODUCTION_LAUNCH_CHECKLIST.md',
   'docs/ENV_SETUP.md',
@@ -64,6 +75,8 @@ const requiredFiles = [
   'docs/PUBLIC_LAUNCH_V1_CHECKLIST.md',
   'docs/FRIEND_BROKER_TESTING_GUIDE.md',
   'tests/production-readiness.spec.ts',
+  'tests/landing-product-experience.spec.ts',
+  'tests/broker-integration.spec.ts',
   '.github/workflows/build.yml',
 ];
 
@@ -73,7 +86,7 @@ const app = read('src/App.tsx');
 const redirects = read('public/_redirects');
 const routeSeo = read('src/components/RouteSeo.tsx');
 const worker = read('src/_worker.js');
-const workerIntegrations = worker + read('src/core/crtScannerServer.ts') + read('src/core/savedResearchServer.ts');
+const workerIntegrations = worker + read('src/core/crtScannerServer.ts') + read('src/core/crtScannerBrokerServer.ts') + read('src/core/brokerServer.ts') + read('src/core/savedResearchServer.ts');
 const envExample = read('.env.example');
 const requiredRoutes = ['/', '/screener', '/scanner', '/crt-scanner', '/option-chain', '/news', '/blog', '/daily-brief', '/pricing', '/start-trial', '/connect-broker', '/pro', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/risk-disclosure', '/privacy', '/terms', '/status', '/account', '/login', '/signup', '/beta', '/admin/waitlist', '/admin/beta-feedback'];
 
@@ -94,7 +107,12 @@ for (const token of [
   '/api/market/provider-status',
   '/api/crt-scanner/run',
   '/api/watchlists',
-  '/api/broker/test',
+  '/api/broker/upstox/start',
+  '/api/broker/upstox/callback',
+  'startDhan(',
+  '/api/broker/dhan/sandbox/test',
+  '/api/broker/angelone/status',
+  '/api/crt-scanner/providers',
   '/api/alerts',
   '/api/auth/signup-check',
   'verifyTurnstileToken',
@@ -119,6 +137,13 @@ for (const key of [
   'ALGOLIA_ADMIN_KEY',
   'ZERODHA_API_KEY',
   'AUTHORIZED_VENDOR_API_KEY',
+  'BROKER_ENCRYPTION_SECRET',
+  'UPSTOX_REDIRECT_URI',
+  'DHAN_API_KEY',
+  'DHAN_API_SECRET',
+  'DHAN_REDIRECT_URI',
+  'DHAN_MODE',
+  'DHAN_STATIC_IP_CONFIGURED',
   'SUPABASE_CRT_SCAN_RUNS_TABLE',
   'SUPABASE_WATCHLISTS_TABLE',
 ]) {
@@ -135,7 +160,7 @@ const posthog = read('src/lib/posthog.ts');
 for (const event of ['landing_visit', 'pricing_click', 'start_trial_click', 'trial_click', 'connect_broker_click', 'waitlist_submit', 'crt_scan_click', 'pro_tab_click', 'route_load_error', 'signup', 'crt_scan_run', 'watchlist_created', 'alert_created']) {
   if (!posthog.includes(`'${event}'`)) errors.push(`Analytics allowlist is missing: ${event}`);
 }
-for (const setting of ['autocapture: false', 'disable_session_recording: true', "person_profiles: 'never'"]) {
+for (const setting of ['https://us.i.posthog.com', 'autocapture: false', 'disable_session_recording: true', "person_profiles: 'never'"]) {
   if (!posthog.includes(setting)) errors.push(`PostHog privacy setting is missing: ${setting}`);
 }
 
@@ -150,18 +175,26 @@ const crt = read('src/pages/CrtScannerPage.tsx');
 for (const unsafe of ['BUY', 'SELL', 'demo badge', 'sample badge', 'fake live']) if (crt.includes(unsafe)) errors.push(`CRT Scanner contains prohibited label: ${unsafe}`);
 for (const required of ['Run CRT Scan', 'Refresh Market Data &amp; Scan Again', 'Filters will apply on next scan.', 'Data Captured At']) if (!crt.includes(required)) errors.push(`CRT Scanner is missing: ${required}`);
 
-const landing = read('src/components/LandingPage.tsx');
+const landing = read('src/components/LandingProductPage.tsx') + read('src/components/landing/LandingDeferredSections.tsx');
 for (const unsafe of ['421K Cr', '198K Cr', 'BSE LIVE FEED', 'NSE LIVE FEED']) {
   if (landing.includes(unsafe)) errors.push(`Landing still contains unsafe fake-live token: ${unsafe}`);
 }
-if (!landing.includes('Payment live mode is disabled')) errors.push('Landing must keep payment-live-disabled wording.');
-if (!landing.includes('No shared broker token')) errors.push('Landing must keep no-shared-broker-token wording.');
+for (const required of ['lazy(', 'data-landing-section="hero"', 'data-landing-section="market-status"', 'data-landing-section="product-grid"', 'data-landing-section="crt-scanner"', 'data-landing-section="pro-workspace"', 'data-landing-section="broker-connect"', 'data-landing-section="screening-analytics"', 'data-landing-section="saved-work"', 'data-landing-section="trust"', 'data-landing-section="pricing"', 'data-landing-section="education"', 'data-landing-section="faq"']) {
+  if (!landing.includes(required)) errors.push(`Complete landing is missing: ${required}`);
+}
+if (!landing.includes('Payment live disabled')) errors.push('Landing must keep payment-live-disabled wording.');
+if (!landing.includes('No shared broker tokens')) errors.push('Landing must keep no-shared-broker-token wording.');
+if (!landing.includes("/(sample|demo|synthetic|fallback|none)/i")) errors.push('Landing must reject unverified market sources.');
 
 const billing = read('src/core/razorpayReadiness.ts');
 if (!billing.includes('live_disabled: true') || !billing.includes('paymentEnabled: false')) errors.push('Payment live mode is not locked off.');
 
 const marketData = read('src/core/marketDataClient.ts');
 if (!marketData.includes('validateProviderData')) errors.push('Market provider responses are not schema validated.');
+const providerImplementation = read('src/core/marketDataProvider.ts');
+for (const unsafe of ['sampleStock(', 'delayedStocks(', 'existingDelayedAdapter', 'Sample snapshot']) {
+  if (providerImplementation.includes(unsafe)) errors.push(`Market provider contains prohibited embedded data: ${unsafe}`);
+}
 
 if (errors.length) {
   console.error('Launch verification failed:');
@@ -170,6 +203,9 @@ if (errors.length) {
 }
 
 const wrangler = read('wrangler.toml');
+const brokerProviderInterface = read('src/core/brokerProvider.ts');
+for (const method of ['getProviderStatus', 'getProfile', 'getInstrumentMaster', 'getQuotes', 'getHistoricalCandles', 'getOptionChain', 'testConnection', 'disconnect']) if (!brokerProviderInterface.includes(method)) errors.push(`Broker provider interface is missing: ${method}`);
+
 if (!wrangler.includes('not_found_handling = "single-page-application"') || !wrangler.includes('run_worker_first = true')) errors.push('Cloudflare SPA/API routing hardening is missing.');
 const providerInterface = read('src/core/authorizedMarketProvider.ts');
 for (const method of ['getProviderStatus', 'getInstrumentMaster', 'refreshInstrumentMaster', 'getQuotes', 'getHistoricalCandles', 'getOptionChain']) if (!providerInterface.includes(method)) errors.push(`Authorized provider interface is missing: ${method}`);

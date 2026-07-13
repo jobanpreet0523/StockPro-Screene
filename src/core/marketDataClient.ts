@@ -23,5 +23,5 @@ export function providerLabel(status?: Pick<MarketDataStatus, 'status' | 'isLive
   if (status?.isLive === true && status.status === 'ok') return 'Live provider connected';
   if (status?.status === 'setup_required' || status?.providerStatus === 'setup_required') return 'Live provider setup required';
   if (status?.status === 'provider_unavailable' || status?.providerStatus === 'provider_unavailable') return 'Provider unavailable';
-  return '15-minute delayed/sample until provider setup';
+  return 'Provider status unavailable';
 }

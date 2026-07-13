@@ -50,10 +50,10 @@ test.describe('Stages 46-60 production readiness', () => {
   test('landing routes to real CRT and Pro flows', async ({ page }) => {
     await mockSetupRequiredApis(page);
     await page.goto('/');
-    await page.getByRole('button', { name: 'CRT Scanner', exact: true }).click();
+    await page.getByRole('link', { name: 'Run CRT Scanner', exact: true }).first().click();
     await expect(page).toHaveURL(/\/crt-scanner$/);
     await page.goto('/');
-    await page.getByRole('button', { name: 'Pro', exact: true }).click();
+    await page.getByRole('link', { name: 'Explore Pro', exact: true }).click();
     await expect(page).toHaveURL(/\/pro$/);
   });
 

@@ -21,6 +21,10 @@ const expectedRoutes = [
   '/news',
   '/blog',
   '/screener',
+  '/scanner',
+  '/signals',
+  '/heatmap',
+  '/daily-brief',
   '/crt-scanner',
   '/option-chain',
 ];

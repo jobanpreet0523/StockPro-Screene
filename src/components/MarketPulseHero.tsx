@@ -38,7 +38,7 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
   const activeLabel = activeTab.replace(/-/g, ' ').replace('fo', 'option chain').toUpperCase();
 
   const metrics = [
-    { label: 'Data Universe', value: isLoadingStocks ? 'Syncing' : `${stocks.length || 0}`, helper: 'delayed/cached instruments', icon: Activity },
+    { label: 'Data Universe', value: isLoadingStocks ? 'Syncing' : `${stocks.length || 0}`, helper: 'provider-returned instruments', icon: Activity },
     { label: 'Market Breadth', value: `${breadth}%`, helper: `${gainers} advancers · ${losers} decliners`, icon: Gauge },
     { label: 'F&O Desk', value: `${foCount}`, helper: 'option-enabled stocks', icon: Radar },
     { label: 'Active Workspace', value: activeLabel, helper: leadIndex ? `${leadIndex.name} ${leadIndex.change >= 0 ? '+' : ''}${leadIndex.changePercent}%` : 'Ready for research', icon: LineChart },

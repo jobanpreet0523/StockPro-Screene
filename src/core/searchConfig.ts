@@ -7,6 +7,11 @@ export interface SearchRuntimeConfig {
 }
 
 export function getSearchClient() {
+  if (typeof window !== 'undefined' && ['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
+    const testClient = (window as typeof window & { __STOCKPRO_SEARCH_TEST_CLIENT__?: ReturnType<typeof liteClient> }).__STOCKPRO_SEARCH_TEST_CLIENT__;
+    if (testClient) return testClient;
+  }
+
   const appId = String(import.meta.env.VITE_ALGOLIA_APP_ID || '').trim();
   const searchKey = String(import.meta.env.VITE_ALGOLIA_SEARCH_KEY || '').trim();
   return appId && searchKey ? liteClient(appId, searchKey) : null;

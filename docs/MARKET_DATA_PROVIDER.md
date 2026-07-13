@@ -4,14 +4,9 @@ StockPro routes market quotes, indices, option chains, and market status through
 
 ## Modes
 
-### Delayed/sample mode (default)
+### Unconfigured mode (default)
 
-Set `MARKET_DATA_PROVIDER=delayed`. This uses the existing bundled sample snapshot through `existingDelayedAdapter`.
-
-- Responses use `source: "delayed_sample"`, `delayMinutes: 15`, `isLive: false`, and `isStale: true`.
-- The UI labels the feed **15-minute delayed/sample until provider setup**.
-- Values are educational samples and must not be treated as current exchange observations or investment advice.
-- Unsupported symbols return `provider_unavailable`; the adapter does not invent a quote.
+When no authorized provider is configured, market routes return `setup_required` with `data: null`. StockPro contains no bundled market-price snapshot and does not substitute a quote, index, option chain, or market-status value.
 
 ### External provider mode
 

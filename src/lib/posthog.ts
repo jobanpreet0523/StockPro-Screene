@@ -26,7 +26,7 @@ export function initPostHog() {
   if (!enabled || !key) return false;
 
   posthog.init(key, {
-    api_host: String(import.meta.env.VITE_POSTHOG_HOST || 'https://app.posthog.com'),
+    api_host: String(import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com'),
     autocapture: false,
     capture_pageview: false,
     capture_pageleave: false,
