@@ -41,6 +41,14 @@ export interface BrokerTestRequest {
 export interface BrokerTestResult {
   ok: boolean;
   status: 'ok' | 'setup_required' | 'reconnect_required' | 'provider_unavailable' | 'invalid_response';
+  testType: BrokerTestKind;
+  provider: ReadOnlyBrokerProvider;
+  mode: 'sandbox' | 'live';
+  dataPresent: boolean;
+  message: string;
+}
+
+
 export interface ReadOnlyBrokerAdapter {
   getProviderStatus(userId: string): Promise<BrokerTestResult>;
   getProfile(userId: string): Promise<BrokerTestResult>;
@@ -53,13 +61,6 @@ export interface ReadOnlyBrokerAdapter {
 }
 
 // Angel One can implement this contract after provider approval without changing CRT callers.
-  testType: BrokerTestKind;
-  provider: ReadOnlyBrokerProvider;
-  mode: 'sandbox' | 'live';
-  dataPresent: boolean;
-  message: string;
-}
-
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const safeText = z.string().min(1).max(300);
 const finiteNumber = z.coerce.number().finite();
