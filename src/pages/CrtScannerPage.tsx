@@ -5,8 +5,10 @@ import StockProDataTable from '../components/tables/StockProDataTable';
 import CrtCandlePreviewChart from '../components/charts/CrtCandlePreviewChart';
 import { captureSafeEvent } from '../lib/posthog';
 import { CRT_TIMEFRAMES, defaultCrtFilters, type CrtResult, type CrtScanFilters } from '../core/crtScanner';
+import { authenticatedFetch } from '../core/supabaseClient';
 
-interface ProviderStatus { status: 'configured' | 'setup_required'; provider: string; message: string }
+interface ProviderOption { provider: 'upstox' | 'dhan' | 'angelone'; enabled: boolean; connected: boolean; reason: string | null }
+interface ProviderStatus { status: string; data: ProviderOption[]; message: string }
 interface ScanRun {
   id: string;
   status: 'queued' | 'running' | 'completed' | 'failed';
@@ -20,7 +22,7 @@ interface ScanRun {
 }
 
 async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const response = await authenticatedFetch(url, init);
   const payload = await response.json().catch(() => null) as (T & { message?: string }) | null;
   if (!response.ok && response.status !== 202) throw new Error(payload?.message || 'CRT Scanner request failed.');
   if (!payload) throw new Error('CRT Scanner returned malformed data.');
@@ -30,6 +32,7 @@ async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
 export default function CrtScannerPage() {
   const [filters, setFilters] = useState<CrtScanFilters>(defaultCrtFilters());
   const [provider, setProvider] = useState<ProviderStatus | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<'upstox' | 'dhan'>('upstox');
   const [runs, setRuns] = useState<ScanRun[]>([]);
   const [activeRun, setActiveRun] = useState<ScanRun | null>(null);
   const [results, setResults] = useState<CrtResult[]>([]);
@@ -43,9 +46,16 @@ export default function CrtScannerPage() {
   };
 
   useEffect(() => {
-    void readJson<ProviderStatus>('/api/market/provider-status').then(setProvider).catch((error) => setMessage(error.message));
+    void readJson<ProviderStatus>('/api/crt-scanner/providers').then((payload) => {
+      setProvider(payload);
+      const firstReady = payload.data?.find((item) => item.enabled && item.provider !== 'angelone');
+      if (firstReady) setSelectedProvider(firstReady.provider as 'upstox' | 'dhan');
+    }).catch((error) => {
+      setState('setup_required');
+      setMessage(error.message);
+    });
     void loadRuns().catch((error) => {
-      setState('error');
+      setState('setup_required');
       setMessage(error instanceof Error ? error.message : 'Previous scan history is unavailable.');
     });
   }, []);
@@ -77,9 +87,10 @@ export default function CrtScannerPage() {
 
   const runScan = async () => {
     captureSafeEvent('crt_scan_click');
-    if (provider?.status !== 'configured') {
+    const providerReady = provider?.data?.find((item) => item.provider === selectedProvider)?.enabled === true;
+    if (!providerReady) {
       setState('setup_required');
-      setMessage(provider?.message || 'Authorized market provider setup is required before a scan can run.');
+      setMessage(`Connect and configure ${selectedProvider} before a scan can run.`);
       return;
     }
     setState('scanning');
@@ -87,9 +98,9 @@ export default function CrtScannerPage() {
     setMessage('Scanning market data...');
     try {
       const payload = await readJson<{ scan_run_id: string; data_captured_at: string; message: string }>('/api/crt-scanner/run', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filters }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: selectedProvider, filters }),
       });
-      setActiveRun({ id: payload.scan_run_id, status: 'queued', provider: provider.provider, created_at: payload.data_captured_at });
+      setActiveRun({ id: payload.scan_run_id, status: 'queued', provider: selectedProvider, created_at: payload.data_captured_at });
       setMessage(payload.message);
       captureSafeEvent('crt_scan_run');
     } catch (error) {
@@ -139,7 +150,7 @@ export default function CrtScannerPage() {
   return (
     <div className="lg:col-span-12 space-y-6">
       <section className="border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-950">
-        <div className="flex items-start gap-2"><ShieldCheck size={18} className="mt-0.5 shrink-0" /><p>Educational scanner only. StockPro does not provide investment advice, buy/sell recommendations, guaranteed returns, or trade execution.</p></div>
+        <div className="flex items-start gap-2"><ShieldCheck size={18} className="mt-0.5 shrink-0" /><p>Educational scanner only. StockPro does not provide investment advice, directional recommendations, guaranteed returns, or trade execution.</p></div>
       </section>
 
       <header>
@@ -149,7 +160,7 @@ export default function CrtScannerPage() {
       </header>
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <StatusCard label="Provider" value={provider?.status || 'checking'} detail={provider?.message || 'Checking backend provider...'} />
+        <StatusCard label="Provider" value={selectedProvider} detail={provider?.data?.find((item) => item.provider === selectedProvider)?.reason?.replace(/_/g, ' ') || (provider?.data?.find((item) => item.provider === selectedProvider)?.enabled ? 'Connected and ready' : 'Connection or provider setup required')} />
         <StatusCard label="Scan state" value={activeRun?.status || 'idle'} detail={activeRun ? `${activeRun.processed_symbols || 0} of ${activeRun.total_symbols || 'stored universe'} symbols processed` : 'No scan runs automatically.'} />
         <StatusCard label="Saved results" value={String(results.length)} detail={activeRun ? `Scan run: ${activeRun.id}` : 'Select or run a scan.'} />
       </section>
@@ -160,6 +171,7 @@ export default function CrtScannerPage() {
           <span className="text-xs font-bold text-slate-500">Filters will apply on next scan.</span>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Select label="Data provider" value={selectedProvider} options={['upstox','dhan']} onChange={(value) => setSelectedProvider(value as 'upstox' | 'dhan')} />
           <Select label="Exchange" value="NSE" options={['NSE']} onChange={() => {}} />
           <Select label="Segment" value="EQ" options={['EQ']} onChange={() => {}} />
           <Select label="Timeframe" value={filters.timeframe} options={[...CRT_TIMEFRAMES]} onChange={(value) => setFilters((f) => ({ ...f, timeframe: value as CrtScanFilters['timeframe'] }))} />
@@ -182,7 +194,7 @@ export default function CrtScannerPage() {
           <Toggle label="Show weak setups" checked={filters.showWeakSetups} onChange={(value) => setFilters((f) => ({ ...f, showWeakSetups: value }))} />
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
-          <button type="button" onClick={() => void runScan()} disabled={state === 'scanning' || provider?.status !== 'configured'} className="inline-flex items-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-50"><Play size={16} /> {state === 'scanning' ? 'Scanning market data...' : 'Run CRT Scan'}</button>
+          <button type="button" onClick={() => void runScan()} disabled={state === 'scanning' || provider?.data?.find((item) => item.provider === selectedProvider)?.enabled !== true} className="inline-flex items-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-50"><Play size={16} /> {state === 'scanning' ? 'Scanning market data...' : 'Run CRT Scan'}</button>
           <button type="button" onClick={() => void runScan()} disabled={state === 'scanning' || !activeRun} className="inline-flex items-center gap-2 border border-slate-300 px-5 py-3 text-sm font-black disabled:opacity-50 dark:border-slate-700"><RefreshCw size={16} /> Refresh Market Data &amp; Scan Again</button>
         </div>
         <p className={`mt-4 flex items-start gap-2 text-sm font-semibold ${state === 'error' ? 'text-rose-700' : state === 'setup_required' ? 'text-amber-700' : 'text-slate-600 dark:text-slate-300'}`}>{state === 'error' || state === 'setup_required' ? <AlertTriangle size={16} /> : <Activity size={16} />}{message}</p>
