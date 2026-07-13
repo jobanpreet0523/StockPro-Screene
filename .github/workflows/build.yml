@@ -37,6 +37,9 @@ jobs:
       - name: Typecheck, production build, and launch verification
         run: npm run ci
 
+      - name: Verify production sitemap for Googlebot
+        run: npm run seo:sitemap:production
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
