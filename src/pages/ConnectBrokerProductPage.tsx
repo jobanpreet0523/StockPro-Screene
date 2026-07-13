@@ -50,30 +50,47 @@ export default function ConnectBrokerProductPage() {
   const start = async (provider: 'upstox' | 'dhan') => {
     setBusyProvider(provider);
     captureSafeEvent('connect_broker_click');
-    const { payload } = await brokerRequest(`/api/broker/${provider}/start`);
-    setMessage(String(payload.message || `${provider} setup checked.`));
-    setBusyProvider(null);
-    if (typeof payload.authorizationUrl === 'string' && payload.authorizationUrl.startsWith('https://')) window.location.assign(payload.authorizationUrl);
+    let authorizationUrl = '';
+    try {
+      const { payload } = await brokerRequest(`/api/broker/${provider}/start`);
+      setMessage(String(payload.message || `${provider} setup checked.`));
+      authorizationUrl = typeof payload.authorizationUrl === 'string' ? payload.authorizationUrl : '';
+    } catch {
+      setMessage(`${provider} could not be reached. Check the connection and try again.`);
+    } finally {
+      setBusyProvider(null);
+    }
+    if (authorizationUrl.startsWith('https://')) window.location.assign(authorizationUrl);
   };
 
   const disconnect = async (provider: 'upstox' | 'dhan') => {
     setBusyProvider(provider);
-    const { payload } = await brokerRequest(`/api/broker/${provider}/disconnect`, { method: 'POST' });
-    setMessage(String(payload.message || `${provider} disconnect completed.`));
-    setBusyProvider(null);
-    await refreshStatuses();
+    try {
+      const { payload } = await brokerRequest(`/api/broker/${provider}/disconnect`, { method: 'POST' });
+      setMessage(String(payload.message || `${provider} disconnect completed.`));
+      await refreshStatuses();
+    } catch {
+      setMessage(`${provider} disconnect could not be completed. Try again.`);
+    } finally {
+      setBusyProvider(null);
+    }
   };
 
   const test = async () => {
     setBusyProvider(testProvider);
-    const { payload } = await brokerRequest(`/api/broker/${testProvider}/test`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ testType, instrumentToken: instrumentToken.trim() || undefined, exchange, fromDate: fromDate || undefined, toDate: toDate || undefined, expiry: expiry || undefined, interval: 'days', underlyingSegment: 'IDX_I' }),
-    });
-    setMessage(String(payload.message || `${testProvider} test completed.`));
-    setBusyProvider(null);
-    await refreshStatuses();
+    try {
+      const { payload } = await brokerRequest(`/api/broker/${testProvider}/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testType, instrumentToken: instrumentToken.trim() || undefined, exchange, fromDate: fromDate || undefined, toDate: toDate || undefined, expiry: expiry || undefined, interval: 'days', underlyingSegment: 'IDX_I' }),
+      });
+      setMessage(String(payload.message || `${testProvider} test completed.`));
+      await refreshStatuses();
+    } catch {
+      setMessage(`${testProvider} read-only test could not be completed. Try again.`);
+    } finally {
+      setBusyProvider(null);
+    }
   };
 
   const canTest = testType === 'profile' || testType === 'instrument_master'

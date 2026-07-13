@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import {
@@ -194,7 +194,13 @@ function LandingHero({ market }: { market?: MarketDataEnvelope<MarketIndex[]> })
 }
 
 function MarketOverview({ market, loading }: { market?: MarketDataEnvelope<MarketIndex[]>; loading: boolean }) {
-  const scheduled = useMemo(() => getMarketStatus(), []);
+  const [scheduled, setScheduled] = useState(() => getMarketStatus());
+  useEffect(() => {
+    const refresh = () => setScheduled(getMarketStatus());
+    const interval = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    return () => { window.clearInterval(interval); window.removeEventListener('focus', refresh); };
+  }, []);
   const readiness = marketReadiness(market);
   const verified = isVerifiedProviderEnvelope(market);
   const requestedIndices = ['NIFTY 50', 'BANK NIFTY', 'FIN NIFTY', 'INDIA VIX'];

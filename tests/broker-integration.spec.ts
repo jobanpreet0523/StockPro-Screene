@@ -112,6 +112,20 @@ test('Dhan consent uses official individual flow and sandbox cannot unlock live 
   expect(sandboxPayload.isConnected).toBe(false);
 });
 
+test('Dhan rejects a second active consent attempt without replacing its state', async () => {
+  let consentRequests = 0;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    if (url.includes('/rest/v1/broker_oauth_states') && (init.method || 'GET') === 'GET') return json([{ id: 'active-state', expires_at: new Date(Date.now() + 60_000).toISOString() }]);
+    if (url.startsWith('https://auth.dhan.co/')) consentRequests += 1;
+    return json({}, 200);
+  };
+  const response = await handleBrokerV2Request({ request: new Request('https://stockpro1.qzz.io/api/broker/dhan/start'), path: '/api/broker/dhan/start', env: baseEnv, authResolver: auth });
+  expect(response!.status).toBe(200);
+  expect(await response!.json()).toMatchObject({ status: 'consent_in_progress', provider: 'dhan', isConnected: false });
+  expect(consentRequests).toBe(0);
+});
+
 
 test('Dhan callback consumes consent server-side and stores only ciphertext', async () => {
   const storedBodies: string[] = [];
@@ -170,6 +184,16 @@ test('official provider shapes validate and malformed candles are rejected', asy
   const candle = normalizeBrokerCandle(['2026-07-01T09:15:00.000Z', 100, 105, 98, 102, 1000], { provider: 'upstox', symbol: 'INFY', exchange: 'NSE', instrumentToken: 'NSE_EQ|1' });
   expect(candle).toMatchObject({ symbol: 'INFY', close: 102, lastPrice: 102, provider: 'upstox' });
   expect(() => normalizeBrokerCandle(['2026-07-01T09:15:00.000Z', 100, 99, 101, 102, 1000], { provider: 'upstox', symbol: 'INFY', exchange: 'NSE', instrumentToken: 'NSE_EQ|1' })).toThrow(/Malformed OHLC/);
+});
+
+test('provider error envelopes cannot be reported as successful read-only tests', async () => {
+  globalThis.fetch = async () => json({ status: 'error', data: null, error: 'Invalid instrument' });
+  const upstox = await testReadOnlyBrokerProvider({ provider: 'upstox', accessToken: 'token', mode: 'live' }, { testType: 'quote', instrumentToken: 'NSE_EQ|1' });
+  expect(upstox).toMatchObject({ ok: false, status: 'invalid_response', dataPresent: false });
+
+  globalThis.fetch = async () => json({ status: 'failed', data: null, errorCode: 'DH-905', errorMessage: 'Invalid request' });
+  const dhan = await testReadOnlyBrokerProvider({ provider: 'dhan', accessToken: 'token', clientId: '1000000001', mode: 'live' }, { testType: 'quote', instrumentToken: '1' });
+  expect(dhan).toMatchObject({ ok: false, status: 'invalid_response', dataPresent: false });
 });
 
 

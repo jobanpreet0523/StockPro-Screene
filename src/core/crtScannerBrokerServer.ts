@@ -69,12 +69,18 @@ async function connection(env: Env, userId: string, provider: Provider) {
   return (Array.isArray(rows) ? rows[0] : null) as ConnectionRow | null;
 }
 
+function dhanGateway(env: Env) {
+  const url = clean(env.DHAN_PROVIDER_GATEWAY_URL, 1000).replace(/\/+$/, '');
+  const secret = clean(env.DHAN_PROVIDER_GATEWAY_SECRET, 1000);
+  try {
+    return new URL(url).protocol === 'https:' && secret ? { url, secret } : null;
+  } catch { return null; }
+}
+
 function dataReadiness(env: Env, provider: Provider) {
   if (provider === 'upstox') return { ready: true, reason: null as string | null };
   if (!bool(env.DHAN_DATA_API_SUBSCRIPTION_ACTIVE)) return { ready: false, reason: 'data_api_subscription_required' };
-  const gatewayUrl = clean(env.DHAN_PROVIDER_GATEWAY_URL, 1000); const gatewaySecret = clean(env.DHAN_PROVIDER_GATEWAY_SECRET, 1000);
-  let gateway = false;
-  try { gateway = new URL(gatewayUrl).protocol === 'https:' && Boolean(gatewaySecret); } catch { gateway = false; }
+  const gateway = Boolean(dhanGateway(env));
   if (!bool(env.DHAN_STATIC_IP_CONFIGURED) && !gateway) return { ready: false, reason: 'static_ip_required' };
   if (!bool(env.DHAN_HISTORICAL_PERMISSION)) return { ready: false, reason: 'historical_permission_required' };
   return { ready: true, reason: null };
@@ -144,9 +150,9 @@ async function historical(env: Env, provider: Provider, credentials: { accessTok
     if (!response.ok || payload?.status !== 'success') throw new Error('Upstox historical request failed.');
     return normalizeTuples(payload?.data?.candles);
   }
-  const gatewayUrl = clean(env.DHAN_PROVIDER_GATEWAY_URL, 1000).replace(/\/+$/, ''); const gatewaySecret = clean(env.DHAN_PROVIDER_GATEWAY_SECRET, 1000);
-  if (gatewayUrl && gatewaySecret) {
-    const response = await fetch(`${gatewayUrl}/v1/dhan/historical-candles`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${gatewaySecret}` }, body: JSON.stringify({ accessToken: credentials.accessToken, clientId: credentials.clientId, securityId: instrument.instrument_token, exchangeSegment: instrument.segment, fromDate: from.toISOString().slice(0, 10), toDate: to.toISOString().slice(0, 10) }) });
+  const gateway = dhanGateway(env);
+  if (gateway) {
+    const response = await fetch(`${gateway.url}/v1/dhan/historical-candles`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${gateway.secret}` }, body: JSON.stringify({ accessToken: credentials.accessToken, clientId: credentials.clientId, securityId: instrument.instrument_token, exchangeSegment: instrument.segment, fromDate: from.toISOString().slice(0, 10), toDate: to.toISOString().slice(0, 10) }) });
     const payload = await response.json().catch(() => null);
     if (!response.ok) throw new Error('Dhan static-IP gateway rejected historical request.');
     return Array.isArray(payload?.data?.candles) ? normalizeTuples(payload.data.candles) : normalizeDhanColumns(payload?.data);
@@ -175,7 +181,7 @@ async function processRun(env: Env, runId: string, userId: string, provider: Pro
     const instruments = instrumentResponse.ok ? await instrumentResponse.json().catch(() => null) : null;
     if (!Array.isArray(instruments) || !instruments.length) throw new Error(`Stored ${provider} instrument master is empty.`);
     const capturedAt = new Date().toISOString();
-    let processed = 0; let resultCount = 0;
+    let processed = 0; let resultCount = 0; let failureCount = 0; let lastFailure = '';
     for (const instrument of instruments as InstrumentRow[]) {
       try {
         const candles = await historical(env, provider, credentials, instrument);
@@ -185,11 +191,16 @@ async function processRun(env: Env, runId: string, userId: string, provider: Pro
           if (!insert.ok) throw new Error('CRT result could not be stored.');
           resultCount += 1;
         }
-      } catch { /* A failed instrument cannot create a partial or fake result. */ }
+      } catch (error) {
+        failureCount += 1;
+        lastFailure = error instanceof Error ? error.message : 'Provider request failed.';
+      }
       processed += 1;
       await updateRun(env, runId, userId, { total_symbols: instruments.length, processed_symbols: processed, result_count: resultCount });
     }
-    await updateRun(env, runId, userId, { status: 'completed', completed_at: new Date().toISOString(), total_symbols: instruments.length, processed_symbols: processed, result_count: resultCount, error_message: null });
+    if (failureCount > instruments.length / 2) throw new Error(`${failureCount} of ${instruments.length} provider requests failed. ${lastFailure}`);
+    const warning = failureCount ? `${failureCount} of ${instruments.length} instruments could not be processed.` : null;
+    await updateRun(env, runId, userId, { status: 'completed', completed_at: new Date().toISOString(), total_symbols: instruments.length, processed_symbols: processed, result_count: resultCount, error_message: warning });
   } catch (error) {
     await updateRun(env, runId, userId, { status: 'failed', completed_at: new Date().toISOString(), error_message: error instanceof Error ? error.message.slice(0, 500) : 'CRT scan failed.' }).catch(() => undefined);
   }

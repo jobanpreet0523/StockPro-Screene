@@ -65,8 +65,8 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const safeText = z.string().min(1).max(300);
 const finiteNumber = z.coerce.number().finite();
 const dhanProfileSchema = z.object({ dhanClientId: z.union([z.string(), z.number()]), dhanClientName: z.string().optional() }).passthrough();
-const upstoxProfileSchema = z.object({ status: z.string(), data: z.object({ user_id: z.string().optional(), user_name: z.string().optional(), is_active: z.boolean().optional() }).passthrough() }).passthrough();
-const dhanEnvelopeSchema = z.object({ status: z.union([z.string(), z.number()]).optional(), data: z.unknown().optional() }).passthrough();
+const upstoxProfileSchema = z.object({ status: z.literal('success'), data: z.object({ user_id: z.string().optional(), user_name: z.string().optional(), is_active: z.boolean().optional() }).passthrough() }).passthrough();
+const dhanEnvelopeSchema = z.object({ status: z.union([z.string(), z.number()]).optional(), data: z.unknown().optional(), errorCode: z.unknown().optional(), errorType: z.unknown().optional(), errorMessage: z.unknown().optional() }).passthrough();
 const upstoxEnvelopeSchema = z.object({ status: z.string(), data: z.unknown().optional() }).passthrough();
 
 function clean(value: unknown, max = 500) {
@@ -191,9 +191,17 @@ export async function testReadOnlyBrokerProvider(credentials: BrokerProviderCred
     const parsed = credentials.provider === 'upstox' ? upstoxProfileSchema.safeParse(payload) : dhanProfileSchema.safeParse(payload);
     return parsed.success ? success(request.testType, credentials, true) : invalid(request.testType, credentials, 'Broker profile response was malformed.');
   }
-  const parsed = credentials.provider === 'upstox' ? upstoxEnvelopeSchema.safeParse(payload) : dhanEnvelopeSchema.safeParse(payload);
-  if (!parsed.success) return invalid(request.testType, credentials, 'Broker market-data response was malformed.');
-  return success(request.testType, credentials, parsed.data.data !== null && parsed.data.data !== undefined);
+  if (credentials.provider === 'upstox') {
+    const parsed = upstoxEnvelopeSchema.safeParse(payload);
+    if (!parsed.success || parsed.data.status !== 'success' || parsed.data.data === null || parsed.data.data === undefined) return invalid(request.testType, credentials, 'Upstox market-data response did not report success.');
+    return success(request.testType, credentials, true);
+  }
+  const parsed = dhanEnvelopeSchema.safeParse(payload);
+  const status = parsed.success ? String(parsed.data.status ?? 'success').toLowerCase() : '';
+  const hasError = parsed.success && [parsed.data.errorCode, parsed.data.errorType, parsed.data.errorMessage].some((value) => value !== null && value !== undefined && value !== '');
+  const acceptedStatus = ['success', 'ok', '200'].includes(status);
+  if (!parsed.success || !acceptedStatus || hasError || parsed.data.data === null || parsed.data.data === undefined) return invalid(request.testType, credentials, 'Dhan market-data response did not report success.');
+  return success(request.testType, credentials, true);
 }
 
 export function normalizeBrokerCandle(input: unknown, expected: { provider: ReadOnlyBrokerProvider; symbol: string; exchange: string; instrumentToken: string }): NormalizedBrokerCandle {

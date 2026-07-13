@@ -118,7 +118,7 @@ function readCookie(request: Request, name: string) {
 }
 
 function oauthCookie(provider: ReadOnlyBrokerProvider, value: string, maxAge = 600) {
-  return `stockpro_${provider}_oauth=${encodeURIComponent(value)}; Path=/api/broker/${provider}/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+  return `stockpro_${provider}_oauth=${encodeURIComponent(value)}; Path=/api/broker/${provider}; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 }
 
 async function createOauthState(env: BrokerEnv, userId: string, provider: ReadOnlyBrokerProvider) {
@@ -132,6 +132,14 @@ async function createOauthState(env: BrokerEnv, userId: string, provider: ReadOn
   });
   if (!response.ok) throw new Error('OAuth state could not be stored.');
   return raw;
+}
+
+async function hasActiveOauthState(env: BrokerEnv, userId: string, provider: ReadOnlyBrokerProvider) {
+  const db = database(env);
+  const response = await dbFetch(env, `${db.states}?user_id=eq.${encodeURIComponent(userId)}&provider=eq.${provider}&consumed_at=is.null&select=id,expires_at&limit=5`);
+  if (!response.ok) throw new Error('OAuth state could not be checked.');
+  const rows = await response.json().catch(() => null);
+  return Array.isArray(rows) && rows.some((row) => row?.id && Date.parse(row.expires_at) > Date.now());
 }
 
 async function consumeOauthState(env: BrokerEnv, provider: ReadOnlyBrokerProvider, rawState: string) {
@@ -262,8 +270,8 @@ async function startDhan(request: Request, env: BrokerEnv, authResolver: AuthRes
   if (auth.response) return auth.response;
   const readiness = dhanReadiness(env);
   if (readiness.mode !== 'live') return setup(request, 'dhan', 'sandbox_mode', 'Dhan sandbox is for developer validation only and cannot start a user live consent flow.', { mode: 'sandbox' });
-  const state = await createOauthState(env, auth.userId!, 'dhan').catch(() => null);
-  if (!state) return setup(request, 'dhan', 'oauth_state_storage_required', 'One-time Dhan consent state could not be stored.');
+  const consentInProgress = await hasActiveOauthState(env, auth.userId!, 'dhan').catch(() => false);
+  if (consentInProgress) return reply(request, { status: 'consent_in_progress', configured: true, severity: 'info', provider: 'dhan', isConnected: false, message: 'A Dhan consent attempt is already active for this user. Complete it before starting another.' });
   let endpoint: string;
   let headers: Record<string, string>;
   if (readiness.authMode === 'partner') {
@@ -279,6 +287,8 @@ async function startDhan(request: Request, env: BrokerEnv, authResolver: AuthRes
   const payload = response?.ok ? await response.json().catch(() => null) : null;
   const consentId = clean(payload?.consentAppId || payload?.consentId, 500);
   if (!response?.ok || !consentId) return setup(request, 'dhan', 'consent_generation_failed', 'Dhan consent could not be generated. Verify server-side credentials.');
+  const state = await createOauthState(env, auth.userId!, 'dhan').catch(() => null);
+  if (!state) return setup(request, 'dhan', 'oauth_state_storage_required', 'One-time Dhan consent state could not be stored.');
   const authorizationUrl = readiness.authMode === 'partner' ? `https://auth.dhan.co/consent-login?consentId=${encodeURIComponent(consentId)}` : `https://auth.dhan.co/login/consentApp-login?consentAppId=${encodeURIComponent(consentId)}`;
   return reply(request, { status: 'ready', configured: true, provider: 'dhan', mode: 'live', authMode: readiness.authMode, isConnected: false, authorizationUrl, message: 'Dhan consent is ready for this authenticated user.' }, 200, { 'Set-Cookie': oauthCookie('dhan', state) });
 }
