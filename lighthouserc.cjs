@@ -8,7 +8,7 @@ module.exports = {
         'http://127.0.0.1:4173/screener',
         'http://127.0.0.1:4173/option-chain',
       ],
-      numberOfRuns: 1,
+      numberOfRuns: 3,
     },
     assert: {
       assertions: {

@@ -6,7 +6,6 @@ import AnalyticsProvider from './components/analytics/AnalyticsProvider';
 import StructuredData from './components/StructuredData';
 
 const Layout = lazy(() => import('./components/Layout'));
-const ParticleBackground = lazy(() => import('./components/ParticleBackground'));
 const ScreenerPage = lazy(() => import('./pages/ScreenerPage'));
 const ScannerPage = lazy(() => import('./pages/ScannerPage'));
 const OptionChainPage = lazy(() => import('./pages/OptionChainPage'));
@@ -89,7 +88,7 @@ export default function App() {
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/admin/waitlist" element={<AdminWaitlistPage />} />
           <Route path="/admin/beta-feedback" element={<AdminBetaFeedbackPage />} />
-          <Route element={<><ParticleBackground /><Layout /></>}>
+          <Route element={<Layout />}>
             <Route path="/screener" element={<ScreenerPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/crt-scanner" element={<CrtScannerPage />} />

@@ -4,7 +4,7 @@ import { Bell, Crown, Download, LineChart, Radar, ShieldCheck, Star, Target, Tre
 import StockScreener from '../components/StockScreener';
 import StockChart from '../components/StockChart';
 import ProductGrowthPanel from '../components/ProductGrowthPanel';
-import { useDashboard, TAB_TO_PATH, type DashboardTab } from '../components/Layout';
+import { useDashboard, TAB_TO_PATH, type DashboardTab } from '../components/dashboardContext';
 import AdSlot from '../components/AdSlot';
 
 export default function ScreenerPage() {

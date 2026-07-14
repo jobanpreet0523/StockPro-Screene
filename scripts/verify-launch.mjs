@@ -193,7 +193,7 @@ for (const unsafe of ['421K Cr', '198K Cr', 'BSE LIVE FEED', 'NSE LIVE FEED']) {
 for (const required of ['lazy(', 'data-landing-section="hero"', 'data-landing-section="market-status"', 'data-landing-section="product-grid"', 'data-landing-section="crt-scanner"', 'data-landing-section="pro-workspace"', 'data-landing-section="broker-connect"', 'data-landing-section="screening-analytics"', 'data-landing-section="saved-work"', 'data-landing-section="trust"', 'data-landing-section="pricing"', 'data-landing-section="education"', 'data-landing-section="faq"']) {
   if (!landing.includes(required)) errors.push(`Complete landing is missing: ${required}`);
 }
-for (const required of ['stockpro-static-shell', 'stockpro-financial-research.avif', "location.pathname !== '/landing'"]) {
+for (const required of ['stockpro-static-shell', 'stockpro-financial-research.avif', "location.pathname === '/landing'"]) {
   if (!indexHtml.includes(required)) errors.push(`Immediate landing shell is missing: ${required}`);
 }
 if (indexHtml.includes('unpkg.com/lucide')) errors.push('Landing must not depend on the parser-blocking external Lucide script.');

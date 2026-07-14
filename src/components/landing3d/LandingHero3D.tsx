@@ -51,12 +51,22 @@ export default function LandingHero3D() {
       }
     };
     const idleWindow = window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number };
-    const idleId = idleWindow.requestIdleCallback
-      ? idleWindow.requestIdleCallback(() => void initialize(), { timeout: 900 })
-      : window.setTimeout(() => void initialize(), 80);
+    let idleId = 0;
+    let delayId = 0;
+    const schedule = () => {
+      delayId = window.setTimeout(() => {
+        idleId = idleWindow.requestIdleCallback
+          ? idleWindow.requestIdleCallback(() => void initialize(), { timeout: 1_500 })
+          : window.setTimeout(() => void initialize(), 400);
+      }, 3_500);
+    };
+    if (document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule, { once: true });
     return () => {
       sceneRef.current?.setRunning(false);
       cancelled = true;
+      window.removeEventListener('load', schedule);
+      window.clearTimeout(delayId);
       if (idleWindow.requestIdleCallback) window.cancelIdleCallback?.(idleId);
       else window.clearTimeout(idleId);
     };

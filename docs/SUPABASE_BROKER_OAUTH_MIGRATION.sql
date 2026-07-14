@@ -23,3 +23,5 @@ alter table public.broker_oauth_states enable row level security;
 
 -- Intentionally no browser policy. Only the Worker service role may create,
 -- consume, or inspect OAuth state records.
+revoke all on table public.broker_oauth_states from anon, authenticated;
+grant select, insert, update, delete on table public.broker_oauth_states to service_role;

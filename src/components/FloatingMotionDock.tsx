@@ -1,4 +1,4 @@
-import type { DashboardTab } from './Layout';
+import type { DashboardTab } from './dashboardContext';
 
 interface FloatingMotionDockProps {
   activeTab: DashboardTab;

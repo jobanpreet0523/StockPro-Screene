@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, Target, Shield, Share2, Zap, Activity } from 'lucide-react';
 import { Stock } from '../types';
-import { useDashboard } from '../components/Layout';
+import { useDashboard } from '../components/dashboardContext';
 
 type SignalType = 'UPWARD' | 'DOWNWARD';
 
