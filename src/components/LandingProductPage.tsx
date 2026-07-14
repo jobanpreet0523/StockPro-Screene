@@ -22,7 +22,7 @@ const DeferredLandingSections = lazy(() => import('./landing/LandingDeferredSect
 function LandingSearch() {
   return (
     <Suspense fallback={<div className="h-10 w-full border border-slate-300 bg-white/90" aria-label="Search loading" />}>
-      <LandingSearch />
+      <StockProSearch />
     </Suspense>
   );
 }

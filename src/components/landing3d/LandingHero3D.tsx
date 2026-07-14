@@ -55,7 +55,7 @@ export default function LandingHero3D() {
       ? idleWindow.requestIdleCallback(() => void initialize(), { timeout: 900 })
       : window.setTimeout(() => void initialize(), 80);
     return () => {
-        sceneRef.current.setRunning(!document.hidden && inView);
+      sceneRef.current?.setRunning(false);
       cancelled = true;
       if (idleWindow.requestIdleCallback) window.cancelIdleCallback?.(idleId);
       else window.clearTimeout(idleId);
