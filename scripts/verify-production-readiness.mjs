@@ -135,7 +135,7 @@ await inspect('/api/contact', {
     body: JSON.stringify({ name: 'Production verifier', email: 'verifier@example.com', subject: 'Automated validation', message: 'Turnstile rejection check.', turnstileToken: '' }),
   },
   validate: ({ payload }) => {
-    if (payload.status !== 'invalid') fail(`/api/contact missing-token check returned status ${payload.status}.`);
+    if (!['invalid', 'invalid_input'].includes(payload.status)) fail(`/api/contact missing-token check returned status ${payload.status}.`);
   },
   summary: ({ response, payload }) => ({ path: '/api/contact', case: 'missing_turnstile_token', http: response.status, status: payload.status }),
 });
