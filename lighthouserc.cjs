@@ -13,6 +13,8 @@ module.exports = {
     assert: {
       assertions: {
         'categories:performance': ['warn', { minScore: 0.4 }],
+        'largest-contentful-paint': ['error', { maxNumericValue: 2500 }],
+        'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }],
         'categories:accessibility': ['warn', { minScore: 0.75 }],
         'categories:best-practices': ['warn', { minScore: 0.75 }],
         'categories:seo': ['warn', { minScore: 0.75 }],

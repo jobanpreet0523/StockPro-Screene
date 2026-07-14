@@ -41,7 +41,8 @@ for (const route of expectedRoutes) {
   if (route !== '/' && !redirects.includes(`${route} /index.html 200`)) missing.push(`Direct-route fallback missing: ${route}`);
 }
 
-if (!distIndex.includes('<div id="root"></div>')) missing.push('Built index is missing the React root');
+if (!/<div id="root"(?:\s[^>]*)?>/.test(distIndex)) missing.push('Built index is missing the React root');
+if (!distIndex.includes("location.pathname !== '/'") || !distIndex.includes("location.pathname !== '/landing'")) missing.push('Static landing shell is not guarded from direct application routes');
 if (!distIndex.includes('/assets/')) missing.push('Built index is missing bundled asset references');
 if (!wrangler.includes('not_found_handling = "single-page-application"')) missing.push('Cloudflare SPA not-found handling is missing');
 if (!wrangler.includes('run_worker_first = true')) missing.push('Cloudflare API worker-first routing is missing');
