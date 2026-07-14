@@ -1,5 +1,7 @@
 const baseUrl = String(process.env.STOCKPRO_PRODUCTION_URL || 'https://stockpro1.qzz.io').replace(/\/+$/, '');
 const timeoutMs = 20_000;
+const evidence = [];
+const failures = [];
 
 const allowedStatuses = {
   '/api/auth/session': ['unauthenticated'],
@@ -20,7 +22,7 @@ const requiredServices = ['auth', 'turnstile', 'supabase', 'brokerProvider', 'br
 const forbiddenResponseKeys = /^(access_?token|refresh_?token|service_?role(_?key)?|authorization|password|cookie|client_?secret|api_?key)$/i;
 
 function fail(message) {
-  throw new Error(message);
+  failures.push(message);
 }
 
 function assertNoSecretFields(value, path = 'response') {
@@ -47,14 +49,10 @@ async function requestJson(path, init = {}) {
   try {
     payload = JSON.parse(text);
   } catch {
-    fail(`${path} returned non-JSON content with HTTP ${response.status}.`);
+    throw new Error(`returned non-JSON content with HTTP ${response.status}`);
   }
   assertNoSecretFields(payload, path);
   return { response, payload };
-}
-
-function requireHttp200(path, result) {
-  if (result.response.status !== 200) fail(`${path} returned HTTP ${result.response.status}; expected 200.`);
 }
 
 function summarize(path, result) {
@@ -69,50 +67,83 @@ function summarize(path, result) {
   return summary;
 }
 
-const evidence = [];
-
-const operations = await requestJson('/api/operations/readiness');
-requireHttp200('/api/operations/readiness', operations);
-if (operations.payload.status !== 'ok') fail('/api/operations/readiness did not report ok.');
-for (const service of requiredServices) {
-  if (operations.payload.services?.[service] !== 'configured') {
-    fail(`/api/operations/readiness reports ${service}=${operations.payload.services?.[service] || 'missing'}.`);
+async function inspect(path, options = {}) {
+  try {
+    const result = await requestJson(path, options.init);
+    const expectedHttp = options.expectedHttp ?? 200;
+    if (result.response.status !== expectedHttp) fail(`${path} returned HTTP ${result.response.status}; expected ${expectedHttp}.`);
+    options.validate?.(result);
+    evidence.push(options.summary ? options.summary(result) : summarize(path, result));
+    return result;
+  } catch (error) {
+    fail(`${path} could not be verified: ${error instanceof Error ? error.message : 'unexpected error'}.`);
+    evidence.push({ path, status: 'unexpected_error' });
+    return null;
   }
 }
-if (operations.payload.services?.paymentLive !== 'disabled') fail('Production readiness did not confirm paymentLive=disabled.');
-evidence.push({
-  path: '/api/operations/readiness',
-  http: operations.response.status,
-  status: operations.payload.status,
-  services: Object.fromEntries([...requiredServices, 'paymentLive'].map((key) => [key, operations.payload.services?.[key]])),
+
+await inspect('/api/operations/readiness', {
+  validate: ({ payload }) => {
+    if (payload.status !== 'ok') fail('/api/operations/readiness did not report ok.');
+    for (const service of requiredServices) {
+      if (payload.services?.[service] !== 'configured') {
+        fail(`/api/operations/readiness reports ${service}=${payload.services?.[service] || 'missing'}.`);
+      }
+    }
+    if (payload.services?.paymentLive !== 'disabled') fail('Production readiness did not confirm paymentLive=disabled.');
+  },
+  summary: ({ response, payload }) => ({
+    path: '/api/operations/readiness',
+    http: response.status,
+    status: payload.status,
+    services: Object.fromEntries([...requiredServices, 'paymentLive'].map((key) => [key, payload.services?.[key]])),
+  }),
 });
 
-const database = await requestJson('/api/database/readiness');
-requireHttp200('/api/database/readiness', database);
-if (database.payload.status !== 'ok' || database.payload.configured !== true) fail('/api/database/readiness did not report configured.');
-const tableStates = Object.values(database.payload.tables || {});
-if (!tableStates.length || tableStates.some((state) => state !== 'configured')) fail('/api/database/readiness contains a non-configured required table.');
-evidence.push({ path: '/api/database/readiness', http: 200, status: 'ok', configuredTables: tableStates.length });
+await inspect('/api/database/readiness', {
+  validate: ({ payload }) => {
+    if (payload.status !== 'ok' || payload.configured !== true) fail('/api/database/readiness did not report configured.');
+    const states = Object.values(payload.tables || {});
+    if (!states.length || states.some((state) => state !== 'configured')) fail('/api/database/readiness contains a non-configured required table.');
+  },
+  summary: ({ response, payload }) => ({
+    path: '/api/database/readiness',
+    http: response.status,
+    status: payload.status,
+    configured: payload.configured,
+    configuredTables: Object.values(payload.tables || {}).filter((state) => state === 'configured').length,
+    totalTables: Object.keys(payload.tables || {}).length,
+  }),
+});
 
 for (const [path, statuses] of Object.entries(allowedStatuses)) {
-  const result = await requestJson(path);
-  requireHttp200(path, result);
-  if (!statuses.includes(result.payload.status)) fail(`${path} returned unexpected status ${result.payload.status}.`);
-  if (path === '/api/broker/angelone/status' && result.payload.isConnected !== false) fail('Angel One must remain disconnected while approval is pending.');
-  if (path === '/api/billing/readiness' && (result.payload.paymentEnabled !== false || result.payload.live_disabled !== true)) fail('Billing readiness did not keep live payment disabled.');
-  if (path === '/api/trial/status' && result.payload.paymentEnabled !== false) fail('Trial status unexpectedly enabled payment.');
-  evidence.push(summarize(path, result));
+  await inspect(path, {
+    validate: ({ payload }) => {
+      if (!statuses.includes(payload.status)) fail(`${path} returned unexpected status ${payload.status}.`);
+      if (path === '/api/broker/angelone/status' && payload.isConnected !== false) fail('Angel One must remain disconnected while approval is pending.');
+      if (path === '/api/billing/readiness' && (payload.paymentEnabled !== false || payload.live_disabled !== true)) fail('Billing readiness did not keep live payment disabled.');
+      if (path === '/api/trial/status' && payload.paymentEnabled !== false) fail('Trial status unexpectedly enabled payment.');
+    },
+  });
 }
 
-const invalidContact = await requestJson('/api/contact', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: 'Production verifier', email: 'verifier@example.com', subject: 'Automated validation', message: 'Turnstile rejection check.', turnstileToken: '' }),
+await inspect('/api/contact', {
+  expectedHttp: 400,
+  init: {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'Production verifier', email: 'verifier@example.com', subject: 'Automated validation', message: 'Turnstile rejection check.', turnstileToken: '' }),
+  },
+  validate: ({ payload }) => {
+    if (payload.status !== 'invalid') fail(`/api/contact missing-token check returned status ${payload.status}.`);
+  },
+  summary: ({ response, payload }) => ({ path: '/api/contact', case: 'missing_turnstile_token', http: response.status, status: payload.status }),
 });
-if (invalidContact.response.status !== 400 || invalidContact.payload.status !== 'invalid') {
-  fail(`/api/contact missing-token check returned HTTP ${invalidContact.response.status} and status ${invalidContact.payload.status}.`);
-}
-evidence.push({ path: '/api/contact', case: 'missing_turnstile_token', http: 400, status: 'invalid' });
 
 console.log(JSON.stringify({ baseUrl, checkedAt: new Date().toISOString(), evidence }, null, 2));
-console.log('Production readiness verification passed without printing environment values or response secrets.');
+if (failures.length) {
+  console.error(JSON.stringify({ failureCount: failures.length, failures }, null, 2));
+  process.exitCode = 1;
+} else {
+  console.log('Production readiness verification passed without printing environment values or response secrets.');
+}
