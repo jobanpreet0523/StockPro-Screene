@@ -40,6 +40,9 @@ jobs:
       - name: Verify production sitemap for Googlebot
         run: npm run seo:sitemap:production
 
+      - name: Verify configured production readiness APIs
+        run: npm run verify:production-readiness
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
