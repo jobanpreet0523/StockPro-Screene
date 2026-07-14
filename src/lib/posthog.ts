@@ -1,10 +1,9 @@
-import posthog from 'posthog-js';
-
 export const SAFE_ANALYTICS_EVENTS = [
   'landing_visit',
   'pricing_click',
   'start_trial_click',
   'trial_click',
+  'contact_submit',
   'connect_broker_click',
   'waitlist_submit',
   'crt_scan_click',
@@ -17,36 +16,55 @@ export const SAFE_ANALYTICS_EVENTS = [
 ] as const;
 
 export type SafeAnalyticsEvent = typeof SAFE_ANALYTICS_EVENTS[number];
-let initialized = false;
+type PostHogClient = typeof import('posthog-js')['default'];
 
-export function initPostHog() {
-  if (initialized) return true;
+let client: PostHogClient | null = null;
+let loading: Promise<PostHogClient | null> | null = null;
+
+function config() {
   const enabled = String(import.meta.env.VITE_ANALYTICS_ENABLED || '').toLowerCase() === 'true';
   const key = String(import.meta.env.VITE_POSTHOG_KEY || '').trim();
-  if (!enabled || !key) return false;
+  return { enabled, key };
+}
 
-  posthog.init(key, {
-    api_host: String(import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com'),
-    autocapture: false,
-    capture_pageview: false,
-    capture_pageleave: false,
-    disable_session_recording: true,
-    persistence: 'memory',
-    person_profiles: 'never',
-    loaded(instance) {
-      instance.opt_in_capturing();
-    },
-  });
-  initialized = true;
-  return true;
+async function loadPostHog() {
+  const { enabled, key } = config();
+  if (!enabled || !key) return null;
+  if (client) return client;
+  if (loading) return loading;
+
+  loading = import('posthog-js').then(({ default: posthog }) => {
+    posthog.init(key, {
+      api_host: String(import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com'),
+      autocapture: false,
+      capture_pageview: false,
+      capture_pageleave: false,
+      disable_session_recording: true,
+      persistence: 'memory',
+      person_profiles: 'never',
+      loaded(instance) {
+        instance.opt_in_capturing();
+      },
+    });
+    client = posthog;
+    return posthog;
+  }).catch(() => null);
+
+  return loading;
+}
+
+export async function initPostHog() {
+  return Boolean(await loadPostHog());
 }
 
 export function captureSafeEvent(event: SafeAnalyticsEvent, path = window.location.pathname) {
-  if (!initialized || !SAFE_ANALYTICS_EVENTS.includes(event)) return;
-  posthog.capture(event, { path: path.slice(0, 300) });
+  if (!SAFE_ANALYTICS_EVENTS.includes(event)) return;
+  void loadPostHog().then((posthog) => {
+    posthog?.capture(event, { path: path.slice(0, 300) });
+  });
 }
 
 export function posthogReadiness() {
-  if (String(import.meta.env.VITE_ANALYTICS_ENABLED || '').toLowerCase() !== 'true') return 'disabled' as const;
-  return String(import.meta.env.VITE_POSTHOG_KEY || '').trim() ? 'configured' as const : 'setup_required' as const;
+  if (!config().enabled) return 'disabled' as const;
+  return config().key ? 'configured' as const : 'setup_required' as const;
 }

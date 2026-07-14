@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshSession = useCallback(async () => {
     setLoading(true);
     try {
-      const supabase = getSupabaseClient();
+      const supabase = await getSupabaseClient();
       const token = supabase ? (await supabase.auth.getSession()).data.session?.access_token : '';
       const headers: Record<string, string> = { Accept: 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
@@ -53,14 +53,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refreshSession();
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
-    const { data } = supabase.auth.onAuthStateChange(() => void refreshSession());
-    return () => data.subscription.unsubscribe();
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    void getSupabaseClient().then((supabase) => {
+      if (!active || !supabase) return;
+      const { data } = supabase.auth.onAuthStateChange(() => void refreshSession());
+      unsubscribe = () => data.subscription.unsubscribe();
+    });
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, [refreshSession]);
 
   const logout = async () => {
-    const supabase = getSupabaseClient();
+    const supabase = await getSupabaseClient();
     if (supabase) await supabase.auth.signOut();
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch { /* Local session is already cleared. */ }
     setUser(null);

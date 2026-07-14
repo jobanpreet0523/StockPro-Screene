@@ -1,10 +1,10 @@
 import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { BarChart3, Bell, CheckCircle2, Crown, Mail, MessageCircle, Send, ShieldAlert, Sparkles } from 'lucide-react';
-import type { WaitlistApiResponse, WaitlistPayload, WaitlistSubmitState } from '../core/waitlist';
+import type { WaitlistApiResponse, WaitlistSubmitState } from '../core/waitlist';
 import TurnstileWidget from '../components/security/TurnstileWidget';
 import { captureSafeEvent } from '../lib/posthog';
-import { waitlistLeadSchema } from '../core/schemas';
+import { contactFormSchema } from '../core/schemas';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -18,7 +18,7 @@ export default function ContactPage() {
   const [interest, setInterest] = useState(queryInterest);
   const [submitState, setSubmitState] = useState<WaitlistSubmitState>('idle');
   const [statusMessage, setStatusMessage] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; message?: string }>({});
   const [turnstileToken, setTurnstileToken] = useState('');
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), []);
@@ -44,9 +44,10 @@ export default function ContactPage() {
 
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
-    const errors: { name?: string; email?: string } = {};
+    const errors: { name?: string; email?: string; message?: string } = {};
     if (!cleanName) errors.name = 'Name is required.';
     if (!emailPattern.test(cleanEmail)) errors.email = 'Enter a valid email address.';
+    if (!useCase.trim()) errors.message = 'Message is required.';
     setFieldErrors(errors);
 
     if (!turnstileToken) {
@@ -61,16 +62,17 @@ export default function ContactPage() {
       return;
     }
 
-    const payload: WaitlistPayload = {
+    const payload = {
       name: cleanName,
       email: cleanEmail,
       useCase: useCase.trim() || undefined,
+      message: useCase.trim(),
       interest: interest.trim() || 'general',
       sourcePage: `${location.pathname}${location.search}`,
       referrer: document.referrer || undefined,
       turnstileToken,
     };
-    const validatedPayload = waitlistLeadSchema.safeParse(payload);
+    const validatedPayload = contactFormSchema.safeParse(payload);
     if (!validatedPayload.success) {
       setSubmitState('error');
       setStatusMessage('Please correct the form before submitting.');
@@ -81,19 +83,23 @@ export default function ContactPage() {
     setStatusMessage('');
 
     try {
-      const response = await fetch('/api/waitlist', {
+      const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validatedPayload.data),
       });
       const result = await response.json().catch(() => ({
         status: 'error',
-        message: 'The waitlist service returned an unreadable response.',
+        message: 'The contact service returned an unreadable response.',
       })) as WaitlistApiResponse;
 
       if (response.ok && (result.status === 'stored' || result.status === 'already_joined')) {
         setSubmitState('success');
-        setStatusMessage(result.message || 'Your waitlist request was stored successfully.');
+        setStatusMessage(result.message || 'Your message was stored successfully.');
+        setTurnstileToken('');
+        setTurnstileResetKey((value) => value + 1);
+        captureSafeEvent('contact_submit');
+        setUseCase('');
         return;
       }
 
@@ -134,7 +140,7 @@ export default function ContactPage() {
         <form onSubmit={handleSubmit} noValidate className="mt-6 rounded-3xl border border-violet-200 bg-violet-50/60 p-5 dark:border-violet-900/50 dark:bg-violet-950/10">
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-700 dark:text-violet-300"><Crown size={14} /> Structured waitlist request</div>
           <h2 className="mt-3 text-xl font-black text-slate-950 dark:text-white">Tell us what would make StockPro useful to you.</h2>
-          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">Weâ€™ll use this to understand demand and contact you when access is ready.</p>
+          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">We'll use this to understand demand and contact you when access is ready.</p>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <label className="text-xs font-black text-slate-700 dark:text-slate-200">
@@ -142,6 +148,7 @@ export default function ContactPage() {
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
+                required
                 autoComplete="name"
                 maxLength={120}
                 className={`mt-2 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-violet-400 dark:bg-slate-950 dark:text-white ${fieldErrors.name ? 'border-rose-400' : 'border-slate-200 dark:border-slate-800'}`}
@@ -156,6 +163,7 @@ export default function ContactPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                required
                 autoComplete="email"
                 maxLength={254}
                 className={`mt-2 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-violet-400 dark:bg-slate-950 dark:text-white ${fieldErrors.email ? 'border-rose-400' : 'border-slate-200 dark:border-slate-800'}`}
@@ -175,15 +183,18 @@ export default function ContactPage() {
             </label>
 
             <label className="text-xs font-black text-slate-700 dark:text-slate-200 md:row-span-2">
-              Use case <span className="font-semibold text-slate-400">(optional, encouraged)</span>
+              Message <span className="text-rose-500">*</span>
               <textarea
                 value={useCase}
                 onChange={(event) => setUseCase(event.target.value)}
+                required
                 maxLength={2000}
                 rows={5}
                 placeholder="Which screens, alerts, exports, or research workflow would help you?"
-                className="mt-2 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-violet-400 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                aria-invalid={Boolean(fieldErrors.message)}
+                className={`mt-2 w-full resize-y rounded-xl border ${fieldErrors.message ? 'border-rose-400' : 'border-slate-200 dark:border-slate-800'} bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none transition focus:border-violet-400 dark:bg-slate-950 dark:text-white`}
               />
+              {fieldErrors.message && <span className="mt-1 block text-[11px] font-bold text-rose-600 dark:text-rose-400">{fieldErrors.message}</span>}
             </label>
 
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] font-bold leading-5 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
@@ -191,7 +202,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          <div className="mt-5"><TurnstileWidget action="waitlist" onTokenChange={handleTurnstileToken} resetKey={turnstileResetKey} /></div>
+          <div className="mt-5"><TurnstileWidget action="contact" onTokenChange={handleTurnstileToken} resetKey={turnstileResetKey} /></div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
@@ -199,7 +210,7 @@ export default function ContactPage() {
               disabled={submitState === 'submitting' || !turnstileToken}
               className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Send size={15} /> {submitState === 'submitting' ? 'Submittingâ€¦' : 'Join waitlist'}
+              <Send size={15} /> {submitState === 'submitting' ? 'Submitting...' : 'Send request'}
             </button>
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">No payment is required.</span>
           </div>
