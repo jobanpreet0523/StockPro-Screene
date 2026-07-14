@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "security:scan": "node scripts/security-scan.mjs",
     "verify:supabase-rls": "node scripts/verify-supabase-rls.mjs",
+    "verify:production-readiness": "node scripts/verify-production-readiness.mjs",
     "verify:launch": "node scripts/verify-launch.mjs",
     "smoke:routes": "node scripts/smoke-routes.mjs",
     "smoke:landing-links": "node scripts/verify-landing-links.mjs",
