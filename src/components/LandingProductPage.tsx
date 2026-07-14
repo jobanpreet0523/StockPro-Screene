@@ -78,6 +78,48 @@ function marketReadiness(envelope?: MarketDataEnvelope<MarketIndex[]> | null) {
 }
 
 export default function LandingProductPage() {
+  const [belowFoldReady, setBelowFoldReady] = useState(false);
+
+  useEffect(() => {
+    const staticShell = document.getElementById('stockpro-static-shell');
+    if (staticShell?.classList.contains('stockpro-static-overlay')) {
+      staticShell.classList.add('stockpro-static-ready');
+      staticShell.setAttribute('aria-hidden', 'true');
+    }
+    const root = document.documentElement;
+    const restoreDark = root.classList.contains('dark');
+    root.classList.remove('dark');
+    let timer = 0;
+    const reveal = () => {
+      window.clearTimeout(timer);
+      setBelowFoldReady(true);
+    };
+    const schedule = () => { timer = window.setTimeout(reveal, 1_500); };
+    if (document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule, { once: true });
+    window.addEventListener('pointerdown', reveal, { once: true, passive: true });
+    window.addEventListener('scroll', reveal, { once: true, passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('load', schedule);
+      window.removeEventListener('pointerdown', reveal);
+      window.removeEventListener('scroll', reveal);
+      if (restoreDark) root.classList.add('dark');
+    };
+  }, []);
+
+  return (
+    <div id="landing-page" className="min-h-screen bg-white text-slate-950">
+      <LandingNavigation />
+      <main>
+        <LandingHero />
+        {belowFoldReady ? <LandingPrimarySections /> : <div className="min-h-[420px] bg-slate-50" aria-hidden />}
+      </main>
+    </div>
+  );
+}
+
+function LandingPrimarySections() {
   const [documentVisible, setDocumentVisible] = useState(() => !document.hidden);
   const marketQuery = useQuery({
     queryKey: ['landing-market-overview'],
@@ -89,29 +131,19 @@ export default function LandingProductPage() {
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    const restoreDark = root.classList.contains('dark');
-    root.classList.remove('dark');
     const onVisibilityChange = () => setDocumentVisible(!document.hidden);
     document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      if (restoreDark) root.classList.add('dark');
-    };
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
   return (
-    <div id="landing-page" className="min-h-screen bg-white text-slate-950">
-      <LandingNavigation />
-      <main>
-        <LandingHero market={marketQuery.data} />
-        <MarketOverview market={marketQuery.data} loading={marketQuery.isPending} />
-        <ToolGrid market={marketQuery.data} />
-        <CrtFeature />
-        <ProWorkspace />
-        <DeferredLandingMount />
-      </main>
-    </div>
+    <>
+      <MarketOverview market={marketQuery.data} loading={marketQuery.isPending} />
+      <ToolGrid market={marketQuery.data} />
+      <CrtFeature />
+      <ProWorkspace />
+      <DeferredLandingMount />
+    </>
   );
 }
 
@@ -176,14 +208,13 @@ function LandingNavigation() {
   );
 }
 
-function LandingHero({ market }: { market?: MarketDataEnvelope<MarketIndex[]> }) {
-  const readiness = marketReadiness(market);
+function LandingHero() {
   return (
     <section data-landing-section="hero" aria-labelledby="landing-hero-title" className="relative flex min-h-[calc(100svh-6rem)] items-center overflow-hidden bg-slate-950 py-8 text-white lg:h-[calc(100svh-7.5rem)] lg:min-h-[540px] lg:max-h-[680px]">
       <div className="relative mx-auto grid w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:grid-cols-[1.08fr_.92fr] lg:gap-2">
         <div className="relative z-10 max-w-3xl">
           <div className="flex flex-wrap items-center gap-2">
-            <ReadinessPill tone={readiness.tone}>{readiness.label}</ReadinessPill>
+            <ReadinessPill tone="setup">Provider checked before values render</ReadinessPill>
             <span className="text-xs font-semibold text-slate-300">Educational research analytics. No trade execution.</span>
           </div>
           <h1 id="landing-hero-title" className="mt-5 max-w-3xl text-4xl font-black leading-[1.05] sm:text-5xl lg:text-6xl">StockPro research, from first screen to saved decision trail.</h1>
@@ -344,15 +375,11 @@ function ProWorkspace() {
 }
 
 function DeferredLandingMount() {
-  const visibility = useVisibleOnce<HTMLDivElement>('500px');
   return (
-    <div ref={visibility.ref} className="min-h-[420px]">
-      {visibility.visible ? (
-        <Suspense fallback={<div className="flex min-h-[420px] items-center justify-center bg-slate-50 text-sm font-bold text-slate-500">Loading product details...</div>}>
-          <DeferredLandingSections />
-        </Suspense>
-      ) : <div className="min-h-[420px] bg-slate-50" aria-hidden />}
+    <div className="min-h-[420px]">
+      <Suspense fallback={<div className="flex min-h-[420px] items-center justify-center bg-slate-50 text-sm font-bold text-slate-500">Loading product details...</div>}>
+        <DeferredLandingSections />
+      </Suspense>
     </div>
   );
 }
-

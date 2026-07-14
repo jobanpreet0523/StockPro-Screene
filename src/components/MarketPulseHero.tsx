@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Activity, ArrowUpRight, Bell, BookmarkPlus, Crown, Gauge, LineChart, Radar, Search, ShieldCheck, Sparkles, Target, Zap } from 'lucide-react';
 import { IndexData, Stock } from '../types';
-import type { DashboardTab } from './Layout';
+import type { DashboardTab } from './dashboardContext';
 
 interface MarketPulseHeroProps {
   indices: IndexData[];
@@ -45,10 +45,7 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
   ];
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      transition={{ duration: 0.55, ease: 'easeOut' }}
+    <section
       className="premium-surface relative overflow-hidden rounded-[1.75rem] border border-white/70 dark:border-slate-800/80 bg-white/90 dark:bg-slate-950/80 p-5 sm:p-6 shadow-2xl shadow-slate-200/70 dark:shadow-emerald-950/20 mb-6"
       id="premium_market_command_center"
     >
@@ -143,6 +140,6 @@ export default function MarketPulseHero({ indices, stocks, activeTab, setActiveT
           })}
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

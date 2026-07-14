@@ -340,15 +340,22 @@ select {
   color: #475569 !important;
 }
 
+:root:not(.dark) #landing-page footer .text-slate-400,
+:root:not(.dark) #landing-page footer .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
 :root:not(.dark) .text-gray-400,
 :root:not(.dark) .text-gray-500 {
   color: #4b5563 !important;
 }
 
+:root:not(.dark) .text-emerald-500,
 :root:not(.dark) .text-emerald-600 {
   color: #047857 !important;
 }
 
+:root:not(.dark) .text-amber-600,
 :root:not(.dark) .text-amber-700 {
   color: #92400e !important;
 }

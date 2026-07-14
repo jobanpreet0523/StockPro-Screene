@@ -7,15 +7,20 @@ import { AuthProvider } from './contexts/AuthContext';
 import { queryClient } from './lib/queryClient';
 import './index.css';
 
+const app = (
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>
+);
+const isLandingRoute = location.pathname === '/' || location.pathname === '/landing';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    {isLandingRoute ? app : (
       <AuthProvider>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
+        <ThemeProvider>{app}</ThemeProvider>
       </AuthProvider>
-    </QueryClientProvider>
+    )}
   </StrictMode>,
 );
 

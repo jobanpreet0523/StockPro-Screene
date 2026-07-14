@@ -1,268 +1,72 @@
-import React, { useMemo, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
-import { Activity, HelpCircle } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import Header from './Header';
-import MarketPulseHero from './MarketPulseHero';
-import FloatingMotionDock from './FloatingMotionDock';
-import MarketCards from './MarketCards';
-import EmailCapturePopup from './EmailCapturePopup';
-import DataSourceBadge from './DataSourceBadge';
-import TrustDataBanner from './TrustDataBanner';
-import { useLiveStocks } from '../hooks/useLiveStocks';
-import { useMarketIndices } from '../hooks/useMarketIndices';
-import { getMarketDataStatus, type MarketDataStatus } from '../core/marketData';
-import { Stock, IndexData } from '../types';
+import { lazy, Suspense } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
-export type DashboardTab =
-  | 'screener' | 'chartink' | 'fo' | 'deals' | 'news' | 'pricing' | 'blog'
-  | 'us' | 'strategy-builder' | 'greeks-calculator' | 'risk-calculator'
-  | 'heatmap' | 'fii-dii' | 'signals' | 'daily-brief' | 'crt-scanner' | 'pro';
+const DashboardWorkspace = lazy(() => import('./DashboardWorkspace'));
 
-export const TAB_TO_PATH: Record<DashboardTab, string> = {
-  screener: '/screener',
-  chartink: '/scanner',
-  'crt-scanner': '/crt-scanner',
-  pro: '/pro',
-  fo: '/option-chain',
-  us: '/us-markets',
-  'strategy-builder': '/strategy-builder',
-  'greeks-calculator': '/greeks-calculator',
-  'risk-calculator': '/risk-calculator',
-  heatmap: '/heatmap',
-  'fii-dii': '/fii-dii',
-  deals: '/deals',
-  news: '/news',
-  pricing: '/pricing',
-  blog: '/blog',
-  signals: '/signals',
-  'daily-brief': '/daily-brief',
+const routeTitles: Record<string, string> = {
+  '/screener': 'Turn market noise into a focused daily research workflow.',
+  '/scanner': 'Build focused screens without pretending setup data is live.',
+  '/crt-scanner': 'Run CRT research only with your own authorized provider.',
+  '/option-chain': 'Study option-chain context with clearly sourced market data.',
 };
 
-const PATH_TO_TAB: Record<string, DashboardTab> = Object.entries(TAB_TO_PATH).reduce(
-  (acc, [tab, path]) => {
-    acc[path] = tab as DashboardTab;
-    return acc;
-  },
-  {} as Record<string, DashboardTab>,
-);
-
-const utilityRoutes = new Set(['/start-trial', '/connect-broker', '/privacy', '/terms', '/risk-disclosure', '/contact', '/about', '/data-methodology', '/support-policy', '/refund-policy', '/status', '/account', '/crt-scanner', '/pro']);
-
-export interface DashboardContext {
-  stocks: Stock[];
-  indices: IndexData[];
-  stockData: Stock[];
-  isLoadingStocks: boolean;
-  stocksError: string | null;
-  retryStocks: () => void;
-  selectedStockSymbol: string;
-  setSelectedStockSymbol: (s: string) => void;
-  activeStock: Stock | undefined;
-  handleSelectStock: (symbol: string) => void;
-  handleSelectFoStock: (symbol: string) => void;
-  marketDataStatus: MarketDataStatus;
-}
-
-export function useDashboard() {
-  return useOutletContext<DashboardContext>();
-}
+const primaryLinks = [
+  ['Screener', '/screener'],
+  ['Scanner', '/scanner'],
+  ['CRT Scanner', '/crt-scanner'],
+  ['Option Chain', '/option-chain'],
+  ['Pro', '/pro'],
+  ['News', '/news'],
+  ['Pricing', '/pricing'],
+] as const;
 
 export default function Layout() {
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const { indices } = useMarketIndices();
-  const { stocks, loading: isLoadingStocks, error: stocksError, providerStatus, retry: retryStocks } = useLiveStocks();
-
-  const [selectedStockSymbol, setSelectedStockSymbol] = useState<string>('RELIANCE.NS');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-
-  const activeTab: DashboardTab = PATH_TO_TAB[location.pathname] || 'screener';
-  const setActiveTab = (tab: DashboardTab) => navigate(TAB_TO_PATH[tab] || '/screener');
-  const isUtilityRoute = utilityRoutes.has(location.pathname);
-  const marketDataStatus = useMemo(() => getMarketDataStatus(Boolean(stocksError), providerStatus), [stocksError, providerStatus, location.pathname]);
-
-  const activeStock = useMemo(() => {
-    return (
-      stocks.find(s => {
-        const cleanLeft = selectedStockSymbol.replace('NSE:', '').replace('.NS', '');
-        const cleanRight = s.symbol.replace('.NS', '');
-        return cleanLeft === cleanRight;
-      }) || stocks[0]
-    );
-  }, [stocks, selectedStockSymbol]);
-
-  const handleSelectStock = (symbol: string) => setSelectedStockSymbol(symbol);
-
-  const handleSelectFoStock = (symbol: string) => {
-    setSelectedStockSymbol(symbol);
-    navigate(`${TAB_TO_PATH.fo}?symbol=${symbol.replace('NSE:', '').replace('.NS', '')}`);
-  };
-
-  const context: DashboardContext = {
-    stocks,
-    indices,
-    stockData: stocks,
-    isLoadingStocks,
-    stocksError,
-    retryStocks,
-    selectedStockSymbol,
-    setSelectedStockSymbol,
-    activeStock,
-    handleSelectStock,
-    handleSelectFoStock,
-    marketDataStatus,
-  };
-
-  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
-  const footerLinkClass = 'hover:text-slate-900 dark:hover:text-slate-300 transition cursor-pointer';
+  const title = routeTitles[location.pathname] || 'A focused workspace for educational market research.';
+  const hasStaticShell = Boolean(document.getElementById('stockpro-static-shell'));
 
   return (
-    <div
-      className="min-h-screen relative isolate overflow-hidden bg-slate-50/80 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300"
-      id="core_app_layer"
-    >
-      <Header
-        indices={indices}
-        stocks={stocks}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        onSelectStock={handleSelectStock}
-        hideMarketDataLabels={location.pathname === '/crt-scanner'}
-      />
-
-      {location.pathname !== '/crt-scanner' && <TrustDataBanner />}
-
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:py-6" id="main_layout_body">
-        {!isUtilityRoute && (
-          <>
-            <MarketPulseHero
-              indices={indices}
-              stocks={stocks}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              isLoadingStocks={isLoadingStocks}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.35 }}
-              className="flex flex-wrap items-center gap-3 mb-6 bg-white/80 dark:bg-slate-950/75 backdrop-blur-xl px-4 py-3 rounded-xl border border-slate-200/80 dark:border-slate-850 shadow-sm">
-              {isLoadingStocks ? (
-                <>
-                  <span className="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin shrink-0" />
-                  <div className="flex flex-col gap-1 w-full max-w-[200px]">
-                    <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-full"></div>
-                    <div className="h-2 bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse w-2/3"></div>
-                  </div>
-                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">Checking authorized market provider...</span>
-                </>
-              ) : stocksError ? (
-                <>
-                  <div className="w-4 h-4 shrink-0 rounded-full bg-rose-500/20 items-center justify-center flex">
-                    <div className="w-2 h-2 bg-rose-500 rounded-full"></div>
-                  </div>
-                  <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Market data refresh delayed</span>
-                  <DataSourceBadge status={marketDataStatus} compact />
-                  <button
-                    onClick={retryStocks}
-                    className="ml-auto bg-slate-900 border border-transparent dark:border-slate-700 dark:bg-slate-800 text-white text-xs px-3 py-1 rounded hover:opacity-90 active:scale-95 transition-all outline-none"
-                  >
-                    Retry
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Activity size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Loaded {stocks.length} stocks</span>
-                  <DataSourceBadge status={marketDataStatus} compact />
-                  <span className="text-[10px] font-mono text-slate-400 ml-auto hidden sm:block">{marketDataStatus.message}</span>
-                </>
-              )}
-            </motion.div>
-
-            {indices.length > 0 && (
-              <MarketCards
-                indices={indices}
-                onSelectIndex={(sym) => {
-                  const foundIndex = indices.find(i => i.symbol === sym);
-                  if (foundIndex) setSelectedStockSymbol(sym);
-                }}
-              />
-            )}
-
-            {isWeekend && (
-              <div className="mb-6 bg-amber-500/5 dark:bg-slate-950/80 border border-amber-500/20 dark:border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm" id="weekend_market_indicator">
-                <div className="flex items-center gap-3">
-                  <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 p-2.5 rounded-lg shrink-0">
-                    <HelpCircle size={18} className="text-amber-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      Indian Stock Markets are Closed (Weekend Session)
-                    </h4>
-                    <p className="text-xs text-slate-650 dark:text-slate-400 mt-1 leading-relaxed">
-                      Since today is a market holiday, the NSE/BSE trading session is closed. The platform displays <strong>no market data is displayed until an authorized provider is connected</strong>.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 16, filter: 'blur(5px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
-            transition={{ duration: 0.28, ease: 'easeOut' }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
-            id="workspace_grid"
-          >
-            <Outlet context={context} />
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {!isUtilityRoute && <FloatingMotionDock activeTab={activeTab} setActiveTab={setActiveTab} />}
-
-      <footer className="relative z-10 bg-slate-100/90 dark:bg-slate-950/80 border-t border-slate-200 dark:border-slate-850/60 text-slate-500 font-mono text-[10px] mt-16 py-10 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">StockPro Screener</h4>
-            <p className="text-[9px] text-slate-400 mb-2 leading-tight">StockPro Analytics is not a SEBI registered investment advisor. Market data appears only from configured authorized providers. Derivatives trading involves risk of loss.</p>
-            <p>&copy; {new Date().getFullYear()} StockPro. All rights reserved.</p>
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white" id="core_app_layer">
+      {!hasStaticShell && <header className="sticky top-0 z-50 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950" id="app_header">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-4 px-4">
+          <Link to="/" className="shrink-0 text-lg font-black">Stock<span className="text-emerald-600">Pro</span></Link>
+          <nav className="hidden flex-1 items-center gap-1 overflow-x-auto md:flex" id="main_navigation" aria-label="Product navigation">
+            {primaryLinks.map(([label, path]) => <Link key={path} to={path} className="shrink-0 px-3 py-2 text-xs font-bold text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white">{label}</Link>)}
+          </nav>
+          <div className="ml-auto hidden items-center gap-2 sm:flex">
+            <Link to="/connect-broker" className="bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Setup provider</Link>
+            <Link to="/account" className="border border-slate-300 px-3 py-2 text-xs font-bold dark:border-slate-700">Account</Link>
           </div>
-          <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Protocol</h4>
-            <Link to="/privacy" className={footerLinkClass}>Privacy Policy</Link>
-            <Link to="/terms" className={footerLinkClass}>Terms of Use</Link>
-            <Link to="/risk-disclosure" className={footerLinkClass}>Risk Disclosure</Link>
-            <Link to="/refund-policy" className={footerLinkClass}>Refund Policy</Link>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Data Source</h4>
-            <Link to="/connect-broker" className={footerLinkClass}>Broker live setup</Link>
-            <Link to="/account" className={footerLinkClass}>Account</Link>
-            <Link to="/data-methodology" className={footerLinkClass}>Data Methodology</Link>
-            <Link to="/status" className={footerLinkClass}>Service Status</Link>
-            <p className="leading-relaxed">Public tools show provider setup or availability honestly. Broker data activates only after secure per-user authorization.</p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h4 className="text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">Support</h4>
-            <Link to="/contact" className={footerLinkClass}>Contact Us</Link>
-            <Link to="/support-policy" className={footerLinkClass}>Support Policy</Link>
-            <Link to="/about" className={footerLinkClass}>About StockPro</Link>
-          </div>
+          <details className="relative ml-auto md:hidden">
+            <summary className="cursor-pointer text-sm font-bold">Menu</summary>
+            <nav className="absolute right-0 top-10 grid w-52 border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-950" aria-label="Mobile product navigation">
+              {primaryLinks.map(([label, path]) => <Link key={path} to={path} className="px-3 py-2 text-sm font-bold">{label}</Link>)}
+              <Link to="/account" className="px-3 py-2 text-sm font-bold">Account</Link>
+            </nav>
+          </details>
+        </div>
+      </header>}
+
+      {!hasStaticShell && <section className="border-b border-slate-800 bg-slate-950 px-4 py-8 text-white" aria-labelledby="workspace-title">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-xs font-bold uppercase text-emerald-400">Educational analytics only | Provider checked before values render</p>
+          <h1 id="workspace-title" className="mt-3 max-w-3xl text-4xl font-black leading-tight sm:text-5xl">{title}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">Market values appear only when a configured authorized provider returns them. StockPro does not execute trades.</p>
+        </div>
+      </section>}
+
+      <Suspense fallback={<div className="min-h-[720px] bg-slate-50 dark:bg-slate-950" aria-label="Loading research tools" />}>
+        <DashboardWorkspace />
+      </Suspense>
+
+      <footer className="mt-auto border-t border-slate-200 bg-white px-4 py-6 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950">
+        <div className="mx-auto flex max-w-7xl flex-wrap gap-4">
+          <span>Educational analytics, not investment advice.</span>
+          <Link to="/data-methodology">Data methodology</Link>
+          <Link to="/risk-disclosure">Risk disclosure</Link>
+          <Link to="/contact">Support</Link>
         </div>
       </footer>
-      <EmailCapturePopup />
     </div>
   );
 }

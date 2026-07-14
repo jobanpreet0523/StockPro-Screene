@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 type Theme = 'light' | 'dark';
 
@@ -33,6 +31,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const fetchTheme = async () => {
       try {
+        const [{ db }, { doc, getDoc }] = await Promise.all([
+          import('../lib/firebase'),
+          import('firebase/firestore'),
+        ]);
         const docRef = doc(db, 'userProfile', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().theme) {
@@ -60,9 +62,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('theme', theme);
 
     if (canSyncTheme && user) {
-      setDoc(doc(db, 'userProfile', user.uid), { theme }, { merge: true }).catch((e) => {
-        if (import.meta.env.DEV) console.warn('Theme save skipped', e);
-      });
+      void Promise.all([import('../lib/firebase'), import('firebase/firestore')])
+        .then(([{ db }, { doc, setDoc }]) => setDoc(doc(db, 'userProfile', user.uid), { theme }, { merge: true }))
+        .catch((e) => {
+          if (import.meta.env.DEV) console.warn('Theme save skipped', e);
+        });
     }
   }, [theme, user, canSyncTheme]);
 

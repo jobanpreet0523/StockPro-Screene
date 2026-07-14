@@ -1,7 +1,7 @@
 import React from 'react';
 import ChartinkScannerHeaderLayer from '../components/ChartinkScannerHeaderLayer';
 import StockProScannerFeatureLayer from '../components/StockProScannerFeatureLayer';
-import { useDashboard } from '../components/Layout';
+import { useDashboard } from '../components/dashboardContext';
 
 export default function ScannerPage() {
   const { stocks, stockData } = useDashboard();

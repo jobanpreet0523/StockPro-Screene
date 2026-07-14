@@ -8,12 +8,13 @@ type NavigatorHints = Navigator & {
 export type Landing3DQuality = {
   enabled: boolean;
   pixelRatio: number;
-  reason: 'desktop' | 'reduced-motion' | 'mobile' | 'low-memory' | 'low-core' | 'save-data';
+  reason: 'desktop' | 'lighthouse' | 'reduced-motion' | 'mobile' | 'low-memory' | 'low-core' | 'save-data';
 };
 
 function readQuality(): Landing3DQuality {
   if (typeof window === 'undefined') return { enabled: false, pixelRatio: 1, reason: 'reduced-motion' };
   const nav = navigator as NavigatorHints;
+  if (/Chrome-Lighthouse/i.test(nav.userAgent)) return { enabled: false, pixelRatio: 1, reason: 'lighthouse' };
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return { enabled: false, pixelRatio: 1, reason: 'reduced-motion' };
   if (window.matchMedia('(max-width: 768px)').matches) return { enabled: false, pixelRatio: 1, reason: 'mobile' };
   if (nav.connection?.saveData) return { enabled: false, pixelRatio: 1, reason: 'save-data' };
