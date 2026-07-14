@@ -79,6 +79,27 @@ jobs:
       - name: Verify configured production readiness APIs
         run: npm run verify:production-readiness
 
+  preview-readiness:
+    name: Secure branch preview readiness APIs
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify deployed branch preview readiness APIs
+        shell: bash
+        run: |
+          preview_branch="$(printf '%s' "$GITHUB_HEAD_REF" | tr '[:upper:]/_' '[:lower:]--')"
+          export STOCKPRO_PRODUCTION_URL="https://${preview_branch}-stockpro-screener.jobanpreet0523.workers.dev"
+          npm run verify:production-readiness
+
   protected-supabase:
     name: Protected Auth and RLS isolation
     runs-on: ubuntu-latest
