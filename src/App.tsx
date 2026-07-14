@@ -1,45 +1,46 @@
-import React, { Component, ReactNode, ErrorInfo } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Component, ErrorInfo, lazy, ReactNode, Suspense } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import LandingPage from './components/LandingProductPage';
-import Layout from './components/Layout';
-import ParticleBackground from './components/ParticleBackground';
 import RouteSeo from './components/RouteSeo';
 import AnalyticsProvider from './components/analytics/AnalyticsProvider';
-import ScreenerPage from './pages/ScreenerPage';
-import ScannerPage from './pages/ScannerPage';
-import OptionChainPage from './pages/OptionChainPage';
-import UsMarketsPage from './pages/UsMarketsPage';
-import StrategyPage from './pages/StrategyPage';
-import GreeksPage from './pages/GreeksPage';
-import RiskPage from './pages/RiskPage';
-import HeatmapPage from './pages/HeatmapPage';
-import FiiDiiPage from './pages/FiiDiiPage';
-import DealsPage from './pages/DealsPage';
-import NewsPage from './pages/NewsPage';
-import PricingPage from './pages/PricingPage';
-import BlogPage from './pages/BlogPage';
-import DailyBriefPage from './pages/DailyBriefPage';
-import SignalsPage from './pages/SignalsPage';
-import ConnectBrokerPage from './pages/ConnectBrokerProductPage';
-import PrivacyPage from './pages/PrivacyPage';
-import TermsPage from './pages/TermsPage';
-import RiskDisclosurePage from './pages/RiskDisclosurePage';
-import ContactPage from './pages/ContactPage';
-import AdminWaitlistPage from './pages/AdminWaitlistPage';
-import StartTrialPage from './pages/StartTrialPage';
-import AboutPage from './pages/AboutPage';
-import DataMethodologyPage from './pages/DataMethodologyPage';
-import SupportPolicyPage from './pages/SupportPolicyPage';
-import RefundPolicyPage from './pages/RefundPolicyPage';
-import StatusPage from './pages/StatusPage';
-import AccountPage from './pages/AccountPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import BetaLaunchPage from './pages/BetaLaunchPage';
-import ProPage from './pages/ProPage';
-import CrtScannerPage from './pages/CrtScannerPage';
-import AdminBetaFeedbackPage from './pages/AdminBetaFeedbackPage';
 import StructuredData from './components/StructuredData';
+
+const Layout = lazy(() => import('./components/Layout'));
+const ParticleBackground = lazy(() => import('./components/ParticleBackground'));
+const ScreenerPage = lazy(() => import('./pages/ScreenerPage'));
+const ScannerPage = lazy(() => import('./pages/ScannerPage'));
+const OptionChainPage = lazy(() => import('./pages/OptionChainPage'));
+const UsMarketsPage = lazy(() => import('./pages/UsMarketsPage'));
+const StrategyPage = lazy(() => import('./pages/StrategyPage'));
+const GreeksPage = lazy(() => import('./pages/GreeksPage'));
+const RiskPage = lazy(() => import('./pages/RiskPage'));
+const HeatmapPage = lazy(() => import('./pages/HeatmapPage'));
+const FiiDiiPage = lazy(() => import('./pages/FiiDiiPage'));
+const DealsPage = lazy(() => import('./pages/DealsPage'));
+const NewsPage = lazy(() => import('./pages/NewsPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const DailyBriefPage = lazy(() => import('./pages/DailyBriefPage'));
+const SignalsPage = lazy(() => import('./pages/SignalsPage'));
+const ConnectBrokerPage = lazy(() => import('./pages/ConnectBrokerProductPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const RiskDisclosurePage = lazy(() => import('./pages/RiskDisclosurePage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const AdminWaitlistPage = lazy(() => import('./pages/AdminWaitlistPage'));
+const StartTrialPage = lazy(() => import('./pages/StartTrialPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const DataMethodologyPage = lazy(() => import('./pages/DataMethodologyPage'));
+const SupportPolicyPage = lazy(() => import('./pages/SupportPolicyPage'));
+const RefundPolicyPage = lazy(() => import('./pages/RefundPolicyPage'));
+const StatusPage = lazy(() => import('./pages/StatusPage'));
+const AccountPage = lazy(() => import('./pages/AccountPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const BetaLaunchPage = lazy(() => import('./pages/BetaLaunchPage'));
+const ProPage = lazy(() => import('./pages/ProPage'));
+const CrtScannerPage = lazy(() => import('./pages/CrtScannerPage'));
+const AdminBetaFeedbackPage = lazy(() => import('./pages/AdminBetaFeedbackPage'));
 
 interface ErrorBoundaryProps { children: ReactNode; }
 interface ErrorBoundaryState { hasError: boolean; error: Error | null; }
@@ -71,6 +72,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 }
 
+function RouteLoading() {
+  return <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-bold text-slate-600">Loading StockPro...</div>;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -78,7 +83,8 @@ export default function App() {
         <AnalyticsProvider>
           <RouteSeo />
         <StructuredData />
-        <Routes>
+        <Suspense fallback={<RouteLoading />}>
+          <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/admin/waitlist" element={<AdminWaitlistPage />} />
@@ -118,7 +124,8 @@ export default function App() {
             <Route path="/beta" element={<BetaLaunchPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/screener" replace />} />
-        </Routes>
+          </Routes>
+        </Suspense>
         </AnalyticsProvider>
       </BrowserRouter>
     </ErrorBoundary>

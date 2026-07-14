@@ -1,0 +1,44 @@
+.landing-3d-root {
+  position: relative;
+  width: 100%;
+  min-height: 360px;
+  aspect-ratio: 8 / 5;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.landing-3d-fallback,
+.landing-3d-fallback img,
+.landing-3d-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.landing-3d-fallback img {
+  object-fit: contain;
+  object-position: center;
+}
+
+.landing-3d-canvas {
+  z-index: 1;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 320ms ease;
+}
+
+.landing-3d-canvas.is-ready {
+  opacity: 1;
+}
+
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .landing-3d-root {
+    min-height: 230px;
+  }
+
+  .landing-3d-canvas {
+    display: none;
+  }
+}
