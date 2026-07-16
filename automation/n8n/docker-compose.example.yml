@@ -53,7 +53,7 @@ services:
       N8N_BLOCK_ENV_ACCESS_IN_NODE: true
       N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: true
       N8N_RESTRICT_FILE_ACCESS_TO: /home/node/.n8n-files
-      NODES_EXCLUDE: '["n8n-nodes-base.executeCommand","n8n-nodes-base.ssh","n8n-nodes-base.readWriteFile","n8n-nodes-base.localFileTrigger"]'
+      NODES_EXCLUDE: '["n8n-nodes-base.executeCommand","n8n-nodes-base.ssh","n8n-nodes-base.readWriteFile","n8n-nodes-base.localFileTrigger","n8n-nodes-base.code","n8n-nodes-base.function","n8n-nodes-base.functionItem"]'
       EXECUTIONS_DATA_SAVE_ON_ERROR: all
       EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
       EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: true

@@ -3,6 +3,7 @@
 ## Prerequisites
 
 - A dedicated host/account/subdomain, private network, encrypted volumes, managed secret store, TLS 1.2+, PostgreSQL backups, authenticated ingress gateway, replay/idempotency/rate-limit store, dead-letter sink, and immutable audit sink.
+- Replay, idempotency, and per-source/workflow rate stores must be durable, shared across all gateway replicas, and implement atomic claim/update semantics. Repository in-memory stores are test doubles only.
 - Operator SSO/MFA plus VPN or identity-aware access for the editor; no public editor route.
 - Separate least-privilege service accounts per workflow. No broker, trading, payment, deployment, merge, repository-write, or database-admin credential.
 - Reviewed and digest-pinned n8n/PostgreSQL images. The example tags are starting points, not approvals.

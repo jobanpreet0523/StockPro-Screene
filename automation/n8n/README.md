@@ -31,6 +31,8 @@ The editor must be reachable only through operator SSO/VPN. The webhook host mus
 
 Run `node scripts/verify-n8n-contracts.mjs`. This verifier uses only Node built-ins and does not contact n8n, external APIs, or secrets. It validates the templates and documentation contract; it does not prove an operator deployment.
 
+Run executable ingress tests separately with node --test automation/n8n/security/ingress-security.test.mjs. They use injected in-memory stores and no live listener or secret. Production requires the durable atomic stores defined in the ingress contract.
+
 ## Layout
 
 - `workflows/`: ten inactive import templates.

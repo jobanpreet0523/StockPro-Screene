@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
@@ -23,6 +24,8 @@ const requiredDocs = [
   "automation/n8n/security/REDACTION_POLICY.md",
   "automation/n8n/security/THREAT_MODEL.md",
   "automation/n8n/security/event-envelope.schema.json",
+  "automation/n8n/security/ingress-security.mjs",
+  "automation/n8n/security/ingress-security.test.mjs",
   "docs/automation/N8N_ARCHITECTURE.md",
   "docs/automation/N8N_DEPLOYMENT.md",
   "docs/automation/N8N_SECURITY.md",
@@ -74,7 +77,7 @@ requireCondition(runbookFiles.every((name) => expected.has(name.slice(0, -3))), 
 const compose = read("automation/n8n/docker-compose.example.yml");
 requireCondition(compose.includes("127.0.0.1:5678:5678"), "editor/runtime binds to loopback only");
 requireCondition(compose.includes("internal: true"), "automation network is internal");
-for (const type of forbiddenNodeTypes.slice(0, 4)) requireCondition(compose.includes(type), "compose excludes node: " + type);
+for (const type of forbiddenNodeTypes) requireCondition(compose.includes(type), "compose excludes node: " + type);
 const envExample = read("automation/n8n/env.example");
 requireCondition(envExample.includes("STOCKPRO_AUTOMATION_ENABLED=false"), "global enable defaults false");
 requireCondition(envExample.includes("STOCKPRO_AUTOMATION_TEST_MODE=true"), "test mode defaults true");
@@ -165,6 +168,27 @@ const security = read("docs/automation/N8N_SECURITY.md");
 for (const term of ["HMAC-SHA-256", "replay", "idempotency", "rate", "prompt", "PII", "least-privilege", "dead-letter"]) {
   requireCondition(security.toLowerCase().includes(term.toLowerCase()), "security standard covers " + term);
 }
+const ingressSource = read("automation/n8n/security/ingress-security.mjs");
+for (const term of ["createHmac", "timingSafeEqual", "maxSkewMs", "maxBodyBytes", "projectPayload", "rateLimit.consume", "replay.claim", "idempotency.claim", "completeIdempotentResult"]) {
+  requireCondition(ingressSource.includes(term), "executable ingress covers " + term);
+}
+requireCondition(!ingressSource.includes("process.env"), "ingress module loads no environment secret");
+requireCondition(!ingressSource.includes("createServer") && !ingressSource.includes(".listen("), "ingress module opens no listener");
+const ingressTests = read("automation/n8n/security/ingress-security.test.mjs");
+for (const term of ["node:test", "MemoryReplayStore", "MemoryIdempotencyStore", "MemoryRateLimitStore", "replay_detected", "idempotency_collision", "rate_limited", "invalid_signature"]) {
+  requireCondition(ingressTests.includes(term), "ingress deterministic tests cover " + term);
+}
+const ingressContract = read("automation/n8n/security/INGRESS_CONTRACT.md");
+requireCondition(ingressContract.includes("durable, shared by every gateway replica, and atomic"), "production gateway requires durable atomic stores");
+const ingressTestRun = spawnSync(process.execPath, ["--test", "automation/n8n/security/ingress-security.test.mjs"], {
+  cwd: root,
+  encoding: "utf8",
+});
+if (ingressTestRun.status !== 0) {
+  if (ingressTestRun.stdout) console.error(ingressTestRun.stdout);
+  if (ingressTestRun.stderr) console.error(ingressTestRun.stderr);
+}
+requireCondition(ingressTestRun.status === 0, "executable ingress security tests pass");
 
 if (failures.length) {
   console.error("\nN8N CONTRACT VERIFICATION FAILED");

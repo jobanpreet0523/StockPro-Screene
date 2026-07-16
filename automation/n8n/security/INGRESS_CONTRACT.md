@@ -16,4 +16,16 @@ After validation, the gateway applies the workflow allowlist and sends only the 
 
 Idempotency state must move atomically from `accepted` to `completed` or `failed`. A duplicate with the same body returns the recorded result; a collision with a different body is rejected and audited. Replay storage and rate-limit storage fail closed.
 
+## Executable module and atomic stores
+
+ingress-security.mjs is the dependency-free reference implementation used by deterministic tests. It does not start a server, load an environment variable, contain a secret, or contact a service. The production gateway must pass exact request bytes, its trusted clock, key allowlist, workflow projection schemas, and three dependency-injected stores.
+
+Production stores must be durable, shared by every gateway replica, and atomic across concurrent requests. The replay claim is create-if-absent with expiry. The idempotency claim atomically binds source, workflow, and idempotency key to the exact body hash; an identical completed duplicate returns only the stored sanitized result, while an in-progress duplicate or body collision fails closed. The rate counter atomically enforces a window per source and workflow. In-process maps are test doubles only and must never be used for production or multi-replica deployment.
+
+The module authenticates the exact raw body before JSON parsing, uses constant-time comparison for valid-length lowercase hexadecimal signatures, rejects stale timestamps and oversized bodies, projects only schema-allowlisted fields, strips control characters from strings, and returns a minimized internal envelope. Same-event replay is rejected even when the idempotency key matches; a legitimate producer retry uses a fresh event ID with the original idempotency key.
+
+Run deterministic tests with:
+
+    node --test automation/n8n/security/ingress-security.test.mjs
+
 Prompt-injection filtering is mandatory for support-derived text: remove active links and markup, cap length, label text as untrusted data, never concatenate it into system/tool instructions, and route uncertain or high-risk content to manual review. Raw text must not be sent to an untrusted model.
