@@ -10,7 +10,7 @@
 | Three.js/WebGL Engineer | Pending approval | Homepage WebGL files only | One lazy context, adaptive quality, pause/dispose, <=250 KiB gzip |
 | Frontend Architect | Pending approval | Homepage-only React/HTML/CSS | Essential HTML-first content and preserved routes/CTAs |
 | Integration and Plugin Engineer | Complete: focused commit | Integration files and readiness matrix | Installed/imported/configured evidence; no duplicate dependency |
-| n8n Automation Engineer | Pending | `automation/n8n/**`, `docs/automation/**` | Separate service, secure contracts, ten workflows, disable/test paths |
+| n8n Automation Engineer | Complete: contracts, ingress, and tests | `automation/n8n/**`, `docs/automation/**` | Separate service, secure contracts, ten workflows, disable/test paths |
 | Security and Privacy Engineer | Complete: focused commit | Threat model and security tests | HMAC/replay/idempotency/redaction/secrets/RLS review; deterministic invariant tests |
 | Performance Engineer | Pending | Budgets and evidence only | Bundle, lifecycle, memory, median Lighthouse report |
 | QA and Accessibility Engineer | Pending | Required landing tests and baselines | Desktop/mobile/reduced-motion/WebGL-failure/axe evidence |

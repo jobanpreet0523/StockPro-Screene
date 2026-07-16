@@ -12,4 +12,5 @@
 - Keep generated concept labels and readiness states illustrative only. Production copy, provider states, values, and controls must remain evidence-backed semantic HTML rather than raster or canvas content.
 - Install Ponytail only as a Codex plugin; never add it to StockPro dependencies.
 - Keep n8n as a separately deployed automation service with no broker tokens, portfolio values, arbitrary public-shell execution, autonomous merge, or payment authority.
+- Transfer temporary `package.json` ownership from the Integration Engineer to the lead coordinator after its focused commit solely to add the reviewed `verify:n8n-contracts` and combined security/integration CI aliases; no dependency versions or lockfile entries changed.
 - Treat genuine broker OAuth as `MANUAL_EXTERNAL_AUTH_REQUIRED` until a human-authorized test succeeds.
