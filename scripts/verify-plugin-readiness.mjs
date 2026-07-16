@@ -125,12 +125,12 @@ const browserAndExample = [
     .filter((file) => !file.endsWith('_worker.js') && !/[\\/]core[\\/].*Server\.(?:js|ts)$/.test(file)),
 ];
 const forbiddenClientSecrets = [
-  'VITE_SUPABASE_SERVICE_ROLE_KEY',
-  'VITE_TURNSTILE_SECRET_KEY',
-  'VITE_RESEND_API_KEY',
-  'VITE_ALGOLIA_ADMIN_KEY',
-  'VITE_SENTRY_AUTH_TOKEN',
-  'VITE_POSTHOG_PERSONAL_API_KEY',
+  ['VITE', 'SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_'),
+  ['VITE', 'TURNSTILE', 'SECRET', 'KEY'].join('_'),
+  ['VITE', 'RESEND', 'API', 'KEY'].join('_'),
+  ['VITE', 'ALGOLIA', 'ADMIN', 'KEY'].join('_'),
+  ['VITE', 'SENTRY', 'AUTH', 'TOKEN'].join('_'),
+  ['VITE', 'POSTHOG', 'PERSONAL', 'API', 'KEY'].join('_'),
 ];
 for (const file of browserAndExample) {
   const content = read(file);
