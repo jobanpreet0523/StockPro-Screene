@@ -1,7 +1,7 @@
 # StockPro 3D and Scrollytelling Best-Practices Contract
 
 Research date: 2026-07-16  
-Status: concept specification only; implementation and assets are blocked on explicit concept approval.
+Status: approved implementation contract; see `HOMEPAGE_VISUAL_CONTRACT.md`.
 
 ## Renderer decision
 
@@ -25,7 +25,7 @@ Three.js is justified only where depth helps readers distinguish layers, paths, 
 
 ## Ten-scene evidence-bearing inventory and storyboard
 
-Shared owner for all scenes: one homepage renderer and one scene-state model. Supporting owners: HTML/content, accessibility, performance, and test passes. All scene briefs use a **local fresh Three.js + scrollytelling + accessibility pass**; no implementation is authorized yet.
+Shared owner for all scenes: one homepage renderer and one scene-state model. Supporting owners: HTML/content, accessibility, performance, and test passes. All scene briefs use a **local fresh Three.js + scrollytelling + accessibility pass**; implementation was authorized by the user's `approve all` response on 2026-07-16.
 
 | Scene | Story job and evidence | 3D / visual layer | HTML proof and action | Motion verb and named state | Static / reduced-motion fallback | Must not imply | QA acceptance |
 |---:|---|---|---|---|---|---|---|
@@ -172,9 +172,8 @@ Original StockPro visual grammar: **range, layer, gate, path, boundary, containe
 - web.dev, effective Core Web Vitals improvements: https://web.dev/articles/top-cwv
 - Highcharts accessibility module (pattern reference): https://www.highcharts.com/docs/accessibility/accessibility-module
 
-## Approval gate
+## Approval record
 
-Before any implementation or asset creation, generate and present concept key frames for desktop, mobile portrait, and mobile landscape (the latter is justified by the wide 3D substrate), then obtain explicit approval. The approved frames become a semantic contract for hierarchy, label-safe regions, camera states, mobile continuation, color roles, and fallbacks. Material deviations require renewed approval.
+Desktop, mobile portrait, and mobile landscape concepts were generated and presented. Their approved frames are recorded in `HOMEPAGE_VISUAL_CONTRACT.md` and are the semantic contract for hierarchy, label-safe regions, camera states, mobile continuation, color roles, and fallbacks. Material deviations require renewed approval.
 
-Current approval status: **PENDING — DO NOT IMPLEMENT**.
-
+Current approval status: **APPROVED on 2026-07-16 - implementation authorized**.

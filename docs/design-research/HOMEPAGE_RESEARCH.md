@@ -2,7 +2,7 @@
 
 Research date: 2026-07-16  
 Route in scope: `/` only  
-Design status: **research complete; visual concept approval pending; no implementation authorized by this document**
+Design status: **research complete; desktop/mobile concept set approved on 2026-07-16; implementation authorized under `HOMEPAGE_VISUAL_CONTRACT.md`**
 
 ## Executive conclusion
 
@@ -196,11 +196,11 @@ Color restrictions:
 - All essential values remain visible without hover. Visual hover/focus is a preview; the HTML link is the commitment action.
 - Back/forward navigation and route changes do not depend on canvas state. No homepage visual state needs URL persistence unless a later approved concept adds reader-controlled exploration.
 
-## Approval gate
+## Approval record
 
-The concept-first visualization workflow requires large-screen, mobile portrait, and mobile-landscape key-frame concepts because this is a WebGL/3D scrollytelling design. Those image concepts are outside this documentation-only assignment and have not been generated or approved here.
+The concept-first visualization workflow required large-screen, mobile portrait, and mobile-landscape key-frame concepts because this is a WebGL/3D scrollytelling design. Those concepts were generated, presented, and approved by the user on 2026-07-16.
 
-Before implementation:
+Completed before implementation:
 
 1. Generate the paired concept set without exact market values, dense text, copied brand cues, or factual claims baked into imagery.
 2. Show the concept set with the ten-scene plan, mobile continuation, interaction notes, and static/reduced-motion fallbacks.
@@ -208,5 +208,4 @@ Before implementation:
 4. Extract a binding semantic design contract from the approved concepts.
 5. Only then begin renderer, asset, or page implementation.
 
-Approval status: **PENDING**.
-
+Approval status: **APPROVED**. The extracted binding contract is `HOMEPAGE_VISUAL_CONTRACT.md`.
