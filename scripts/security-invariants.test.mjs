@@ -1,0 +1,81 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root = process.cwd();
+const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
+function readSourceTree(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) return readSourceTree(full);
+    return entry.isFile() && /\.(?:js|jsx|ts|tsx)$/.test(entry.name) ? [fs.readFileSync(full, 'utf8')] : [];
+  }).join('\n');
+}
+const sourceTree = readSourceTree(path.join(root, 'src'));
+const posthog = read('src/lib/posthog.ts');
+const sentry = read('src/lib/sentry.ts');
+const worker = read('src/_worker.js');
+const readiness = read('src/core/razorpayReadiness.ts');
+const schema = read('docs/SUPABASE_FULL_SCHEMA.sql');
+const policies = read('docs/SUPABASE_RLS_POLICIES.sql');
+const rlsVerifier = read('scripts/verify-supabase-rls.mjs');
+
+// Browser telemetry must be explicit, low-cardinality, and privacy-minimized.
+assert.match(posthog, /autocapture:\s*false/);
+assert.match(posthog, /capture_pageview:\s*false/);
+assert.match(posthog, /capture_pageleave:\s*false/);
+assert.match(posthog, /disable_session_recording:\s*true/);
+assert.match(posthog, /persistence:\s*'memory'/);
+assert.match(posthog, /person_profiles:\s*'never'/);
+assert.match(posthog, /posthog\?\.capture\(event,\s*\{\s*path:/);
+assert.match(sentry, /sendDefaultPii:\s*false/);
+assert.match(sentry, /tracesSampleRate:\s*0/);
+for (const deletion of ['event.user', 'event.request.cookies', 'event.request.data', 'event.request.headers']) {
+  assert.ok(sentry.includes('delete ' + deletion), 'Sentry must remove ' + deletion);
+}
+
+// Invite-only free beta must not call a live payment or order API.
+assert.match(readiness, /live_disabled:\s*true;/);
+assert.match(readiness, /paymentEnabled:\s*false;/);
+assert.match(readiness, /!keyId\.startsWith\('rzp_test_'\)/);
+assert.doesNotMatch(sourceTree, /https:\/\/api\.razorpay\.com/i);
+const inertOrderRoute = worker.match(/if \(path === '\/api\/live-plan\/create-order'[\s\S]{0,240}/)?.[0] || '';
+assert.match(inertOrderRoute, /status:\s*'setup_required'/);
+assert.match(worker, /orderPlacementEnabled:\s*false/);
+assert.doesNotMatch(sourceTree, /api\.(?:upstox|dhan)\.co[^'\s]*(?:place|modify|cancel)[-_\/]?order/i);
+
+// The test-mode webhook authenticates the exact body and has a durable unique id.
+assert.match(worker, /const rawBody = await request\.text\(\)/);
+assert.match(worker, /hmacSha256Hex\(rawBody/);
+assert.match(worker, /safeTokenEquals\(signature, expected\)/);
+assert.match(worker, /on_conflict=event_id/);
+assert.match(schema, /create table if not exists public\.billing_events[\s\S]*?event_id text not null unique/);
+
+// Every application table in the checked-in schema must have RLS enabled.
+const tables = new Set([...schema.matchAll(/create table if not exists public\.([a-z_]+)/g)].map((match) => match[1]));
+const rlsTables = new Set([...policies.matchAll(/alter table public\.([a-z_]+) enable row level security/g)].map((match) => match[1]));
+assert.equal(tables.size, 18, 'Expected 18 application tables in the launch schema');
+assert.deepEqual([...rlsTables].sort(), [...tables].sort(), 'Every application table must enable RLS');
+
+const policyTables = new Set([...policies.matchAll(/create policy [^\n]+ on public\.([a-z_]+)/g)].map((match) => match[1]));
+const expectedDenyAllTables = [
+  'billing_events',
+  'broker_connection_events',
+  'broker_connections',
+  'broker_oauth_states',
+  'contact_messages',
+  'market_instruments',
+  'razorpay_webhook_events',
+  'trial_subscriptions',
+  'waitlist_leads',
+].sort();
+const denyAllTables = [...tables].filter((table) => !policyTables.has(table)).sort();
+assert.deepEqual(denyAllTables, expectedDenyAllTables, 'Server-only tables must remain deny-all through RLS');
+
+// The protected verifier must exercise every table and cross-user/anonymous denial.
+for (const table of tables) assert.match(rlsVerifier, new RegExp('\\b' + table + '\\b'), 'RLS verifier must cover ' + table);
+for (const evidence of ['cross-user read', 'cross-user update', 'cross-user delete', 'anonymous read', 'finally', 'cleanup']) {
+  assert.ok(rlsVerifier.includes(evidence), 'RLS verifier must retain ' + evidence + ' evidence');
+}
+
+console.log('Security invariant tests passed: telemetry baseline, free-beta payment/trade lock, webhook authentication/idempotency, and 18-table RLS coverage.');
