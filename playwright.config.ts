@@ -9,7 +9,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // The landing suite owns a WebGL context. Parallel Chromium workers can
+  // exhaust the shared software-GPU command buffer and create teardown-only
+  // timeouts, so local and CI runs use the same deterministic worker count.
+  workers: 1,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'html',
   use: {
     baseURL: 'http://127.0.0.1:4173',
