@@ -4,8 +4,8 @@ import { useLocation } from 'react-router-dom';
 const SITE_URL = 'https://stockpro1.qzz.io';
 
 const defaultSeo = {
-  title: 'StockPro — Market Research Workspace',
-  description: 'StockPro is a professional market research workspace with delayed dashboards, screeners, watchlist workflow, F&O education, risk tools, and a Pro waitlist.',
+  title: 'StockPro - Source-First Market Research Workspace',
+  description: 'Screen markets, run the free manual CRT workflow, and organize educational research with explicit provider, timestamp, broker, and setup states. No trade execution.',
   robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
 };
 

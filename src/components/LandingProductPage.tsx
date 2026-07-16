@@ -246,7 +246,7 @@ function MarketOverview({ market, loading }: { market?: MarketDataEnvelope<Marke
   const verified = isVerifiedProviderEnvelope(market);
   const requestedIndices = ['NIFTY 50', 'BANK NIFTY', 'FIN NIFTY', 'INDIA VIX'];
   return (
-    <section data-landing-section="market-status" data-landing-scene="verified-source" data-scene-number="02" aria-labelledby="landing-market-title" className="border-b border-slate-200 bg-slate-50 py-14">
+    <section data-landing-section="market-status" data-landing-scene="verified-source" data-scene-number="02" data-provider-verified={verified ? 'true' : 'false'} aria-labelledby="landing-market-title" className="border-b border-slate-200 bg-slate-50 py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading eyebrow="Market status and index overview" id="landing-market-title" title="Know the source before reading the number" copy="Index values render only from a verified provider response. Scheduled exchange hours are labelled separately from provider market status." aside={<TrackedLink to="/screener" showArrow className="inline-flex items-center gap-2 text-sm font-black text-blue-700">Broader market tools</TrackedLink>} />
         <div className="landing-scene-grid mt-6 grid items-center gap-8">

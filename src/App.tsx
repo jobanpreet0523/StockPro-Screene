@@ -85,7 +85,7 @@ export default function App() {
         <Suspense fallback={<RouteLoading />}>
           <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/landing" element={<LandingPage />} />
+          <Route path="/landing" element={<Navigate to="/" replace />} />
           <Route path="/admin/waitlist" element={<AdminWaitlistPage />} />
           <Route path="/admin/beta-feedback" element={<AdminBetaFeedbackPage />} />
           <Route element={<Layout />}>
