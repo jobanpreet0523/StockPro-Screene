@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stockpro.invalid/schemas/automation-event-envelope-v1.json",
+  "title": "StockPro minimized automation event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "workflow", "eventId", "idempotencyKey", "occurredAt", "receivedAt", "testMode", "traceId", "payload"],
+  "properties": {
+    "version": { "const": "1" },
+    "workflow": { "type": "string", "pattern": "^[a-z0-9-]{3,48}$" },
+    "eventId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,128}$" },
+    "idempotencyKey": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,128}$" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "receivedAt": { "type": "string", "format": "date-time" },
+    "testMode": { "type": "boolean" },
+    "traceId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16,128}$" },
+    "payload": { "type": "object", "maxProperties": 20, "additionalProperties": true }
+  }
+}
