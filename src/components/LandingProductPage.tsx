@@ -13,8 +13,8 @@ import type { MarketDataEnvelope, MarketIndex } from '../core/marketDataProvider
 import { getMarketStatus } from '../utils/marketStatus';
 import { ReadinessPill, SectionHeading, TrackedLink, useVisibleOnce } from './landing/LandingPrimitives';
 import LandingHero3D from './landing3d/LandingHero3D';
-import SectionVisual from './landing3d/SectionVisual';
-import '../styles/section-visuals.css';
+import LandingSceneFallback from './landing3d/LandingSceneFallback';
+import '../styles/landing-story.css';
 
 const StockProSearch = lazy(() => import('./search/StockProSearch'));
 const DeferredLandingSections = lazy(() => import('./landing/LandingDeferredSections'));
@@ -109,9 +109,10 @@ export default function LandingProductPage() {
   }, []);
 
   return (
-    <div id="landing-page" className="min-h-screen bg-white text-slate-950">
+    <div id="landing-page" className="landing-shell min-h-screen bg-white text-slate-950">
       <LandingNavigation />
-      <main>
+      <LandingHero3D />
+      <main id="main-content" className="landing-story">
         <LandingHero />
         {belowFoldReady ? <LandingPrimarySections /> : <div className="min-h-[420px] bg-slate-50" aria-hidden />}
       </main>
@@ -160,7 +161,7 @@ function LandingNavigation() {
   }, [mobileOpen]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="landing-nav sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-5 px-4 sm:px-6">
         <TrackedLink to="/" aria-current={location.pathname === '/' ? 'page' : undefined} className="flex shrink-0 items-center gap-2 text-sm font-black uppercase text-slate-950">
           <span className="flex h-8 w-8 items-center justify-center bg-blue-700 text-white"><BarChart3 size={17} aria-hidden /></span>
@@ -210,9 +211,9 @@ function LandingNavigation() {
 
 function LandingHero() {
   return (
-    <section data-landing-section="hero" aria-labelledby="landing-hero-title" className="relative flex min-h-[calc(100svh-6rem)] items-center overflow-hidden bg-slate-950 py-8 text-white lg:h-[calc(100svh-7.5rem)] lg:min-h-[540px] lg:max-h-[680px]">
-      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:grid-cols-[1.08fr_.92fr] lg:gap-2">
-        <div className="relative z-10 max-w-3xl">
+    <section data-landing-section="hero" data-landing-scene="research-universe" data-scene-number="01" aria-labelledby="landing-hero-title" className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden bg-slate-950 py-8 text-white">
+      <div className="landing-scene-grid relative mx-auto grid w-full max-w-7xl items-center gap-6 px-4 sm:px-6 lg:gap-8">
+        <div className="landing-hero-copy relative z-10 max-w-3xl">
           <div className="flex flex-wrap items-center gap-2">
             <ReadinessPill tone="setup">Provider checked before values render</ReadinessPill>
             <span className="text-xs font-semibold text-slate-300">Educational research analytics. No trade execution.</span>
@@ -227,7 +228,7 @@ function LandingHero() {
             <TrackedLink to="/connect-broker" event="connect_broker_click" icon={KeyRound} showArrow className="inline-flex items-center gap-2 border border-emerald-300/60 bg-emerald-500/15 px-4 py-3 text-xs font-black text-emerald-100 hover:bg-emerald-500/25">Connect Broker</TrackedLink>
           </div>
         </div>
-        <LandingHero3D />
+        <LandingSceneFallback scene="research-universe" />
       </div>
     </section>
   );
@@ -245,10 +246,10 @@ function MarketOverview({ market, loading }: { market?: MarketDataEnvelope<Marke
   const verified = isVerifiedProviderEnvelope(market);
   const requestedIndices = ['NIFTY 50', 'BANK NIFTY', 'FIN NIFTY', 'INDIA VIX'];
   return (
-    <section data-landing-section="market-status" aria-labelledby="landing-market-title" className="border-b border-slate-200 bg-slate-50 py-14">
+    <section data-landing-section="market-status" data-landing-scene="verified-source" data-scene-number="02" aria-labelledby="landing-market-title" className="border-b border-slate-200 bg-slate-50 py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading eyebrow="Market status and index overview" id="landing-market-title" title="Know the source before reading the number" copy="Index values render only from a verified provider response. Scheduled exchange hours are labelled separately from provider market status." aside={<TrackedLink to="/screener" showArrow className="inline-flex items-center gap-2 text-sm font-black text-blue-700">Broader market tools</TrackedLink>} />
-        <div className="mt-6 grid items-center gap-8 lg:grid-cols-[1fr_300px]">
+        <div className="landing-scene-grid mt-6 grid items-center gap-8">
           <div className="grid gap-px overflow-hidden border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4">
           {requestedIndices.map((name) => {
             const needle = name.replace('INDIA ', '');
@@ -262,7 +263,7 @@ function MarketOverview({ market, loading }: { market?: MarketDataEnvelope<Marke
             );
           })}
           </div>
-          <SectionVisual variant="market" />
+          <LandingSceneFallback scene="verified-source" />
         </div>
         <div className="mt-5 grid gap-3 text-xs font-semibold text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
           <DataFact label="Market hours" value={`${scheduled.label} (schedule-based)`} />
@@ -282,10 +283,10 @@ function DataFact({ label, value }: { label: string; value: string }) {
 function ToolGrid({ market }: { market?: MarketDataEnvelope<MarketIndex[]> }) {
   const providerReady = isVerifiedProviderEnvelope(market);
   return (
-    <section data-landing-section="product-grid" aria-labelledby="landing-tools-title" className="border-b border-slate-200 bg-white py-14">
+    <section data-landing-section="product-grid" data-landing-scene="product-constellation" data-scene-number="03" aria-labelledby="landing-tools-title" className="border-b border-slate-200 bg-white py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading eyebrow="Product and research tools" id="landing-tools-title" title="One homepage, ten real destinations" copy="Every entry opens a working StockPro route. Tools that need market data, authentication, or content remain explicit about that dependency." />
-        <div className="mt-7 grid items-center gap-7 lg:grid-cols-[1fr_280px]">
+        <div className="landing-scene-grid mt-7 grid items-center gap-7">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {toolCards.map(({ name, description, to, icon: Icon, requirement }) => (
             <TrackedLink key={to} to={to} className="group min-h-48 border border-slate-200 bg-white p-4 transition hover:border-blue-400 hover:shadow-md">
@@ -296,7 +297,7 @@ function ToolGrid({ market }: { market?: MarketDataEnvelope<MarketIndex[]> }) {
             </TrackedLink>
           ))}
           </div>
-          <SectionVisual variant="tools" />
+          <LandingSceneFallback scene="product-constellation" />
         </div>
       </div>
     </section>
@@ -319,8 +320,8 @@ function CrtFeature() {
   });
   const latest = runsQuery.data?.data?.[0];
   return (
-    <section ref={visibility.ref} data-landing-section="crt-scanner" aria-labelledby="landing-crt-title" className="border-b border-slate-200 bg-[#eef6ff] py-14">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+    <section ref={visibility.ref} data-landing-section="crt-scanner" data-landing-scene="crt-laboratory" data-scene-number="04" aria-labelledby="landing-crt-title" className="border-b border-slate-200 bg-[#eef6ff] py-14">
+      <div className="landing-scene-grid mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:items-center">
         <div>
           <ReadinessPill tone="free">Free manual scanner</ReadinessPill>
           <h2 id="landing-crt-title" className="mt-4 text-3xl font-black text-slate-950">CRT research that starts only when you ask</h2>
@@ -329,7 +330,7 @@ function CrtFeature() {
           <TrackedLink to="/crt-scanner" event="crt_scan_click" icon={Radar} showArrow className="mt-7 inline-flex items-center gap-2 bg-blue-700 px-5 py-3 text-sm font-black text-white hover:bg-blue-800">Run CRT Scanner</TrackedLink>
         </div>
         <div className="space-y-2">
-          <SectionVisual variant="crt" />
+          <LandingSceneFallback scene="crt-laboratory" />
           <div className="border border-blue-200 bg-white p-6">
           <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-black">Readiness and saved run</h3><ReadinessPill tone={user ? 'setup' : 'login'}>{user ? 'Provider required' : 'Login required'}</ReadinessPill></div>
           <dl className="mt-5 divide-y divide-slate-200 text-sm">
@@ -354,14 +355,14 @@ function ProWorkspace() {
   const { user, authStatus } = useAuth();
   const categories = ['Dashboard', 'Watchlist', 'Ideas', 'Screener', 'Data Explorer', 'Charts', 'Saved Work', 'AI Research', 'Getting Started'];
   return (
-    <section data-landing-section="pro-workspace" aria-labelledby="landing-pro-title" className="border-b border-slate-200 bg-white py-14">
+    <section data-landing-section="pro-workspace" data-landing-scene="pro-workspace" data-scene-number="05" aria-labelledby="landing-pro-title" className="border-b border-slate-200 bg-white py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading eyebrow="StockPro Pro workspace" id="landing-pro-title" title="A quiet workspace for repeatable research" copy="The original light Pro workspace organizes watchlists, screens, charts, saved work, and sourced AI research readiness without manufacturing recommendations or returns." aside={<TrackedLink to="/pro" icon={LayoutDashboard} showArrow className="inline-flex items-center gap-2 bg-slate-950 px-4 py-3 text-sm font-black text-white">Open Pro Workspace</TrackedLink>} />
-        <div className="mt-7 grid items-center gap-7 lg:grid-cols-[1fr_280px]">
+        <div className="landing-scene-grid mt-7 grid items-center gap-7">
           <div className="grid gap-px overflow-hidden border border-slate-200 bg-slate-200 sm:grid-cols-3 lg:grid-cols-9">
           {categories.map((category, index) => <TrackedLink key={category} to={`/pro?tab=${encodeURIComponent(category.toLowerCase().replace(/\s+/g, '-'))}`} className="min-h-24 bg-slate-50 p-4 hover:bg-white"><span className="text-[10px] font-black text-blue-700">{String(index + 1).padStart(2, '0')}</span><span className="mt-3 block text-xs font-black text-slate-800">{category}</span></TrackedLink>)}
           </div>
-          <SectionVisual variant="pro" />
+          <LandingSceneFallback scene="pro-workspace" />
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
           <ReadinessPill tone={user ? 'ready' : 'login'}>{user ? 'Authenticated session' : authStatus === 'setup_required' ? 'Auth setup required' : 'Visitor mode'}</ReadinessPill>
