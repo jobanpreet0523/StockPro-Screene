@@ -2,8 +2,11 @@ import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals';
 
 export type WebVitalsReporter = (metric: Pick<Metric, 'name' | 'value' | 'rating' | 'delta'>) => void;
 
+let reportingStarted = false;
+
 export function reportWebVitals(reporter?: WebVitalsReporter) {
-  if (!reporter) return;
+  if (!reporter || reportingStarted) return;
+  reportingStarted = true;
   const send = (metric: Metric) => reporter({
     name: metric.name,
     value: metric.value,

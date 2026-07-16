@@ -25,7 +25,8 @@
     "test:a11y": "playwright test tests/accessibility.spec.ts --project=chromium",
     "audit:lighthouse": "lhci autorun",
     "analyze:bundle": "vite build --configLoader runner && node scripts/check-landing-bundle-budget.mjs",
-    "quality:deps": "npm audit --omit=dev --audit-level=moderate"
+    "quality:deps": "npm audit --omit=dev --audit-level=moderate",
+    "verify:plugin-readiness": "node scripts/verify-plugin-readiness.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

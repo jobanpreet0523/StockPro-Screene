@@ -13,6 +13,7 @@ export const SAFE_ANALYTICS_EVENTS = [
   'crt_scan_run',
   'watchlist_created',
   'alert_created',
+  'web_vital',
 ] as const;
 
 export type SafeAnalyticsEvent = typeof SAFE_ANALYTICS_EVENTS[number];
@@ -61,6 +62,23 @@ export function captureSafeEvent(event: SafeAnalyticsEvent, path = window.locati
   if (!SAFE_ANALYTICS_EVENTS.includes(event)) return;
   void loadPostHog().then((posthog) => {
     posthog?.capture(event, { path: path.slice(0, 300) });
+  });
+}
+
+export function captureWebVital(metric: {
+  name: string;
+  value: number;
+  rating: string;
+  delta: number;
+}, path = window.location.pathname) {
+  void loadPostHog().then((posthog) => {
+    posthog?.capture('web_vital', {
+      path: path.slice(0, 300),
+      name: metric.name.slice(0, 16),
+      value: Number(metric.value.toFixed(3)),
+      delta: Number(metric.delta.toFixed(3)),
+      rating: metric.rating.slice(0, 16),
+    });
   });
 }
 
