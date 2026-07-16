@@ -360,17 +360,17 @@ select {
   color: #92400e !important;
 }
 
-.dark #core_app_layer .dark\\:bg-slate-950 .text-slate-400,
-.dark #core_app_layer .dark\\:bg-slate-950 .text-slate-500,
-.dark #core_app_layer .dark\\:bg-slate-900 .text-slate-400,
-.dark #core_app_layer .dark\\:bg-slate-900 .text-slate-500,
-.dark #core_app_layer .dark\\:bg-slate-800 .text-slate-400,
-.dark #core_app_layer .dark\\:bg-slate-800 .text-slate-500 {
+.dark #core_app_layer .dark\:bg-slate-950 .text-slate-400,
+.dark #core_app_layer .dark\:bg-slate-950 .text-slate-500,
+.dark #core_app_layer .dark\:bg-slate-900 .text-slate-400,
+.dark #core_app_layer .dark\:bg-slate-900 .text-slate-500,
+.dark #core_app_layer .dark\:bg-slate-800 .text-slate-400,
+.dark #core_app_layer .dark\:bg-slate-800 .text-slate-500 {
   color: #cbd5e1 !important;
 }
 
-.dark #core_app_layer .dark\\:bg-white .dark\\:text-slate-400,
-.dark #core_app_layer .dark\\:bg-white .dark\\:text-slate-300 {
+.dark #core_app_layer .dark\:bg-white .dark\:text-slate-400,
+.dark #core_app_layer .dark\:bg-white .dark\:text-slate-300 {
   color: #475569 !important;
 }
 
@@ -424,7 +424,7 @@ select {
 }
 
 .dark #core_app_layer .bg-white .text-emerald-500,
-.dark #core_app_layer .dark\\:bg-white .text-emerald-500 {
+.dark #core_app_layer .dark\:bg-white .text-emerald-500 {
   color: #047857 !important;
 }
 
