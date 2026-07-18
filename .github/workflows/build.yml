@@ -7,6 +7,9 @@ on:
   pull_request:
     branches:
       - main
+      # PR #48 is intentionally stacked on this free-beta foundation branch.
+      # Keep the complete gate suite active until the stack is rebased to main.
+      - agent/free-beta-3d-launch
   workflow_dispatch:
 
 permissions:
