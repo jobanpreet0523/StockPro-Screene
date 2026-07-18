@@ -11,6 +11,12 @@ const requiredFiles = [
   'public/sitemap.xml',
   'public/_redirects',
   'src/_worker.js',
+  'src/components/landing3d/LandingHero3D.tsx',
+  'src/components/landing3d/HeroFinancialScene.ts',
+  'src/components/landing3d/Hero3DFallback.tsx',
+  'src/components/landing3d/SectionVisual.tsx',
+  'src/hooks/useWebGLCapability.ts',
+  'src/hooks/useLanding3DQuality.ts',
   'src/components/RouteSeo.tsx',
   'src/components/analytics/AnalyticsProvider.tsx',
   'src/components/security/TurnstileWidget.tsx',
@@ -53,6 +59,9 @@ const requiredFiles = [
   'scripts/verify-production-sitemap.mjs',
   'docs/TESTING_AND_AUDIT_SETUP.md',
   'docs/BROKER_OAUTH_AND_DHAN_GATEWAY.md',
+  'scripts/check-landing-bundle-budget.mjs',
+  'tests/landing-3d.spec.ts',
+  'docs/LANDING_3D_ASSETS.md',
   'docs/SUPABASE_BROKER_OAUTH_MIGRATION.sql',
   'docs/LANDING_INTERACTION_INVENTORY.md',
   'docs/PRODUCTION_ANALYTICS_TEST_GUIDE.md',
@@ -100,6 +109,7 @@ for (const component of ['<RouteSeo />', '<AnalyticsProvider>']) {
 
 for (const token of [
   '/api/operations/readiness',
+  '/api/contact',
   '/api/database/readiness',
   '/api/search/config',
   '/api/pro/readiness',
@@ -157,7 +167,7 @@ for (const route of ['/account', '/login', '/signup', '/beta', '/admin/waitlist'
 }
 
 const posthog = read('src/lib/posthog.ts');
-for (const event of ['landing_visit', 'pricing_click', 'start_trial_click', 'trial_click', 'connect_broker_click', 'waitlist_submit', 'crt_scan_click', 'pro_tab_click', 'route_load_error', 'signup', 'crt_scan_run', 'watchlist_created', 'alert_created']) {
+for (const event of ['landing_visit', 'pricing_click', 'start_trial_click', 'trial_click', 'connect_broker_click', 'waitlist_submit', 'contact_submit', 'crt_scan_click', 'pro_tab_click', 'route_load_error', 'signup', 'crt_scan_run', 'watchlist_created', 'alert_created']) {
   if (!posthog.includes(`'${event}'`)) errors.push(`Analytics allowlist is missing: ${event}`);
 }
 for (const setting of ['https://us.i.posthog.com', 'autocapture: false', 'disable_session_recording: true', "person_profiles: 'never'"]) {
@@ -176,12 +186,17 @@ for (const unsafe of ['BUY', 'SELL', 'demo badge', 'sample badge', 'fake live'])
 for (const required of ['Run CRT Scan', 'Refresh Market Data &amp; Scan Again', 'Filters will apply on next scan.', 'Data Captured At']) if (!crt.includes(required)) errors.push(`CRT Scanner is missing: ${required}`);
 
 const landing = read('src/components/LandingProductPage.tsx') + read('src/components/landing/LandingDeferredSections.tsx');
+const indexHtml = read('index.html');
 for (const unsafe of ['421K Cr', '198K Cr', 'BSE LIVE FEED', 'NSE LIVE FEED']) {
   if (landing.includes(unsafe)) errors.push(`Landing still contains unsafe fake-live token: ${unsafe}`);
 }
 for (const required of ['lazy(', 'data-landing-section="hero"', 'data-landing-section="market-status"', 'data-landing-section="product-grid"', 'data-landing-section="crt-scanner"', 'data-landing-section="pro-workspace"', 'data-landing-section="broker-connect"', 'data-landing-section="screening-analytics"', 'data-landing-section="saved-work"', 'data-landing-section="trust"', 'data-landing-section="pricing"', 'data-landing-section="education"', 'data-landing-section="faq"']) {
   if (!landing.includes(required)) errors.push(`Complete landing is missing: ${required}`);
 }
+for (const required of ['stockpro-static-shell', 'stockpro-financial-research.avif', "location.pathname === '/landing'"]) {
+  if (!indexHtml.includes(required)) errors.push(`Immediate landing shell is missing: ${required}`);
+}
+if (indexHtml.includes('unpkg.com/lucide')) errors.push('Landing must not depend on the parser-blocking external Lucide script.');
 if (!landing.includes('Payment live disabled')) errors.push('Landing must keep payment-live-disabled wording.');
 if (!landing.includes('No shared broker tokens')) errors.push('Landing must keep no-shared-broker-token wording.');
 if (!landing.includes("/(sample|demo|synthetic|fallback|none)/i")) errors.push('Landing must reject unverified market sources.');
@@ -191,6 +206,15 @@ if (!billing.includes('live_disabled: true') || !billing.includes('paymentEnable
 
 const marketData = read('src/core/marketDataClient.ts');
 if (!marketData.includes('validateProviderData')) errors.push('Market provider responses are not schema validated.');
+const landing3d = read('src/components/landing3d/LandingHero3D.tsx') + read('src/components/landing3d/HeroFinancialScene.ts');
+for (const required of ["import('./HeroFinancialScene')", 'visibilitychange', 'IntersectionObserver', 'dispose()', 'forceContextLoss', 'data-landing-3d-state']) {
+  if (!landing3d.includes(required)) errors.push(`Landing 3D lifecycle is missing: ${required}`);
+}
+if (exists('src/data.ts')) errors.push('Obsolete sample-data module must not be present.');
+if (read('src/components/StockProScannerFeatureLayer.tsx').includes('people love this')) errors.push('Scanner contains invented social proof.');
+for (const asset of ['avif', 'webp', 'png']) {
+  if (!exists(`public/assets/landing3d/stockpro-financial-research.${asset}`)) errors.push(`Landing fallback is missing ${asset}.`);
+}
 const providerImplementation = read('src/core/marketDataProvider.ts');
 for (const unsafe of ['sampleStock(', 'delayedStocks(', 'existingDelayedAdapter', 'Sample snapshot']) {
   if (providerImplementation.includes(unsafe)) errors.push(`Market provider contains prohibited embedded data: ${unsafe}`);

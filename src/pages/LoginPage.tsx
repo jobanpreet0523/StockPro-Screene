@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const client = getSupabaseClient();
+    const client = await getSupabaseClient();
     if (!client) return setMessage('Supabase Auth setup is required. No user was created.');
     setSubmitting(true);
     const { error } = await client.auth.signInWithPassword({ email: email.trim(), password });
@@ -28,6 +28,19 @@ export default function LoginPage() {
     await refreshSession();
     navigate('/account');
   };
+  const resetPassword = async () => {
+    const client = await getSupabaseClient();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!client) return setMessage('Supabase Auth setup is required. No reset email was requested.');
+    if (!cleanEmail) return setMessage('Enter your email before requesting a password reset.');
+    setSubmitting(true);
+    const { error } = await client.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${window.location.origin}/account`,
+    });
+    setSubmitting(false);
+    setMessage(error ? error.message : 'If the account exists, Supabase accepted the password-reset request.');
+  };
+
 
   return (
     <div className="lg:col-span-12">
@@ -39,6 +52,7 @@ export default function LoginPage() {
           <label className="grid gap-1 text-sm font-bold">Email<input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className="border border-slate-300 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-900" /></label>
           <label className="grid gap-1 text-sm font-bold">Password<input type="password" required minLength={8} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className="border border-slate-300 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-900" /></label>
           <button disabled={!readiness.configured || submitting} className="inline-flex items-center justify-center gap-2 bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"><LogIn size={16} /> {submitting ? 'Signing in...' : 'Log in'}</button>
+          <button type="button" onClick={() => void resetPassword()} disabled={!readiness.configured || submitting} className="text-left text-sm font-bold text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">Reset password</button>
         </form>
         <p className="mt-4 border border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">Status: {authStatus}. {message}</p>
         <Link to="/signup" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-emerald-700"><UserPlus size={15} /> Create account</Link>

@@ -30,3 +30,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           command: deploy
+
+      - name: Verify deployed production readiness APIs
+        run: npm run verify:production-readiness

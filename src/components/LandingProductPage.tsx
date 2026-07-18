@@ -6,16 +6,26 @@ import {
   Flame, KeyRound, LayoutDashboard, Menu, Newspaper, Radar, ScanSearch,
   Search, UserRound, X,
 } from 'lucide-react';
-import StockProSearch from './search/StockProSearch';
 import { useAuth } from '../contexts/AuthContext';
 import { authenticatedFetch } from '../core/supabaseClient';
 import { fetchMarketData } from '../core/marketDataClient';
 import type { MarketDataEnvelope, MarketIndex } from '../core/marketDataProvider';
 import { getMarketStatus } from '../utils/marketStatus';
-import heroImage from '../assets/images/urban_trading_skyscrapers_1780886767951.png';
 import { ReadinessPill, SectionHeading, TrackedLink, useVisibleOnce } from './landing/LandingPrimitives';
+import LandingHero3D from './landing3d/LandingHero3D';
+import SectionVisual from './landing3d/SectionVisual';
+import '../styles/section-visuals.css';
 
+const StockProSearch = lazy(() => import('./search/StockProSearch'));
 const DeferredLandingSections = lazy(() => import('./landing/LandingDeferredSections'));
+
+function LandingSearch() {
+  return (
+    <Suspense fallback={<div className="h-10 w-full border border-slate-300 bg-white/90" aria-label="Search loading" />}>
+      <StockProSearch />
+    </Suspense>
+  );
+}
 
 const productGroups = [
   { label: 'Products', links: [
@@ -68,6 +78,48 @@ function marketReadiness(envelope?: MarketDataEnvelope<MarketIndex[]> | null) {
 }
 
 export default function LandingProductPage() {
+  const [belowFoldReady, setBelowFoldReady] = useState(false);
+
+  useEffect(() => {
+    const staticShell = document.getElementById('stockpro-static-shell');
+    if (staticShell?.classList.contains('stockpro-static-overlay')) {
+      staticShell.classList.add('stockpro-static-ready');
+      staticShell.setAttribute('aria-hidden', 'true');
+    }
+    const root = document.documentElement;
+    const restoreDark = root.classList.contains('dark');
+    root.classList.remove('dark');
+    let timer = 0;
+    const reveal = () => {
+      window.clearTimeout(timer);
+      setBelowFoldReady(true);
+    };
+    const schedule = () => { timer = window.setTimeout(reveal, 1_500); };
+    if (document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule, { once: true });
+    window.addEventListener('pointerdown', reveal, { once: true, passive: true });
+    window.addEventListener('scroll', reveal, { once: true, passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('load', schedule);
+      window.removeEventListener('pointerdown', reveal);
+      window.removeEventListener('scroll', reveal);
+      if (restoreDark) root.classList.add('dark');
+    };
+  }, []);
+
+  return (
+    <div id="landing-page" className="min-h-screen bg-white text-slate-950">
+      <LandingNavigation />
+      <main>
+        <LandingHero />
+        {belowFoldReady ? <LandingPrimarySections /> : <div className="min-h-[420px] bg-slate-50" aria-hidden />}
+      </main>
+    </div>
+  );
+}
+
+function LandingPrimarySections() {
   const [documentVisible, setDocumentVisible] = useState(() => !document.hidden);
   const marketQuery = useQuery({
     queryKey: ['landing-market-overview'],
@@ -79,29 +131,19 @@ export default function LandingProductPage() {
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    const restoreDark = root.classList.contains('dark');
-    root.classList.remove('dark');
     const onVisibilityChange = () => setDocumentVisible(!document.hidden);
     document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      if (restoreDark) root.classList.add('dark');
-    };
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
   return (
-    <div id="landing-page" className="min-h-screen bg-white text-slate-950">
-      <LandingNavigation />
-      <main>
-        <LandingHero market={marketQuery.data} />
-        <MarketOverview market={marketQuery.data} loading={marketQuery.isPending} />
-        <ToolGrid market={marketQuery.data} />
-        <CrtFeature />
-        <ProWorkspace />
-        <DeferredLandingMount />
-      </main>
-    </div>
+    <>
+      <MarketOverview market={marketQuery.data} loading={marketQuery.isPending} />
+      <ToolGrid market={marketQuery.data} />
+      <CrtFeature />
+      <ProWorkspace />
+      <DeferredLandingMount />
+    </>
   );
 }
 
@@ -136,7 +178,7 @@ function LandingNavigation() {
             </details>
           ))}
         </nav>
-        <div className="ml-auto hidden w-64 xl:block"><StockProSearch /></div>
+        <div className="ml-auto hidden w-64 xl:block"><LandingSearch /></div>
         <TrackedLink to="/account" icon={UserRound} className="hidden items-center gap-2 border border-slate-300 px-3 py-2 text-xs font-black text-slate-800 hover:border-blue-400 hover:text-blue-700 sm:inline-flex">Account</TrackedLink>
         <button type="button" onClick={() => setMobileOpen(true)} className="inline-flex h-10 w-10 items-center justify-center border border-slate-300 text-slate-800 lg:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="landing-mobile-menu"><Menu size={19} aria-hidden /></button>
       </div>
@@ -147,7 +189,7 @@ function LandingNavigation() {
               <span className="text-sm font-black uppercase">StockPro</span>
               <button type="button" onClick={() => setMobileOpen(false)} className="inline-flex h-10 w-10 items-center justify-center border border-slate-300" aria-label="Close navigation menu"><X size={18} aria-hidden /></button>
             </div>
-            <div className="mt-5"><StockProSearch /></div>
+            <div className="mt-5"><LandingSearch /></div>
             <nav className="mt-6 space-y-6" aria-label="Mobile primary navigation">
               {productGroups.map((group) => (
                 <div key={group.label}>
@@ -166,21 +208,18 @@ function LandingNavigation() {
   );
 }
 
-function LandingHero({ market }: { market?: MarketDataEnvelope<MarketIndex[]> }) {
-  const readiness = marketReadiness(market);
+function LandingHero() {
   return (
-    <section data-landing-section="hero" aria-labelledby="landing-hero-title" className="relative flex h-[calc(100svh-7.5rem)] min-h-[480px] max-h-[680px] items-center overflow-hidden bg-slate-950 text-white">
-      <img src={heroImage} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-25" width="1536" height="1024" fetchPriority="high" />
-      <div className="absolute inset-0 bg-slate-950/75" aria-hidden />
-      <div className="relative mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
-        <div className="max-w-4xl">
+    <section data-landing-section="hero" aria-labelledby="landing-hero-title" className="relative flex min-h-[calc(100svh-6rem)] items-center overflow-hidden bg-slate-950 py-8 text-white lg:h-[calc(100svh-7.5rem)] lg:min-h-[540px] lg:max-h-[680px]">
+      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:grid-cols-[1.08fr_.92fr] lg:gap-2">
+        <div className="relative z-10 max-w-3xl">
           <div className="flex flex-wrap items-center gap-2">
-            <ReadinessPill tone={readiness.tone}>{readiness.label}</ReadinessPill>
+            <ReadinessPill tone="setup">Provider checked before values render</ReadinessPill>
             <span className="text-xs font-semibold text-slate-300">Educational research analytics. No trade execution.</span>
           </div>
           <h1 id="landing-hero-title" className="mt-5 max-w-3xl text-4xl font-black leading-[1.05] sm:text-5xl lg:text-6xl">StockPro research, from first screen to saved decision trail.</h1>
           <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-slate-200 sm:text-base">Screen Indian markets, run the free manual CRT workflow, connect your own broker for read-only data, and organize research without invented prices, promises, or signals.</p>
-          <div className="mt-5 max-w-xl"><StockProSearch /></div>
+          <div className="mt-5 max-w-xl"><LandingSearch /></div>
           <div className="mt-5 flex flex-wrap gap-2">
             <TrackedLink to="/screener" icon={Search} showArrow className="inline-flex items-center gap-2 bg-blue-600 px-4 py-3 text-xs font-black text-white hover:bg-blue-500">Open Screener</TrackedLink>
             <TrackedLink to="/crt-scanner" event="crt_scan_click" icon={Radar} showArrow className="inline-flex items-center gap-2 border border-white/35 bg-white/10 px-4 py-3 text-xs font-black text-white hover:bg-white/20">Run CRT Scanner</TrackedLink>
@@ -188,6 +227,7 @@ function LandingHero({ market }: { market?: MarketDataEnvelope<MarketIndex[]> })
             <TrackedLink to="/connect-broker" event="connect_broker_click" icon={KeyRound} showArrow className="inline-flex items-center gap-2 border border-emerald-300/60 bg-emerald-500/15 px-4 py-3 text-xs font-black text-emerald-100 hover:bg-emerald-500/25">Connect Broker</TrackedLink>
           </div>
         </div>
+        <LandingHero3D />
       </div>
     </section>
   );
@@ -208,7 +248,8 @@ function MarketOverview({ market, loading }: { market?: MarketDataEnvelope<Marke
     <section data-landing-section="market-status" aria-labelledby="landing-market-title" className="border-b border-slate-200 bg-slate-50 py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading eyebrow="Market status and index overview" id="landing-market-title" title="Know the source before reading the number" copy="Index values render only from a verified provider response. Scheduled exchange hours are labelled separately from provider market status." aside={<TrackedLink to="/screener" showArrow className="inline-flex items-center gap-2 text-sm font-black text-blue-700">Broader market tools</TrackedLink>} />
-        <div className="mt-6 grid gap-px overflow-hidden border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid items-center gap-8 lg:grid-cols-[1fr_300px]">
+          <div className="grid gap-px overflow-hidden border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4">
           {requestedIndices.map((name) => {
             const needle = name.replace('INDIA ', '');
             const index = verified ? market?.data?.find((item) => item.name.toUpperCase().replace(/\s+/g, ' ').includes(needle)) : undefined;
@@ -220,6 +261,8 @@ function MarketOverview({ market, loading }: { market?: MarketDataEnvelope<Marke
               </div>
             );
           })}
+          </div>
+          <SectionVisual variant="market" />
         </div>
         <div className="mt-5 grid gap-3 text-xs font-semibold text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
           <DataFact label="Market hours" value={`${scheduled.label} (schedule-based)`} />
@@ -242,7 +285,8 @@ function ToolGrid({ market }: { market?: MarketDataEnvelope<MarketIndex[]> }) {
     <section data-landing-section="product-grid" aria-labelledby="landing-tools-title" className="border-b border-slate-200 bg-white py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading eyebrow="Product and research tools" id="landing-tools-title" title="One homepage, ten real destinations" copy="Every entry opens a working StockPro route. Tools that need market data, authentication, or content remain explicit about that dependency." />
-        <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-7 grid items-center gap-7 lg:grid-cols-[1fr_280px]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {toolCards.map(({ name, description, to, icon: Icon, requirement }) => (
             <TrackedLink key={to} to={to} className="group min-h-48 border border-slate-200 bg-white p-4 transition hover:border-blue-400 hover:shadow-md">
               <div className="flex items-start justify-between gap-3"><span className="flex h-9 w-9 items-center justify-center bg-slate-100 text-blue-700 group-hover:bg-blue-700 group-hover:text-white"><Icon size={18} aria-hidden /></span><ArrowRight size={15} className="text-slate-300 group-hover:text-blue-700" aria-hidden /></div>
@@ -251,6 +295,8 @@ function ToolGrid({ market }: { market?: MarketDataEnvelope<MarketIndex[]> }) {
               <p className="mt-4 text-[10px] font-black uppercase text-amber-800">{requirement.includes('Provider') && providerReady ? 'Provider ready' : requirement}</p>
             </TrackedLink>
           ))}
+          </div>
+          <SectionVisual variant="tools" />
         </div>
       </div>
     </section>
@@ -282,7 +328,9 @@ function CrtFeature() {
           <div className="mt-6 grid gap-3 sm:grid-cols-3">{['Forming CRT', 'Confirmed CRT', 'Completed CRT'].map((label) => <div key={label} className="border-l-2 border-blue-600 bg-white p-4 text-sm font-black">{label}</div>)}</div>
           <TrackedLink to="/crt-scanner" event="crt_scan_click" icon={Radar} showArrow className="mt-7 inline-flex items-center gap-2 bg-blue-700 px-5 py-3 text-sm font-black text-white hover:bg-blue-800">Run CRT Scanner</TrackedLink>
         </div>
-        <div className="border border-blue-200 bg-white p-6">
+        <div className="space-y-2">
+          <SectionVisual variant="crt" />
+          <div className="border border-blue-200 bg-white p-6">
           <div className="flex items-center justify-between gap-3"><h3 className="text-sm font-black">Readiness and saved run</h3><ReadinessPill tone={user ? 'setup' : 'login'}>{user ? 'Provider required' : 'Login required'}</ReadinessPill></div>
           <dl className="mt-5 divide-y divide-slate-200 text-sm">
             <RunFact label="Execution" value="Manual only; no page-load or filter-change run" />
@@ -291,6 +339,7 @@ function CrtFeature() {
             <RunFact label="Previous summary" value={latest ? `${latest.status}; ${latest.result_count ?? 0} verified results; run ${latest.id}` : 'No result invented'} />
             <RunFact label="Use" value="Educational analytics only; no directional recommendation" />
           </dl>
+          </div>
         </div>
       </div>
     </section>
@@ -308,8 +357,11 @@ function ProWorkspace() {
     <section data-landing-section="pro-workspace" aria-labelledby="landing-pro-title" className="border-b border-slate-200 bg-white py-14">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading eyebrow="StockPro Pro workspace" id="landing-pro-title" title="A quiet workspace for repeatable research" copy="The original light Pro workspace organizes watchlists, screens, charts, saved work, and sourced AI research readiness without manufacturing recommendations or returns." aside={<TrackedLink to="/pro" icon={LayoutDashboard} showArrow className="inline-flex items-center gap-2 bg-slate-950 px-4 py-3 text-sm font-black text-white">Open Pro Workspace</TrackedLink>} />
-        <div className="mt-7 grid gap-px overflow-hidden border border-slate-200 bg-slate-200 sm:grid-cols-3 lg:grid-cols-9">
+        <div className="mt-7 grid items-center gap-7 lg:grid-cols-[1fr_280px]">
+          <div className="grid gap-px overflow-hidden border border-slate-200 bg-slate-200 sm:grid-cols-3 lg:grid-cols-9">
           {categories.map((category, index) => <TrackedLink key={category} to={`/pro?tab=${encodeURIComponent(category.toLowerCase().replace(/\s+/g, '-'))}`} className="min-h-24 bg-slate-50 p-4 hover:bg-white"><span className="text-[10px] font-black text-blue-700">{String(index + 1).padStart(2, '0')}</span><span className="mt-3 block text-xs font-black text-slate-800">{category}</span></TrackedLink>)}
+          </div>
+          <SectionVisual variant="pro" />
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
           <ReadinessPill tone={user ? 'ready' : 'login'}>{user ? 'Authenticated session' : authStatus === 'setup_required' ? 'Auth setup required' : 'Visitor mode'}</ReadinessPill>
@@ -323,15 +375,11 @@ function ProWorkspace() {
 }
 
 function DeferredLandingMount() {
-  const visibility = useVisibleOnce<HTMLDivElement>('500px');
   return (
-    <div ref={visibility.ref} className="min-h-[420px]">
-      {visibility.visible ? (
-        <Suspense fallback={<div className="flex min-h-[420px] items-center justify-center bg-slate-50 text-sm font-bold text-slate-500">Loading product details...</div>}>
-          <DeferredLandingSections />
-        </Suspense>
-      ) : <div className="min-h-[420px] bg-slate-50" aria-hidden />}
+    <div className="min-h-[420px]">
+      <Suspense fallback={<div className="flex min-h-[420px] items-center justify-center bg-slate-50 text-sm font-bold text-slate-500">Loading product details...</div>}>
+        <DeferredLandingSections />
+      </Suspense>
     </div>
   );
 }
-

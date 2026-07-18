@@ -5,7 +5,7 @@ import OptionChainCommandPanel from '../components/OptionChainCommandPanel';
 import OptionChainAnalyticsCards from '../components/OptionChainAnalyticsCards';
 import OptionChainView from '../components/OptionChainView';
 import SectionErrorBoundary from '../components/SectionErrorBoundary';
-import { useDashboard } from '../components/Layout';
+import { useDashboard } from '../components/dashboardContext';
 
 const indexMeta: Record<string, { name: string }> = {
   '^NSEI': { name: 'NIFTY 50 Index' },

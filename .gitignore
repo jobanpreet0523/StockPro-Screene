@@ -5,6 +5,7 @@ coverage/
 playwright-report/
 test-results/
 lhci-report/
+.lighthouseci/
 .npm-cache/
 .DS_Store
 *.log

@@ -3,7 +3,7 @@ import { brokerRequiredProvider, createBrokerRestMarketDataProvider, shouldUseBr
 import { decryptBrokerToken, encryptBrokerToken, getTokenVaultStatus } from './core/tokenVault.ts';
 import { getRazorpayReadiness } from './core/razorpayReadiness.ts';
 import { validateInput } from './core/apiValidation.ts';
-import { betaFeedbackSchema, emailNotificationRequestSchema, waitlistLeadSchema } from './core/schemas.ts';
+import { betaFeedbackSchema, contactFormSchema, emailNotificationRequestSchema, waitlistLeadSchema } from './core/schemas.ts';
 import { verifyTurnstileToken } from './core/turnstile.ts';
 import { sendNotification } from './core/notifications.ts';
 import { emailReadiness } from './core/email.ts';
@@ -18,7 +18,7 @@ export default {
     const path = url.pathname.length > 1 && url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname;
 
     if (request.method === 'OPTIONS') {
-      const protectedPath = path === '/api/waitlist'
+      const protectedPath = path === '/api/waitlist' || path === '/api/contact'
         || path.startsWith('/api/admin/')
         || path.startsWith('/api/auth/')
         || path.startsWith('/api/trial/')
@@ -270,6 +270,72 @@ async function handleWaitlist(request, env) {
     return secureJson(request, { status: 'stored', emailStatus: emailResult.status, message: emailResult.status === 'sent' ? 'Your waitlist request was stored and confirmation email was accepted.' : `Your waitlist request was stored. ${emailResult.message}` }, 201);
   } catch {
     return secureJson(request, { status: 'error', message: 'The waitlist service is temporarily unavailable. Please try again or use the email fallback.' }, 502);
+  }
+}
+
+async function handleContact(request, env) {
+  if (request.method !== 'POST') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'POST' });
+  const contentLength = Number(request.headers.get('Content-Length') || 0);
+  if (contentLength > 12_000) return secureJson(request, { status: 'error', message: 'Request body is too large.' }, 413);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return secureJson(request, { status: 'error', message: 'A valid JSON request is required.' }, 400);
+  }
+
+  const validated = validateInput(contactFormSchema, body);
+  if (!validated.ok) return secureJson(request, validated, 400);
+  const verification = await verifyTurnstileToken(validated.data.turnstileToken, env?.TURNSTILE_SECRET_KEY, request.headers.get('CF-Connecting-IP'));
+  if (!verification.success) return turnstileFailure(request, verification);
+
+  const name = cleanText(validated.data.name, 120);
+  const email = cleanText(validated.data.email, 254).toLowerCase();
+  const subject = cleanText(validated.data.interest || 'StockPro contact', 120);
+  const message = cleanText(validated.data.message || validated.data.useCase, 2000);
+  if (!name || !isValidEmail(email) || !message) {
+    return secureJson(request, { status: 'error', message: 'Name, email, and message are required.' }, 400);
+  }
+
+  const storage = getSupabaseTableConfig(env, env?.SUPABASE_CONTACT_MESSAGES_TABLE || 'contact_messages');
+  if (!storage.configured) {
+    return secureJson(request, {
+      status: 'setup_required',
+      configured: false,
+      severity: 'info',
+      message: 'Contact storage is not configured. Use the email fallback while setup is completed.',
+    });
+  }
+
+  try {
+    const response = await fetch(`${storage.supabaseUrl}/rest/v1/${encodeURIComponent(storage.table)}`, {
+      method: 'POST',
+      headers: {
+        apikey: storage.serviceRoleKey,
+        Authorization: `Bearer ${storage.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        name, email, subject, message, status: 'new',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }),
+    });
+    if (!response.ok) {
+      return secureJson(request, { status: 'error', message: 'Your message could not be stored. Please retry or use the email fallback.' }, 502);
+    }
+    const emailResult = await sendNotification(env, { type: 'contact_received', to: email, context: { message: 'Your StockPro contact request was stored.' } });
+    return secureJson(request, {
+      status: 'stored',
+      emailStatus: emailResult.status,
+      message: emailResult.status === 'sent'
+        ? 'Your message was stored and the confirmation email was accepted.'
+        : `Your message was stored. ${emailResult.message}`,
+    }, 201);
+  } catch {
+    return secureJson(request, { status: 'error', message: 'Contact storage is temporarily unavailable. Please retry or use the email fallback.' }, 502);
   }
 }
 
@@ -1381,6 +1447,7 @@ async function handleApi(path, url, request, env, ctx) {
   if (path === '/api/admin/waitlist') return handleAdminWaitlist(request, url, env);
   if (path === '/api/auth/session') return handleAuth(request, 'session', env);
   if (path === '/api/auth/logout') return handleAuth(request, 'logout', env);
+  if (path === '/api/contact') return handleContact(request, env);
   if (path === '/api/trial/status') return handleTrial(request, 'status', env);
   if (path === '/api/trial/start') return handleTrial(request, 'start', env);
   if (path === '/api/trial/cancel') return handleTrial(request, 'cancel', env);

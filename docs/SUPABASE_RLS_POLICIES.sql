@@ -21,30 +21,30 @@ alter table public.billing_events enable row level security;
 alter table public.razorpay_webhook_events enable row level security;
 
 drop policy if exists "profiles_select_own" on public.user_profiles;
-create policy "profiles_select_own" on public.user_profiles for select to authenticated using (id = auth.uid());
+create policy "profiles_select_own" on public.user_profiles for select to authenticated using (id = (select auth.uid()));
 drop policy if exists "profiles_insert_own" on public.user_profiles;
-create policy "profiles_insert_own" on public.user_profiles for insert to authenticated with check (id = auth.uid());
+create policy "profiles_insert_own" on public.user_profiles for insert to authenticated with check (id = (select auth.uid()));
 drop policy if exists "profiles_update_own" on public.user_profiles;
-create policy "profiles_update_own" on public.user_profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
+create policy "profiles_update_own" on public.user_profiles for update to authenticated using (id = (select auth.uid())) with check (id = (select auth.uid()));
 
 drop policy if exists "watchlists_own_all" on public.watchlists;
-create policy "watchlists_own_all" on public.watchlists for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "watchlists_own_all" on public.watchlists for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "watchlist_items_own_all" on public.watchlist_items;
-create policy "watchlist_items_own_all" on public.watchlist_items for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "watchlist_items_own_all" on public.watchlist_items for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "alerts_own_all" on public.alerts;
-create policy "alerts_own_all" on public.alerts for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "alerts_own_all" on public.alerts for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "saved_screeners_own_all" on public.saved_screeners;
-create policy "saved_screeners_own_all" on public.saved_screeners for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "saved_screeners_own_all" on public.saved_screeners for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "saved_research_own_all" on public.saved_research;
-create policy "saved_research_own_all" on public.saved_research for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "saved_research_own_all" on public.saved_research for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 drop policy if exists "beta_feedback_insert_own" on public.beta_feedback;
-create policy "beta_feedback_insert_own" on public.beta_feedback for insert to authenticated with check (user_id = auth.uid());
+create policy "beta_feedback_insert_own" on public.beta_feedback for insert to authenticated with check (user_id = (select auth.uid()));
 drop policy if exists "crt_runs_select_own" on public.crt_scan_runs;
-create policy "crt_runs_select_own" on public.crt_scan_runs for select to authenticated using (user_id = auth.uid());
+create policy "crt_runs_select_own" on public.crt_scan_runs for select to authenticated using (user_id = (select auth.uid()));
 drop policy if exists "crt_results_select_own" on public.crt_scan_results;
 create policy "crt_results_select_own" on public.crt_scan_results for select to authenticated using (
-  exists (select 1 from public.crt_scan_runs r where r.id = scan_run_id and r.user_id = auth.uid())
+  exists (select 1 from public.crt_scan_runs r where r.id = scan_run_id and r.user_id = (select auth.uid()))
 );
 
 -- Intentionally no browser policies:

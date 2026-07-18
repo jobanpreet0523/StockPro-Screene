@@ -18,7 +18,7 @@ export default function SignupPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const client = getSupabaseClient();
+    const client = await getSupabaseClient();
     if (!client || !turnstileToken) return setMessage('Auth and anti-spam setup are required. No account was created.');
     setSubmitting(true);
     try {

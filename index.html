@@ -3,19 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StockPro — Delayed Analytics Workspace</title>
+    <title>StockPro - Delayed Analytics Workspace</title>
     <meta name="description" content="StockPro provides delayed analytics dashboards, screening tools, education pages, and a verified setup path for advanced data access." />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="keywords" content="analytics dashboard, screener, market dashboard, option chain education, data labels, StockPro" />
     <link rel="canonical" href="https://stockpro1.qzz.io/" />
     <meta name="theme-color" content="#020617" />
-    <meta property="og:title" content="StockPro — Delayed Analytics Workspace" />
+    <meta property="og:title" content="StockPro - Delayed Analytics Workspace" />
     <meta property="og:description" content="Delayed analytics dashboards, screening tools, education pages, and verified setup path." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://stockpro1.qzz.io/" />
     <meta property="og:site_name" content="StockPro" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="StockPro — Delayed Analytics Workspace" />
+    <meta name="twitter:title" content="StockPro - Delayed Analytics Workspace" />
     <meta name="twitter:description" content="Delayed analytics dashboards, screening tools, education pages, and verified setup path." />
     <script type="application/ld+json">
     {
@@ -34,18 +34,114 @@
       }
     }
     </script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/landing-ultra-upgrade.css" />
-    <link rel="stylesheet" href="/landing-hero-clean-fix.css" />
-    <link rel="stylesheet" href="/stockpro-scanner-polish.css" />
-    <link rel="stylesheet" href="/stockpro-option-chain-nse-upgrade.css" />
-    <link rel="stylesheet" href="/stockpro-nav-overflow-fix.css" />
+    <script>
+      if (location.pathname === '/' || location.pathname === '/landing') {
+        const heroPreload = document.createElement('link');
+        heroPreload.rel = 'preload';
+        heroPreload.as = 'image';
+        heroPreload.href = '/assets/landing3d/stockpro-financial-research.avif';
+        heroPreload.type = 'image/avif';
+        heroPreload.fetchPriority = 'high';
+        document.head.appendChild(heroPreload);
+      }
+    </script>
+    <style>
+      *,*::before,*::after{box-sizing:border-box}html,body{margin:0}html{overflow-y:scroll}
+      #stockpro-static-shell{min-height:100svh;background:#020617;color:#fff;font-family:Arial,sans-serif}
+      #stockpro-static-shell header{height:64px;display:flex;align-items:center;gap:24px;padding:0 max(16px,calc((100vw - 1280px)/2));border-bottom:1px solid #1e293b;background:#fff;color:#0f172a;font-weight:900}
+      .stockpro-static-nav{display:none;align-items:center;gap:18px;margin-left:auto;font-size:12px}
+      .stockpro-static-nav a{color:#334155;text-decoration:none}
+      .stockpro-static-hero{min-height:calc(100svh - 64px);display:grid;align-items:center;gap:24px;max-width:1280px;margin:auto;padding:32px 24px}
+      .stockpro-static-copy{max-width:760px}.stockpro-static-status{font-size:12px;font-weight:800;color:#a7f3d0}
+      .stockpro-static-copy h1{margin:20px 0 0;font-size:clamp(40px,5vw,60px);line-height:1.05;letter-spacing:0;font-weight:900}
+      .stockpro-static-copy p{max-width:680px;margin:18px 0 0;color:#cbd5e1;font-size:16px;line-height:1.6}
+      .stockpro-static-visual{display:block;width:min(100%,480px);aspect-ratio:8/5;object-fit:contain;margin:auto;background:#0f172a}
+      @media(min-width:1024px){.stockpro-static-hero{grid-template-columns:1.08fr .92fr}}
+      @media(max-width:768px){.stockpro-static-visual{width:180px;height:112.5px}}
+      #stockpro-static-shell.stockpro-static-app{min-height:0}
+      #stockpro-static-shell.stockpro-static-app .stockpro-static-nav{display:flex}
+      #stockpro-static-shell.stockpro-static-app .stockpro-static-hero{display:block;min-height:320px;padding-top:48px;padding-bottom:48px}
+      #stockpro-static-shell.stockpro-static-app .stockpro-static-copy h1{font-size:clamp(48px,5vw,64px);max-width:900px}
+      #stockpro-static-shell.stockpro-static-overlay{position:fixed;inset:0;z-index:1000;overflow:auto}
+      #stockpro-static-shell.stockpro-static-overlay.stockpro-static-ready{visibility:hidden;pointer-events:none}
+    </style>
   </head>
-<body class="text-[#111827] bg-[#f9fafb] min-h-screen antialiased select-none font-sans">
+<body class="text-[#111827] bg-[#f9fafb] min-h-screen antialiased font-sans">
+  <div id="stockpro-static-shell" class="stockpro-static-overlay">
+      <header>
+        <a href="/" style="color:#0f172a;text-decoration:none">Stock<span style="color:#047857">Pro</span></a>
+        <nav class="stockpro-static-nav" aria-label="Product navigation">
+          <a href="/screener">Screener</a>
+          <a href="/scanner">Scanner</a>
+          <a href="/crt-scanner">CRT Scanner</a>
+          <a href="/option-chain">Option Chain</a>
+          <a href="/pro">Pro</a>
+          <a href="/account">Account</a>
+        </nav>
+      </header>
+      <main class="stockpro-static-hero" id="stockpro-static-hero">
+        <div class="stockpro-static-copy">
+          <div class="stockpro-static-status" id="stockpro-static-status">Provider status checked before values render</div>
+          <h1 id="stockpro-static-title">StockPro research, from first screen to saved decision trail.</h1>
+          <p id="stockpro-static-copy">Screen Indian markets, run the free manual CRT workflow, connect your own broker for read-only data, and organize research without invented prices, promises, or signals.</p>
+        </div>
+        <picture aria-hidden="true" id="stockpro-static-picture">
+          <source data-srcset="/assets/landing3d/stockpro-financial-research.avif" type="image/avif" />
+          <source data-srcset="/assets/landing3d/stockpro-financial-research.webp" type="image/webp" />
+          <img class="stockpro-static-visual" data-src="/assets/landing3d/stockpro-financial-research.png" alt="" width="1280" height="800" fetchpriority="high" />
+        </picture>
+      </main>
+  </div>
   <div id="root"></div>
+  <script>
+    const staticShell = document.getElementById('stockpro-static-shell');
+    const staticPicture = document.getElementById('stockpro-static-picture');
+    const isStaticLanding = location.pathname === '/' || location.pathname === '/landing';
+    if (isStaticLanding) {
+      staticShell?.classList.add('stockpro-static-overlay');
+      staticPicture?.querySelectorAll('source').forEach((source) => { source.srcset = source.dataset.srcset || ''; });
+      const image = staticPicture?.querySelector('img');
+      if (image) image.src = image.dataset.src || '';
+    } else {
+      staticShell?.classList.remove('stockpro-static-overlay');
+      const routeTitles = {
+        '/screener': 'Turn market noise into a focused daily research workflow.',
+        '/scanner': 'Build focused screens without pretending setup data is live.',
+        '/crt-scanner': 'Run CRT research only with your own authorized provider.',
+        '/option-chain': 'Study option-chain context with clearly sourced market data.',
+      };
+      staticShell?.classList.add('stockpro-static-app');
+      staticPicture?.remove();
+      document.getElementById('stockpro-static-title').textContent = routeTitles[location.pathname] || 'A focused workspace for educational market research.';
+      document.getElementById('stockpro-static-status').textContent = 'Educational analytics only | Provider checked before values render';
+      document.getElementById('stockpro-static-copy').textContent = 'Market values appear only when a configured authorized provider returns them. StockPro does not execute trades.';
+    }
+  </script>
   <script type="module" src="/src/main.tsx"></script>
-  <script src="/landing-copy-cleanup.js" defer></script>
-  <script src="/stockpro-scanner-actions.js" defer></script>
-  <script src="/stockpro-option-chain-nse-upgrade.js" defer></script>
+  <script>
+    const isLandingRoute = location.pathname === '/' || location.pathname === '/landing';
+    if (!isLandingRoute) {
+      const navStylesheet = document.createElement('link');
+      navStylesheet.rel = 'stylesheet';
+      navStylesheet.href = '/stockpro-nav-overflow-fix.css';
+      document.head.appendChild(navStylesheet);
+    }
+
+    const routeAsset = location.pathname === '/scanner'
+      ? ['/stockpro-scanner-polish.css', '/stockpro-scanner-actions.js']
+      : location.pathname === '/option-chain'
+        ? ['/stockpro-option-chain-nse-upgrade.css', '/stockpro-option-chain-nse-upgrade.js']
+        : null;
+    if (routeAsset) {
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = routeAsset[0];
+      document.head.appendChild(stylesheet);
+      const enhancement = document.createElement('script');
+      enhancement.src = routeAsset[1];
+      enhancement.defer = true;
+      document.head.appendChild(enhancement);
+    }
+  </script>
 </body>
 </html>

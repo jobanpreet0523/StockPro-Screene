@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { BookmarkPlus, Crown, Search, ShieldCheck, Sparkles, Target } from 'lucide-react';
-import type { DashboardTab } from './Layout';
+import type { DashboardTab } from './dashboardContext';
 
 interface ProductGrowthPanelProps {
   setActiveTab: (tab: DashboardTab) => void;

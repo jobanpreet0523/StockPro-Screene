@@ -8,11 +8,13 @@ module.exports = {
         'http://127.0.0.1:4173/screener',
         'http://127.0.0.1:4173/option-chain',
       ],
-      numberOfRuns: 1,
+      numberOfRuns: 3,
     },
     assert: {
       assertions: {
         'categories:performance': ['warn', { minScore: 0.4 }],
+        'largest-contentful-paint': ['error', { maxNumericValue: 2500 }],
+        'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }],
         'categories:accessibility': ['warn', { minScore: 0.75 }],
         'categories:best-practices': ['warn', { minScore: 0.75 }],
         'categories:seo': ['warn', { minScore: 0.75 }],
