@@ -6,6 +6,8 @@ Final decision: **NOT READY - BLOCKERS LISTED**
 
 The code branch is suitable for review, but the current production environment does not pass the gate for any public beta. Do not merge, deploy, or create v1.0.0-beta until every BLOCKING item below is verified in production.
 
+Latest read-only probes: branch preview **8 failures**; production **10 failures**. Optional broker setup states are not counted as invite-beta failures.
+
 ## Code and experience
 
 | Requirement | Classification | Evidence |
