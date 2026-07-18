@@ -15,9 +15,8 @@ const admin = createClient(url, serviceKey, { auth: authOptions });
 const anonymous = createClient(url, anonKey, { auth: authOptions });
 const run = randomBytes(8).toString('hex');
 const password = `StockPro-${randomBytes(18).toString('base64url')}!9a`;
-// Supabase Auth rejects the reserved `.invalid` TLD before password-reset
-// behavior can be exercised. example.com is IANA-reserved and syntactically
-// valid, so the test reaches Auth without targeting a real operator mailbox.
+// Use an IANA-reserved address and generate recovery material server-side.
+// The test must never attempt to deliver email to a real operator mailbox.
 const emails = [`stockpro-e2e-user-a-${run}@example.com`, `stockpro-e2e-user-b-${run}@example.com`];
 const users = [];
 const canaries = [];
@@ -73,7 +72,12 @@ try {
 
   const invalidAuth = await fetch(`${url}/auth/v1/user`, { headers: { apikey: anonKey, Authorization: 'Bearer invalid-stockpro-test-token' } });
   ok(invalidAuth.status === 401 || invalidAuth.status === 403, 'invalid token was not rejected');
-  ensure(await anonymous.auth.resetPasswordForEmail(emails[0], { redirectTo: 'https://stockpro1.qzz.io/account' }), 'password reset request');
+  const recovery = ensure(await admin.auth.admin.generateLink({
+    type: 'recovery',
+    email: emails[0],
+    options: { redirectTo: 'https://stockpro1.qzz.io/account' },
+  }), 'generate recovery link');
+  ok(recovery.user?.id === users[0].id && recovery.properties?.action_link, 'recovery link was not generated for the temporary user');
 
   const owned = [];
   for (let index = 0; index < clients.length; index += 1) {
@@ -149,7 +153,7 @@ try {
   }
 
   for (const client of clients) ensure(await client.auth.signOut(), 'temporary user logout');
-  console.log('Protected Supabase verification passed: auth lifecycle, two-user owner isolation, anonymous denial, server-only table denial, and password-reset redirect request.');
+  console.log('Protected Supabase verification passed: auth lifecycle, two-user owner isolation, anonymous denial, server-only table denial, and recovery-link generation.');
 } finally {
   await cleanup();
   console.log('Protected Supabase cleanup passed: all temporary rows and Auth users removed.');
