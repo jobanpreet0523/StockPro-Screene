@@ -14,9 +14,9 @@ export default defineConfig({
   // timeouts, so local and CI runs use the same deterministic worker count.
   workers: 1,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'html',
-  // Browser rendering is intentionally compared against one reviewed baseline
-  // set so Linux CI and Windows development do not require divergent images.
-  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{ext}',
+  // Preserve reviewed per-platform pixels: system-font metrics differ between
+  // Linux CI and Windows development and compound over a ten-section page.
+  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{platform}{ext}',
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
