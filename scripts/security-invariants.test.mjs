@@ -19,6 +19,9 @@ const readiness = read('src/core/razorpayReadiness.ts');
 const schema = read('docs/SUPABASE_FULL_SCHEMA.sql');
 const policies = read('docs/SUPABASE_RLS_POLICIES.sql');
 const rlsVerifier = read('scripts/verify-supabase-rls.mjs');
+const productionVerifier = read('scripts/verify-production-readiness.mjs');
+const deployWorkflow = read('.github/workflows/deploy.yml');
+const wrangler = read('wrangler.toml');
 
 // Browser telemetry must be explicit, low-cardinality, and privacy-minimized.
 assert.match(posthog, /autocapture:\s*false/);
@@ -77,5 +80,23 @@ for (const table of tables) assert.match(rlsVerifier, new RegExp('\\b' + table +
 for (const evidence of ['cross-user read', 'cross-user update', 'cross-user delete', 'anonymous read', 'finally', 'cleanup']) {
   assert.ok(rlsVerifier.includes(evidence), 'RLS verifier must retain ' + evidence + ' evidence');
 }
+assert.match(rlsVerifier, /auth\.admin\.generateLink/);
+assert.doesNotMatch(rlsVerifier, /resetPasswordForEmail/);
+
+// Production deploys must synchronize server secrets without exposing them to Vite.
+for (const secret of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) {
+  assert.match(deployWorkflow, new RegExp(`\\n\\s+${secret}: \\$\\{\\{ secrets\\.${secret} \\}\\}`));
+}
+assert.match(deployWorkflow, /VITE_SUPABASE_PUBLISHABLE_KEY: \$\{\{ secrets\.SUPABASE_ANON_KEY \}\}/);
+assert.doesNotMatch(deployWorkflow, /VITE_[A-Z_]*SERVICE_ROLE/);
+assert.match(wrangler, /SUPABASE_AUTH_ENABLED = "true"/);
+for (const table of ['waitlist_leads', 'contact_messages', 'crt_scan_runs', 'saved_research']) {
+  assert.ok(wrangler.includes(`= "${table}"`), `Wrangler must declare the ${table} binding`);
+}
+
+// Optional provider/broker setup states are honest gates, not invite-beta failures.
+assert.match(productionVerifier, /const requiredServices = \['auth', 'turnstile', 'supabase', 'crtStorage', 'savedResearch'\]/);
+assert.match(productionVerifier, /const optionalServices = \['brokerProvider', 'brokerVault'\]/);
+assert.match(productionVerifier, /'\/api\/broker\/upstox\/status': \['login_required', 'setup_required'/);
 
 console.log('Security invariant tests passed: telemetry baseline, free-beta payment/trade lock, webhook authentication/idempotency, and 18-table RLS coverage.');

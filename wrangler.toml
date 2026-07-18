@@ -10,6 +10,22 @@ run_worker_first = true
 
 [vars]
 MARKET_DATA_PROVIDER = ""
+SUPABASE_AUTH_ENABLED = "true"
+SUPABASE_WAITLIST_TABLE = "waitlist_leads"
+SUPABASE_BETA_FEEDBACK_TABLE = "beta_feedback"
+SUPABASE_CONTACT_MESSAGES_TABLE = "contact_messages"
+SUPABASE_BROKER_EVENTS_TABLE = "broker_connection_events"
+SUPABASE_CRT_SCAN_RUNS_TABLE = "crt_scan_runs"
+SUPABASE_CRT_SCAN_RESULTS_TABLE = "crt_scan_results"
+SUPABASE_MARKET_INSTRUMENTS_TABLE = "market_instruments"
+SUPABASE_WATCHLISTS_TABLE = "watchlists"
+SUPABASE_WATCHLIST_ITEMS_TABLE = "watchlist_items"
+SUPABASE_ALERTS_TABLE = "alerts"
+SUPABASE_SAVED_SCREENS_TABLE = "saved_screeners"
+SUPABASE_SAVED_RESEARCH_TABLE = "saved_research"
+SUPABASE_TRIAL_SUBSCRIPTIONS_TABLE = "trial_subscriptions"
+SUPABASE_BILLING_EVENTS_TABLE = "billing_events"
+SUPABASE_RAZORPAY_WEBHOOK_EVENTS_TABLE = "razorpay_webhook_events"
 
 # KV namespace for caching NSE data (60s TTL)
 # To enable: run `npx wrangler kv namespace create STOCKPRO_KV`

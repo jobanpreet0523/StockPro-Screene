@@ -1,6 +1,6 @@
 # Launch today checklist
 
-Audit date: 2026-07-14
+Audit date: 2026-07-18
 
 Final decision: **NOT READY - BLOCKERS LISTED**
 
@@ -25,26 +25,26 @@ The code branch is suitable for review, but the current production environment d
 | Live payment | PASS | Disabled in code and production readiness |
 | Order placement | PASS | No trading or execution route added |
 | Broker token isolation | PASS | Per-user encrypted server storage; no browser/shared token path |
-| Bundle budget | PASS | Initial 224.02 KiB gzip (505.57 KiB below baseline); lazy hero 132.73 KiB gzip |
-| Lighthouse LCP and CLS | BLOCKING | Baseline LCP was 6.68s and CLS 0; optimized Linux CI audit must pass LCP <=2.5s and CLS <=0.1 before merge |
+| Bundle budget | PASS | Initial 92.97 KiB gzip (636.62 KiB below baseline); lazy hero 133.35 KiB gzip |
+| Lighthouse LCP and CLS | PASS | Exact-source three-run mobile median LCP 1,981.7 ms and CLS 0; the LCP gate remains <=2.5s |
 | Raster budget | PASS | AVIF 14.5 KB, WebP 32.3 KB, PNG 26.2 KB |
 
 ## Production configuration
 
 | Requirement | Classification | Current production evidence |
 | --- | --- | --- |
-| Supabase project schema | PASS | 17 required public tables exist; RLS enabled on all |
+| Supabase project schema | PASS | 18 public tables exist; RLS enabled on all and live tables are empty |
 | Supabase security advisor | PASS | Public SECURITY DEFINER execution revoked; no remaining WARN findings |
-| Cloudflare Supabase bindings | BLOCKING | /api/database/readiness reports every table setup_required |
+| Cloudflare Supabase bindings | BLOCKING | Protected GitHub secrets are present and the deploy workflow now synchronizes Worker secrets/table bindings, but the current production Worker still reports every table setup_required pending a reviewed main deployment |
 | Auth | BLOCKING | /api/operations/readiness reports auth setup_required |
 | Contact and waitlist storage | BLOCKING | Supabase binding absent; production waitlist health is setup_required |
-| RLS two-user isolation | MANUAL ACTION REQUIRED | Owner-scoped policies and automated cross-user tests exist; run two real accounts after bindings |
+| RLS two-user isolation | PASS | Protected run #237 proved two-user owner isolation, anonymous denial, service-only denial, recovery-link generation, and unconditional cleanup; a follow-up query found zero temporary users or rows |
 | Authorized market provider | BLOCKING | Provider status is setup_required; CRT cannot run |
 | CRT storage/provider | BLOCKING | Both report setup_required |
-| Broker vault | BLOCKING | Auth, Supabase bindings, encryption secret, and provider setup required |
-| Upstox | MANUAL ACTION REQUIRED | Configure OAuth credentials, callback, vault, and run per-user read-only tests |
-| Dhan sandbox | MANUAL ACTION REQUIRED | Sandbox must remain developer-only and never be labelled live |
-| Dhan live | MANUAL ACTION REQUIRED | Subscription, static IP, permissions, gateway, and per-user consent required |
+| Broker vault | OPTIONAL SETUP REQUIRED | Invite-only beta may report an explicit unavailable/setup-required state; genuine connections still require auth, Supabase bindings, encryption secret, and provider setup |
+| Upstox | OPTIONAL EXTERNAL AUTH | Configure OAuth credentials, callback, vault, and run per-user read-only tests before enabling connection |
+| Dhan sandbox | OPTIONAL EXTERNAL AUTH | Sandbox must remain developer-only and never be labelled live |
+| Dhan live | OPTIONAL EXTERNAL AUTH | Subscription, static IP, permissions, gateway, and per-user consent required before enabling connection |
 | Angel One | APPROVAL PENDING | Production reports setup_pending; connect remains disabled |
 | Turnstile | PASS | Production operations readiness reports configured |
 | Resend | NON-BLOCKING | Currently setup_required; acceptable only after database form storage works |
@@ -55,10 +55,10 @@ The code branch is suitable for review, but the current production environment d
 
 ## Required operator sequence
 
-1. Bind the existing Supabase project URL, publishable or anon key, and server secret to Cloudflare; set SUPABASE_AUTH_ENABLED=true.
-2. Add the matching VITE_SUPABASE_URL and publishable key at build time; configure Supabase redirect URLs for /account.
-3. Configure every SUPABASE table binding from .env.example and redeploy.
-4. Verify signup, email confirmation, login, refresh, reset, logout, and two-account isolation.
+1. Review and merge the staged deploy workflow/config so the protected GitHub Supabase secrets are synchronized to Cloudflare without exposing the service-role key to Vite.
+2. Confirm the production build receives only VITE_SUPABASE_URL and the publishable/anon key; configure Supabase redirect URLs for /account.
+3. Deploy from protected main and verify every declared SUPABASE table binding in production.
+4. Verify signup, email confirmation, login, refresh, reset, and logout. Retain protected run #237 as the two-account isolation evidence.
 5. Submit the production contact form through Turnstile and confirm one contact_messages row.
 6. Configure an authorized market provider; verify timestamp and source semantics before any live label.
 7. Configure BROKER_ENCRYPTION_SECRET, provider credentials, and per-user Upstox/Dhan read-only tests.

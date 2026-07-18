@@ -76,8 +76,12 @@ test.describe('landing visual baselines', () => {
     }
   });
 
+  // Keep full-page baselines on the deterministic static path. Playwright captures a
+  // full page in scroll-sized tiles, so a single sticky GPU canvas can otherwise be
+  // omitted or captured at different scene states between tiles. The focused test
+  // above retains direct WebGL pixel coverage in a real desktop viewport.
   const cases = [
-    { name: 'desktop', width: 1280, height: 720, mode: 'webgl' },
+    { name: 'desktop', width: 1280, height: 720, mode: 'reduced-motion', snapshot: 'reduced-motion' },
     { name: 'tablet', width: 768, height: 1024, mode: 'fallback' },
     { name: 'mobile', width: 390, height: 844, mode: 'fallback' },
     { name: 'reduced-motion', width: 1280, height: 720, mode: 'reduced-motion' },
@@ -114,7 +118,7 @@ test.describe('landing visual baselines', () => {
         });
         await expect(root).toHaveAttribute('data-landing-3d-state', 'paused');
       }
-      await expect(page).toHaveScreenshot(`landing-${visualCase.name}.png`, {
+      await expect(page).toHaveScreenshot(`landing-${'snapshot' in visualCase ? visualCase.snapshot : visualCase.name}.png`, {
         animations: 'disabled',
         fullPage: true,
         maxDiffPixelRatio: 0.03,

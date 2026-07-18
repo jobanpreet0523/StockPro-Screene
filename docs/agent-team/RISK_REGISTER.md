@@ -2,9 +2,9 @@
 
 | ID | Severity | Risk | Mitigation / gate | Owner |
 | --- | --- | --- | --- | --- |
-| R-01 | P0 | PR #47 readiness CI is red | Keep draft; fix code defects; list environment actions separately | DevOps |
+| R-01 | P0 | PR #47/stacked readiness CI cannot pass until production is configured | Keep drafts; protected RLS proof is green; list deployment/environment actions separately | DevOps |
 | R-02 | P0 | Required Cloudflare/Supabase bindings are missing or stale | Presence-only checks, production and preview probes, operator checklist | DevOps / Backend |
-| R-03 | P0 | RLS isolation evidence is incomplete | Real disposable users, cross-user CRUD denial, anonymous denial, unconditional cleanup | Backend / Security |
+| R-03 | Closed | RLS isolation evidence was incomplete | Protected run #237 passed real disposable-user cross-user/anonymous/service-only denial and unconditional cleanup; independent counts are zero | Backend / Security |
 | R-04 | P0 | Fake financial/broker/CRT/payment state reaches users | Automated content/state assertions; HTML setup states; payment/trading hard-disabled | QA / Security |
 | R-05 | P1 | Full redesign bloats PR #47 and rollback scope | Separate stacked branch and draft PR | Lead / DevOps |
 | R-06 | P1 | 3D regresses LCP, CLS, memory, or mobile battery | HTML-first paint, lazy chunk, one renderer, adaptive DPR/count, pause/dispose, budgets | WebGL / Performance |
