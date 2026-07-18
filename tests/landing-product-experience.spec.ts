@@ -75,7 +75,9 @@ test.describe('complete StockPro landing experience', () => {
 
   test('search renders unavailable and configured states without invented suggestions', async ({ page }) => {
     await page.goto('/');
-    const unavailable = page.getByLabel('Search StockPro').first();
+    const hero = page.locator('[data-landing-section="hero"]');
+    await hero.getByLabel('Search StockPro').click();
+    const unavailable = hero.getByLabel('Search StockPro');
     await expect(unavailable).toBeDisabled();
     await expect(unavailable).toHaveAttribute('placeholder', 'Search setup required');
 
@@ -86,8 +88,10 @@ test.describe('complete StockPro landing experience', () => {
     });
     await page.route('**/api/search/config', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'configured', indices: ['stocks'], message: 'Search configured.' }) }));
     await page.reload();
-    const configured = page.getByLabel('Search StockPro').first();
+    await hero.getByLabel('Search StockPro').click();
+    const configured = hero.getByLabel('Search StockPro');
     await expect(configured).toBeEnabled();
+    await expect(configured).toBeFocused();
     await configured.fill('Inf');
     await expect(page.getByRole('link', { name: /Infosys/ }).first()).toBeVisible();
     await page.getByRole('link', { name: /Infosys/ }).first().click();
