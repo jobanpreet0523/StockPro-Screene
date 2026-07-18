@@ -9,6 +9,9 @@ module.exports = {
         'http://127.0.0.1:4173/option-chain',
       ],
       numberOfRuns: 3,
+      settings: {
+        chromeFlags: '--no-sandbox --disable-dev-shm-usage --disable-features=Translate',
+      },
     },
     assert: {
       assertions: {

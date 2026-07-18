@@ -54,6 +54,7 @@ const requiredFiles = [
   'src/hooks/useUserAccess.ts',
   'src/hooks/useProAccess.ts',
   'src/pages/StatusPage.tsx',
+  'src/components/landing/LandingPrimarySections.tsx',
   'scripts/seo-audit.mjs',
   'scripts/validate-sitemap.mjs',
   'scripts/verify-landing-links.mjs',
@@ -189,7 +190,9 @@ const crt = read('src/pages/CrtScannerPage.tsx');
 for (const unsafe of ['BUY', 'SELL', 'demo badge', 'sample badge', 'fake live']) if (crt.includes(unsafe)) errors.push(`CRT Scanner contains prohibited label: ${unsafe}`);
 for (const required of ['Run CRT Scan', 'Refresh Market Data &amp; Scan Again', 'Filters will apply on next scan.', 'Data Captured At']) if (!crt.includes(required)) errors.push(`CRT Scanner is missing: ${required}`);
 
-const landing = read('src/components/LandingProductPage.tsx') + read('src/components/landing/LandingDeferredSections.tsx');
+const landing = read('src/components/LandingProductPage.tsx')
+  + read('src/components/landing/LandingPrimarySections.tsx')
+  + read('src/components/landing/LandingDeferredSections.tsx');
 const indexHtml = read('index.html');
 for (const unsafe of ['421K Cr', '198K Cr', 'BSE LIVE FEED', 'NSE LIVE FEED']) {
   if (landing.includes(unsafe)) errors.push(`Landing still contains unsafe fake-live token: ${unsafe}`);
@@ -211,7 +214,7 @@ if (!billing.includes('live_disabled: true') || !billing.includes('paymentEnable
 const marketData = read('src/core/marketDataClient.ts');
 if (!marketData.includes('validateProviderData')) errors.push('Market provider responses are not schema validated.');
 const landing3d = read('src/components/landing3d/LandingHero3D.tsx') + read('src/components/landing3d/HeroFinancialScene.ts');
-for (const required of ["import('./HeroFinancialScene')", 'visibilitychange', 'IntersectionObserver', 'dispose()', 'forceContextLoss', 'data-landing-3d-state']) {
+for (const required of ["import('./HeroFinancialScene')", 'visibilitychange', 'MutationObserver', 'requestAnimationFrame', 'dispose()', 'forceContextLoss', 'data-landing-3d-state']) {
   if (!landing3d.includes(required)) errors.push(`Landing 3D lifecycle is missing: ${required}`);
 }
 if (exists('src/data.ts')) errors.push('Obsolete sample-data module must not be present.');

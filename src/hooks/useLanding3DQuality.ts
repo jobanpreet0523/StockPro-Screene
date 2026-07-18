@@ -17,7 +17,8 @@ function readQuality(): Landing3DQuality {
   const nav = navigator as NavigatorHints;
   if (/Chrome-Lighthouse/i.test(nav.userAgent)) return { enabled: false, pixelRatio: 1, tier: 'static', reason: 'lighthouse' };
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return { enabled: false, pixelRatio: 1, tier: 'static', reason: 'reduced-motion' };
-  if (window.matchMedia('(max-width: 768px)').matches) return { enabled: false, pixelRatio: 1, tier: 'static', reason: 'mobile' };
+  const mobileInput = window.matchMedia('(pointer: coarse)').matches || nav.maxTouchPoints > 1;
+  if (window.matchMedia('(max-width: 768px)').matches || mobileInput) return { enabled: false, pixelRatio: 1, tier: 'static', reason: 'mobile' };
   if (nav.connection?.saveData) return { enabled: false, pixelRatio: 1, tier: 'static', reason: 'save-data' };
   if (nav.deviceMemory !== undefined && nav.deviceMemory <= 4) return { enabled: false, pixelRatio: 1, tier: 'static', reason: 'low-memory' };
   if (nav.hardwareConcurrency !== undefined && nav.hardwareConcurrency <= 4) return { enabled: false, pixelRatio: 1, tier: 'static', reason: 'low-core' };
@@ -38,14 +39,17 @@ export function useLanding3DQuality() {
   useEffect(() => {
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const mobile = window.matchMedia('(max-width: 768px)');
+    const coarsePointer = window.matchMedia('(pointer: coarse)');
     const update = () => setQuality(readQuality());
     motion.addEventListener('change', update);
     mobile.addEventListener('change', update);
+    coarsePointer.addEventListener('change', update);
     window.addEventListener('resize', update);
     update();
     return () => {
       motion.removeEventListener('change', update);
       mobile.removeEventListener('change', update);
+      coarsePointer.removeEventListener('change', update);
       window.removeEventListener('resize', update);
     };
   }, []);

@@ -13,4 +13,17 @@
 - Install Ponytail only as a Codex plugin; never add it to StockPro dependencies.
 - Keep n8n as a separately deployed automation service with no broker tokens, portfolio values, arbitrary public-shell execution, autonomous merge, or payment authority.
 - Transfer temporary `package.json` ownership from the Integration Engineer to the lead coordinator after its focused commit solely to add the reviewed `verify:n8n-contracts` and combined security/integration CI aliases; no dependency versions or lockfile entries changed.
+- Transfer temporary `package.json` ownership to the lead coordinator for the approved homepage QA aliases and post-build `test:landing-3d` CI gate; no dependency versions or lockfile entries changed.
+- Discover lazy-loaded story sections with a short-lived `MutationObserver`, then use one requestAnimationFrame-throttled geometry tracker for deterministic scene activation. The earlier one-shot IntersectionObserver lookup ran before deferred sections mounted and could leave the renderer paused on scene 1.
+- Keep the production-readiness result honest: on 2026-07-16 the live endpoint returned 15 failures, including auth/Supabase/broker/storage setup requirements and a `/api/contact` contract mismatch. Homepage completion does not imply production readiness.
+- Split provider queries, auth-aware CRT state, product cards, and sections 2-10 into delayed `LandingPrimarySections`; this preserves the HTML-first hero. The intermediate measurement reduced initial JavaScript to 92.86 KiB gzip and mobile median LCP from 2,719.0 ms to 2,471.5 ms with CLS 0; the exact-source final measurement is recorded below.
 - Treat genuine broker OAuth as `MANUAL_EXTERNAL_AUTH_REQUIRED` until a human-authorized test succeeds.
+
+## 2026-07-18
+
+- Reject the first final-maintainer pass until Chromium is installed before CI invokes Playwright, visual baselines are portable and full-page, mobile landscape is touch-aware/static, SPA disposal is proven, asynchronous provider state is reactive, and a below-fold chunk failure cannot blank the homepage.
+- Create only the initial scene graph at renderer startup, instantiate later scenes on demand, and use `InstancedMesh` for repeated candle/module geometry. Expose 60/30 FPS quality targets and measure scene-setup and synthetic interaction budgets without misrepresenting them as field telemetry.
+- Keep the live launch decision blocked: the Supabase project is active with 18 RLS-enabled public tables and no lingering automated test users/rows, but the production Worker still reports 15 configuration failures; PostHog has zero pageviews in the last 30 days and Sentry lacks read-only audit credentials.
+- Keep nonessential homepage modules off the initial interaction path: optional sections hydrate immediately on pointer or scroll intent and use a ten-second idle fallback.
+- Load provider-backed search code and validation schemas only after search focus or pointer intent; the labeled search field remains in the initial HTML-rendered React shell.
+- Accept the exact-source three-run mobile Lighthouse median of 1,981.7 ms LCP with CLS 0; the 2,500 ms LCP assertion was not weakened.

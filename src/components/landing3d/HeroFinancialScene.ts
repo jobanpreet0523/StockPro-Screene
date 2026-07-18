@@ -4,9 +4,11 @@ import { landingSceneDefinitions, type LandingSceneId, type LandingSceneState } 
 export type HeroSceneOptions = {
   canvas: HTMLCanvasElement;
   pixelRatio: number;
+  targetFps: 30 | 60;
   onError: (error: Error) => void;
   onRenderReady: () => void;
   onContextLost: () => void;
+  onSceneSetupMeasured: (durationMs: number, visualCount: number) => void;
 };
 
 type SceneVisual = { group: THREE.Group; materials: THREE.Material[]; opacity: number; target: number };
@@ -50,11 +52,23 @@ function path(group: THREE.Group, points: readonly (readonly [number, number, nu
 }
 
 function candles(group: THREE.Group) {
-  [-3, -1.8, -0.6, 0.6, 1.8].forEach((x, index) => {
+  const xs = [-3, -1.8, -0.6, 0.6, 1.8];
+  const wick = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.035, 1, 6), standard(BLUE), xs.length);
+  const body = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 1, 0.42), standard(CYAN), xs.length);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  xs.forEach((x, index) => {
     const height = 0.85 + (index % 3) * 0.46;
-    mesh(group, new THREE.CylinderGeometry(0.035, 0.035, height + 0.7, 6), standard(BLUE), [x, height / 2, 0]);
-    mesh(group, new THREE.BoxGeometry(0.42, height, 0.42), standard(index === 3 ? AMBER : CYAN), [x, height / 2, 0]);
+    matrix.compose(new THREE.Vector3(x, height / 2, 0), quaternion, new THREE.Vector3(1, height + 0.7, 1));
+    wick.setMatrixAt(index, matrix);
+    matrix.compose(new THREE.Vector3(x, height / 2, 0), quaternion, new THREE.Vector3(1, height, 1));
+    body.setMatrixAt(index, matrix);
+    body.setColorAt(index, new THREE.Color(index === 3 ? AMBER : CYAN));
   });
+  wick.instanceMatrix.needsUpdate = true;
+  body.instanceMatrix.needsUpdate = true;
+  if (body.instanceColor) body.instanceColor.needsUpdate = true;
+  group.add(wick, body);
 }
 
 function createVisual(id: LandingSceneId) {
@@ -70,11 +84,18 @@ function createVisual(id: LandingSceneId) {
     path(group, [[-2.6, 0.8, 0], [-1.5, 1.5, 0], [0, 0.8, 0]]).userData.providerOnly = true;
     mesh(group, new THREE.BoxGeometry(1.2, 1.7, 0.4), standard(SLATE, 0.4, true), [3.2, 0.8, 0]);
   } else if (id === 'product-constellation') {
+    const modules = new THREE.InstancedMesh(new THREE.BoxGeometry(0.72, 0.72, 0.28), standard(BLUE), 10);
+    const matrix = new THREE.Matrix4();
     for (let index = 0; index < 10; index += 1) {
       const angle = index / 10 * Math.PI * 2;
       const radius = index % 2 ? 3.6 : 2.65;
-      mesh(group, new THREE.BoxGeometry(0.72, 0.72, 0.28), standard(index ? BLUE : CYAN), [Math.cos(angle) * radius, 0.7 + Math.sin(angle * 2) * 0.45, Math.sin(angle) * radius]);
+      matrix.makeTranslation(Math.cos(angle) * radius, 0.7 + Math.sin(angle * 2) * 0.45, Math.sin(angle) * radius);
+      modules.setMatrixAt(index, matrix);
+      modules.setColorAt(index, new THREE.Color(index ? BLUE : CYAN));
     }
+    modules.instanceMatrix.needsUpdate = true;
+    if (modules.instanceColor) modules.instanceColor.needsUpdate = true;
+    group.add(modules);
   } else if (id === 'crt-laboratory') {
     [BLUE, CYAN, AMBER, SLATE].forEach((color, index) => mesh(group, new THREE.BoxGeometry(6.4 - index * 0.6, 0.06, 3.5 - index * 0.32), standard(color, 0.28), [0, -0.8 + index * 0.65, 0]));
     candles(group);
@@ -126,6 +147,7 @@ export class HeroFinancialScene {
   private pointerX = 0;
   private pointerY = 0;
   private lastTime = 0;
+  private lastRenderTime = 0;
   private motion: LandingSceneState['motion'] = 'full';
 
   constructor(private readonly options: HeroSceneOptions) {
@@ -138,18 +160,7 @@ export class HeroFinancialScene {
     const light = new THREE.DirectionalLight(0xffffff, 2.7);
     light.position.set(5, 8, 7);
     this.scene.add(light);
-    landingSceneDefinitions.forEach((definition, index) => {
-      const group = createVisual(definition.id);
-      const materials: THREE.Material[] = [];
-      group.traverse((object) => {
-        if (!(object instanceof THREE.Mesh)) return;
-        materials.push(...(Array.isArray(object.material) ? object.material : [object.material]));
-      });
-      const active = index === 0;
-      group.visible = active;
-      this.visuals.set(definition.id, { group, materials, opacity: active ? 1 : 0, target: active ? 1 : 0 });
-      this.world.add(group);
-    });
+    this.ensureVisual('research-universe');
     options.canvas.addEventListener('webglcontextlost', this.handleContextLost);
     this.resize();
     try {
@@ -164,6 +175,7 @@ export class HeroFinancialScene {
   setScene(state: LandingSceneState) {
     if (this.disposed || this.contextLost) return;
     const definition = landingSceneDefinitions.find((item) => item.id === state.id) ?? landingSceneDefinitions[0];
+    this.ensureVisual(definition.id);
     this.positionTarget.set(...definition.camera.position);
     this.cameraTarget.set(...definition.camera.target);
     this.motion = state.motion;
@@ -208,6 +220,7 @@ export class HeroFinancialScene {
     this.running = next;
     if (next) {
       this.lastTime = performance.now();
+      this.lastRenderTime = 0;
       this.frame = requestAnimationFrame(this.animate);
     } else {
       cancelAnimationFrame(this.frame);
@@ -217,9 +230,14 @@ export class HeroFinancialScene {
 
   private readonly animate = (time: number) => {
     if (!this.running || this.disposed || this.contextLost) return;
+    if (this.options.targetFps === 30 && this.lastRenderTime && time - this.lastRenderTime < 32) {
+      this.frame = requestAnimationFrame(this.animate);
+      return;
+    }
     try {
       const delta = Math.min(32, Math.max(0, time - this.lastTime));
       this.lastTime = time;
+      this.lastRenderTime = time;
       this.camera.position.lerp(this.positionTarget, 1 - Math.pow(0.001, delta / 1_000));
       this.camera.lookAt(this.cameraTarget);
       this.visuals.forEach((visual) => {
@@ -242,6 +260,22 @@ export class HeroFinancialScene {
       value.opacity = (typeof value.userData.baseOpacity === 'number' ? value.userData.baseOpacity : 1) * visual.opacity;
       value.depthWrite = visual.opacity > 0.98;
     });
+  }
+
+  private ensureVisual(id: LandingSceneId) {
+    if (this.visuals.has(id)) return;
+    const startedAt = performance.now();
+    const group = createVisual(id);
+    const materials: THREE.Material[] = [];
+    group.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      materials.push(...(Array.isArray(object.material) ? object.material : [object.material]));
+    });
+    const active = this.visuals.size === 0 && id === 'research-universe';
+    group.visible = active;
+    this.visuals.set(id, { group, materials, opacity: active ? 1 : 0, target: active ? 1 : 0 });
+    this.world.add(group);
+    this.options.onSceneSetupMeasured(performance.now() - startedAt, this.visuals.size);
   }
 
   private render() {
