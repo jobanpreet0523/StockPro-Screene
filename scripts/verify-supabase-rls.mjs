@@ -15,7 +15,10 @@ const admin = createClient(url, serviceKey, { auth: authOptions });
 const anonymous = createClient(url, anonKey, { auth: authOptions });
 const run = randomBytes(8).toString('hex');
 const password = `StockPro-${randomBytes(18).toString('base64url')}!9a`;
-const emails = [`stockpro-e2e-user-a-${run}@example.invalid`, `stockpro-e2e-user-b-${run}@example.invalid`];
+// Supabase Auth rejects the reserved `.invalid` TLD before password-reset
+// behavior can be exercised. example.com is IANA-reserved and syntactically
+// valid, so the test reaches Auth without targeting a real operator mailbox.
+const emails = [`stockpro-e2e-user-a-${run}@example.com`, `stockpro-e2e-user-b-${run}@example.com`];
 const users = [];
 const canaries = [];
 
@@ -110,9 +113,9 @@ try {
   const brokerConnection = await insertCanary('broker_connections', { user_id: users[0].id, provider: 'upstox', encrypted_token: `cipher-${run}`, token_iv: `iv-${run}`, status: 'pending_verification' });
   const scanRun = await insertCanary('crt_scan_runs', { user_id: users[0].id, provider: 'upstox', status: 'completed', filters: { test: true } });
   const protectedRows = [
-    ['waitlist_leads', { name: 'StockPro RLS test', email: `waitlist-${run}@example.invalid`, interest: 'automated-rls' }],
+    ['waitlist_leads', { name: 'StockPro RLS test', email: `waitlist-${run}@example.com`, interest: 'automated-rls' }],
     ['beta_feedback', { user_id: users[0].id, message: `Automated RLS ${run}` }],
-    ['contact_messages', { user_id: users[0].id, name: 'StockPro RLS test', email: `contact-${run}@example.invalid`, message: 'Automated RLS verification' }],
+    ['contact_messages', { user_id: users[0].id, name: 'StockPro RLS test', email: `contact-${run}@example.com`, message: 'Automated RLS verification' }],
     ['broker_connection_events', { user_id: users[0].id, broker_connection_id: brokerConnection, provider: 'upstox', event_type: 'test', outcome: 'blocked', safe_metadata: { test: true } }],
     ['broker_oauth_states', { user_id: users[0].id, provider: 'upstox', state_hash: `hash-${run}`, expires_at: new Date(Date.now() + 60_000).toISOString() }],
     ['market_instruments', { provider: 'rls-test', instrument_token: run, exchange: 'NSE', segment: 'EQ', symbol: 'RLS', trading_symbol: 'RLS' }],
