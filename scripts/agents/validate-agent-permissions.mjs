@@ -54,6 +54,7 @@ requireCheck(/^\s{2}workflow_dispatch:/m.test(deployWorkflow), "production deplo
 requireCheck(/environment:\s*production/.test(deployWorkflow), "production deploy must use protected production environment");
 requireCheck(/cancel-in-progress:\s*false/.test(deployWorkflow), "production deployment concurrency must not cancel in-flight release");
 requireCheck(!/continue-on-error:\s*true/.test(`${buildWorkflow}\n${deployWorkflow}`), "mandatory workflow gates cannot continue on error");
+requireCheck(/pull_request:[\s\S]*?- agent\/homepage-full-3d-automation/.test(buildWorkflow), "Mission B stacked PR base must trigger complete build verification");
 requireCheck(packageJson.scripts?.ci?.includes("npm run verify:agents"), "agent verification must run in CI");
 
 if (failures.length) {
