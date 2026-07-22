@@ -339,13 +339,14 @@ async function handleContact(request, env) {
   }
 }
 
-function handleWaitlistHealth(request, env) {
+async function handleWaitlistHealth(request, env) {
   if (request.method !== 'GET') return json({ status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET', 'Cache-Control': 'no-store' });
-  const config = getWaitlistConfig(env);
-  if (!config.configured) {
-    return json({ status: 'setup_required', configured: false, severity: 'info', message: 'Waitlist storage requires server-side Supabase configuration.' }, 200, { 'Cache-Control': 'no-store' });
+  const state = await probeSupabaseTable(env, 'waitlist_leads', 'SUPABASE_WAITLIST_TABLE');
+  if (state === 'configured') return json({ status: 'ok', configured: true, message: 'Waitlist storage is reachable.' }, 200, { 'Cache-Control': 'no-store' });
+  if (state === 'unavailable') {
+    return json({ status: 'unavailable', configured: false, severity: 'warning', message: 'Waitlist storage could not be reached.' }, 503, { 'Cache-Control': 'no-store' });
   }
-  return json({ status: 'ok', message: 'Waitlist storage bindings appear configured.' }, 200, { 'Cache-Control': 'no-store' });
+  return json({ status: 'setup_required', configured: false, severity: 'info', message: 'Waitlist storage requires a reachable server-side Supabase table.' }, 200, { 'Cache-Control': 'no-store' });
 }
 
 function readAdminFilter(url, name, maxLength) {
@@ -588,7 +589,7 @@ async function handleTrial(request, action, env) {
 function getBrokerConfig(env, provider = 'none') {
   const storage = String(env?.BROKER_TOKEN_STORAGE || '').trim().toLowerCase();
   const supabase = getSupabaseTableConfig(env, 'broker_connections');
-  const vault = getTokenVaultStatus(cleanText(env?.BROKER_ENCRYPTION_SECRET, 500));
+  const vault = getTokenVaultStatus(cleanText(env?.BROKER_TOKEN_ENCRYPTION_KEY || env?.BROKER_ENCRYPTION_SECRET, 500));
   const providerReady = provider === 'upstox'
     ? Boolean(cleanText(env?.UPSTOX_CLIENT_ID, 200) && cleanText(env?.UPSTOX_CLIENT_SECRET, 500) && cleanText(env?.UPSTOX_REDIRECT_URI, 500))
     : provider === 'dhan'
@@ -781,7 +782,7 @@ async function handleBroker(request, action, provider, env) {
       return secureJson(request, { status: 'invalid_input', provider, isConnected: false, dataAccess: 'none', message: 'Dhan client ID and access token are required.' }, 400);
     }
     const token = JSON.stringify({ accessToken, clientId });
-    const encrypted = await encryptBrokerToken({ token, provider: 'dhan', userId: auth.user.id, secret: cleanText(env?.BROKER_ENCRYPTION_SECRET, 500) });
+    const encrypted = await encryptBrokerToken({ token, provider: 'dhan', userId: auth.user.id, secret: cleanText(env?.BROKER_TOKEN_ENCRYPTION_KEY || env?.BROKER_ENCRYPTION_SECRET, 500) });
     if (encrypted.status !== 'ok' || !encrypted.record) {
       return secureJson(request, { status: encrypted.status, provider, isConnected: false, dataAccess: 'none', message: encrypted.message }, encrypted.status === 'setup_required' ? 503 : 400);
     }
@@ -900,7 +901,7 @@ async function handleBrokerConnectionTest(request, env) {
       algorithm: 'AES-GCM',
       createdAt: row.connected_at || new Date().toISOString(),
     },
-    secret: cleanText(env?.BROKER_ENCRYPTION_SECRET, 500),
+    secret: cleanText(env?.BROKER_TOKEN_ENCRYPTION_KEY || env?.BROKER_ENCRYPTION_SECRET, 500),
   });
   if (decrypted.status !== 'ok' || !decrypted.token) {
     await writeBrokerAuditEvent(env, auth.user.id, 'dhan', 'connection_test', 'decrypt_failed');
@@ -1261,7 +1262,8 @@ const DATABASE_TABLES = [
   ['waitlist_leads', 'SUPABASE_WAITLIST_TABLE'],
   ['beta_feedback', 'SUPABASE_BETA_FEEDBACK_TABLE'],
   ['contact_messages', 'SUPABASE_CONTACT_MESSAGES_TABLE'],
-  ['broker_connections', 'broker_connections'],
+  ['broker_connections', 'SUPABASE_BROKER_CONNECTIONS_TABLE'],
+  ['broker_oauth_states', 'SUPABASE_BROKER_OAUTH_STATES_TABLE'],
   ['broker_connection_events', 'SUPABASE_BROKER_EVENTS_TABLE'],
   ['crt_scan_runs', 'SUPABASE_CRT_SCAN_RUNS_TABLE'],
   ['crt_scan_results', 'SUPABASE_CRT_SCAN_RESULTS_TABLE'],
@@ -1276,6 +1278,27 @@ const DATABASE_TABLES = [
   ['razorpay_webhook_events', 'SUPABASE_RAZORPAY_WEBHOOK_EVENTS_TABLE'],
 ];
 
+async function probeSupabaseTable(env, fallback, binding) {
+  const configuredName = binding.startsWith('SUPABASE_') ? cleanText(env?.[binding], 63) : '';
+  const table = configuredName || fallback;
+  const config = getSupabaseTableConfig(env, table);
+  if (!config.configured) return 'setup_required';
+  try {
+    const response = await fetch(`${config.supabaseUrl}/rest/v1/${encodeURIComponent(table)}?select=*&limit=0`, {
+      method: 'GET',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        Accept: 'application/json',
+        Range: '0-0',
+      },
+    });
+    return response.ok ? 'configured' : response.status === 404 ? 'missing' : 'unavailable';
+  } catch {
+    return 'unavailable';
+  }
+}
+
 async function handleDatabaseReadiness(request, env) {
   if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
   const base = getSupabaseTableConfig(env, 'user_profiles');
@@ -1289,24 +1312,9 @@ async function handleDatabaseReadiness(request, env) {
     });
   }
 
-  const entries = await Promise.all(DATABASE_TABLES.map(async ([fallback, binding]) => {
-    const configuredName = binding.startsWith('SUPABASE_') ? cleanText(env?.[binding], 63) : '';
-    const table = configuredName || fallback;
-    try {
-      const response = await fetch(`${base.supabaseUrl}/rest/v1/${encodeURIComponent(table)}?select=*&limit=0`, {
-        method: 'GET',
-        headers: {
-          apikey: base.serviceRoleKey,
-          Authorization: `Bearer ${base.serviceRoleKey}`,
-          Accept: 'application/json',
-          Range: '0-0',
-        },
-      });
-      return [fallback, response.ok ? 'configured' : response.status === 404 ? 'missing' : 'unavailable'];
-    } catch {
-      return [fallback, 'unavailable'];
-    }
-  }));
+  const entries = await Promise.all(DATABASE_TABLES.map(async ([fallback, binding]) => (
+    [fallback, await probeSupabaseTable(env, fallback, binding)]
+  )));
   const tables = Object.fromEntries(entries);
   const values = Object.values(tables);
   const unavailable = values.includes('unavailable');
@@ -1320,7 +1328,7 @@ async function handleDatabaseReadiness(request, env) {
   }, unavailable ? 503 : 200);
 }
 
-function handleOperationsReadiness(request, env) {
+async function handleOperationsReadiness(request, env) {
   if (request.method !== 'GET') return secureJson(request, { status: 'error', message: 'Method not allowed.' }, 405, { Allow: 'GET' });
   const broker = getBrokerConfig(env, 'none');
   const billing = getRazorpayReadiness(env);
@@ -1329,8 +1337,22 @@ function handleOperationsReadiness(request, env) {
   const crtProviderConfigured = providerName === 'zerodha'
     ? Boolean(cleanText(env?.ZERODHA_API_KEY, 500) && cleanText(env?.ZERODHA_ACCESS_TOKEN, 2000))
     : providerName === 'authorized_vendor' && Boolean(cleanText(env?.AUTHORIZED_VENDOR_API_KEY, 500) && cleanText(env?.AUTHORIZED_VENDOR_BASE_URL, 500));
-  const crtStorageConfigured = getSupabaseTableConfig(env, env?.SUPABASE_CRT_SCAN_RUNS_TABLE || 'crt_scan_runs').configured;
-  const savedResearchConfigured = getSupabaseTableConfig(env, env?.SUPABASE_WATCHLISTS_TABLE || 'watchlists').configured;
+  const [waitlistState, crtStates, savedResearchStates] = await Promise.all([
+    probeSupabaseTable(env, 'waitlist_leads', 'SUPABASE_WAITLIST_TABLE'),
+    Promise.all([
+      probeSupabaseTable(env, 'crt_scan_runs', 'SUPABASE_CRT_SCAN_RUNS_TABLE'),
+      probeSupabaseTable(env, 'crt_scan_results', 'SUPABASE_CRT_SCAN_RESULTS_TABLE'),
+    ]),
+    Promise.all([
+      probeSupabaseTable(env, 'watchlists', 'SUPABASE_WATCHLISTS_TABLE'),
+      probeSupabaseTable(env, 'watchlist_items', 'SUPABASE_WATCHLIST_ITEMS_TABLE'),
+      probeSupabaseTable(env, 'alerts', 'SUPABASE_ALERTS_TABLE'),
+      probeSupabaseTable(env, 'saved_screeners', 'SUPABASE_SAVED_SCREENS_TABLE'),
+      probeSupabaseTable(env, 'saved_research', 'SUPABASE_SAVED_RESEARCH_TABLE'),
+    ]),
+  ]);
+  const crtStorageConfigured = crtStates.every((state) => state === 'configured');
+  const savedResearchConfigured = savedResearchStates.every((state) => state === 'configured');
   return secureJson(request, {
     status: 'ok',
     services: {
@@ -1338,7 +1360,7 @@ function handleOperationsReadiness(request, env) {
       turnstile: configured(cleanText(env?.TURNSTILE_SECRET_KEY, 500)),
       email: emailReadiness(env),
       search: configured(searchConfigured),
-      supabase: configured(getWaitlistConfig(env).configured),
+      supabase: configured(waitlistState === 'configured'),
       marketProvider: configured(cleanText(env?.MARKET_DATA_PROVIDER, 40)),
       brokerProvider: configured(cleanText(env?.UPSTOX_CLIENT_ID, 200) || cleanText(env?.AUTHORIZED_VENDOR_API_KEY, 500)),
       brokerVault: configured(broker.supabase.configured && broker.vault.status === 'ok'),
@@ -1513,7 +1535,7 @@ async function createRequestMarketDataProvider(request, env) {
 
   const storageConfig = getBrokerConfig(env, 'none');
   if (storageConfig.storageMode !== 'supabase' || !storageConfig.supabase.configured || storageConfig.vault.status !== 'ok') {
-    return brokerRequiredProvider('Broker REST live data requires Supabase token storage and BROKER_ENCRYPTION_SECRET setup.');
+    return brokerRequiredProvider('Broker REST live data requires Supabase token storage and BROKER_TOKEN_ENCRYPTION_KEY setup.');
   }
 
   try {

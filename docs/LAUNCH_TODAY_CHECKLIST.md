@@ -63,7 +63,7 @@ Latest read-only probes: branch preview **8 failures**; production **10 failures
 4. Verify signup, email confirmation, login, refresh, reset, and logout. Retain protected run #237 as the two-account isolation evidence.
 5. Submit the production contact form through Turnstile and confirm one contact_messages row.
 6. Configure an authorized market provider; verify timestamp and source semantics before any live label.
-7. Configure BROKER_ENCRYPTION_SECRET, provider credentials, and per-user Upstox/Dhan read-only tests.
+7. Configure BROKER_TOKEN_ENCRYPTION_KEY, provider credentials, and per-user Upstox/Dhan read-only tests.
 8. Configure Sentry/PostHog build variables and verify privacy-safe events with no PII.
 9. Run the full validation command list and production route, console, and sitemap checks.
 10. Only after all BLOCKING rows pass: merge, deploy, create v1.0.0-beta, and publish release notes.

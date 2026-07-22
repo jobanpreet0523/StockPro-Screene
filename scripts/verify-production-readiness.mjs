@@ -139,7 +139,7 @@ await inspect('/api/contact', {
   init: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'Production verifier', email: 'verifier@example.com', subject: 'Automated validation', message: 'Turnstile rejection check.', turnstileToken: '' }),
+    body: JSON.stringify({ name: 'Production verifier', email: 'verifier@example.com', interest: 'Automated validation', message: 'Turnstile rejection check.', turnstileToken: '' }),
   },
   validate: ({ payload }) => {
     if (!['invalid', 'invalid_input'].includes(payload.status)) fail(`/api/contact missing-token check returned status ${payload.status}.`);

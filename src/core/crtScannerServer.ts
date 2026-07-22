@@ -104,25 +104,27 @@ async function refreshInstruments(env: CrtEnv) {
 
   const now = new Date().toISOString();
   const normalized = records.map((record) => {
-    const segment = clean(record.segment) || clean(record.instrument_type);
+    const segment = clean(record.instrument_type) || clean(record.segment);
     const symbol = clean(record.tradingsymbol) || clean(record.symbol);
     const series = clean(record.series) || 'EQ';
     return {
+      provider: config.provider,
+      instrument_token: String(record.instrument_token || record.instrumentId || record.id || ''),
       exchange: 'NSE',
       segment: 'EQ',
       symbol,
-      company_name: clean(record.name) || symbol,
-      provider_instrument_id: String(record.instrument_token || record.instrumentId || record.id || ''),
-      series,
+      trading_symbol: symbol,
+      name: clean(record.name) || symbol,
       sector: clean(record.sector) || null,
       market_cap: Number(record.marketCap) || null,
       active: segment === 'EQ' && series === 'EQ' && Boolean(symbol),
+      provider_payload: { series },
       refreshed_at: now,
     };
   }).filter((row) => row.active && !/(-BE|-SM| SME$)/i.test(row.symbol));
 
   const db = dbConfig(env);
-  const response = await supabaseRequest(env, db.instruments, { method: 'POST', body: JSON.stringify(normalized) }, '?on_conflict=exchange,symbol');
+  const response = await supabaseRequest(env, db.instruments, { method: 'POST', body: JSON.stringify(normalized) }, '?on_conflict=provider,instrument_token');
   if (!response.ok) throw new Error('Instrument master could not be persisted.');
   return normalized.length;
 }
@@ -135,7 +137,7 @@ function normalizeCandle(raw: unknown): CrtCandle | null {
 }
 
 async function zerodhaSnapshot(env: CrtEnv, instrument: Record<string, unknown>) {
-  const token = encodeURIComponent(String(instrument.provider_instrument_id));
+  const token = encodeURIComponent(String(instrument.instrument_token));
   const to = new Date();
   const from = new Date(to);
   from.setUTCFullYear(from.getUTCFullYear() - 12);
@@ -147,7 +149,7 @@ async function zerodhaSnapshot(env: CrtEnv, instrument: Record<string, unknown>)
   if (!response.ok || payload?.status !== 'success' || !Array.isArray(payload.data?.candles)) throw new Error('Zerodha historical candles unavailable.');
   return {
     symbol: String(instrument.symbol),
-    companyName: String(instrument.company_name || instrument.symbol),
+    companyName: String(instrument.name || instrument.symbol),
     exchange: 'NSE' as const,
     candles: payload.data.candles.map(normalizeCandle).filter((c): c is CrtCandle => Boolean(c)),
     marketCap: Number(instrument.market_cap) || undefined,
@@ -160,7 +162,7 @@ async function vendorSnapshots(env: CrtEnv, instruments: Array<Record<string, un
   const response = await fetch(`${config.vendorUrl}/crt-snapshot`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${clean(env.AUTHORIZED_VENDOR_API_KEY)}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ exchange: 'NSE', segment: 'EQ', interval: 'day', instruments: instruments.map((row) => ({ symbol: row.symbol, instrumentId: row.provider_instrument_id })) }),
+    body: JSON.stringify({ exchange: 'NSE', segment: 'EQ', interval: 'day', instruments: instruments.map((row) => ({ symbol: row.symbol, instrumentId: row.instrument_token })) }),
   });
   const payload = await response.json().catch(() => null) as { capturedAt?: string; data?: CrtInstrumentSnapshot[] } | null;
   if (!response.ok || !Array.isArray(payload?.data)) throw new Error('Authorized vendor snapshot returned malformed data.');
@@ -176,7 +178,7 @@ async function updateRun(env: CrtEnv, runId: string, values: Record<string, unkn
 async function processRun(env: CrtEnv, runId: string, filters: CrtScanFilters) {
   const db = dbConfig(env);
   try {
-    await updateRun(env, runId, { status: 'running', started_at: new Date().toISOString() });
+    await updateRun(env, runId, { status: 'running' });
     const instrumentsResponse = await supabaseRequest(env, db.instruments, { method: 'GET' }, '?exchange=eq.NSE&segment=eq.EQ&active=eq.true&select=*&order=symbol.asc');
     const instruments = await instrumentsResponse.json().catch(() => null) as Array<Record<string, unknown>> | null;
     if (!instrumentsResponse.ok || !Array.isArray(instruments) || !instruments.length) throw new Error('Stored NSE EQ instrument master is empty. Refresh it before scanning.');
@@ -196,10 +198,16 @@ async function processRun(env: CrtEnv, runId: string, filters: CrtScanFilters) {
       }
       const results = snapshots.map((snapshot) => evaluateCrtSnapshot(snapshot, filters, runId, capturedAt)).filter(Boolean);
       if (results.length) {
-        const response = await supabaseRequest(env, db.results, { method: 'POST', body: JSON.stringify(results!.map((result) => ({
-          scan_run_id: runId, symbol: result!.symbol, company_name: result!.companyName, exchange: result!.exchange,
-          timeframe: result!.timeframe, direction: result!.direction, mode: result!.mode, result: result,
-          data_captured_at: result!.dataCapturedAt,
+        const response = await supabaseRequest(env, db.results, { method: 'POST', body: JSON.stringify(results.map((result) => ({
+          scan_run_id: runId, symbol: result.symbol, exchange: result.exchange,
+          timeframe: result.timeframe, direction: result.direction, mode: result.mode,
+          score: result.score,
+          entry_price: result.triggerLevel,
+          invalidation_price: result.invalidationLevel,
+          target_price: result.target1,
+          risk_reward: result.riskReward,
+          candles: result.chartCandles,
+          result_payload: result,
         }))) });
         if (!response.ok) throw new Error('CRT results could not be persisted.');
       }
@@ -233,7 +241,7 @@ export async function handleCrtScannerRequest(request: Request, path: string, en
   if (path === '/api/market/instruments' && request.method === 'GET') {
     const url = new URL(request.url);
     if ((url.searchParams.get('exchange') || 'NSE') !== 'NSE' || (url.searchParams.get('segment') || 'EQ') !== 'EQ') return reply({ status: 'error', message: 'Only NSE EQ is currently supported.' }, 400);
-    const response = await supabaseRequest(env, db.instruments, { method: 'GET' }, '?exchange=eq.NSE&segment=eq.EQ&active=eq.true&select=symbol,company_name,exchange,segment,sector,refreshed_at&order=symbol.asc');
+    const response = await supabaseRequest(env, db.instruments, { method: 'GET' }, '?exchange=eq.NSE&segment=eq.EQ&active=eq.true&select=symbol,name,exchange,segment,sector,refreshed_at&order=symbol.asc');
     return reply({ status: response.ok ? 'ok' : 'error', data: response.ok ? await response.json() : [], message: response.ok ? 'Stored instrument universe loaded.' : 'Instrument universe unavailable.' }, response.ok ? 200 : 502);
   }
 
@@ -264,7 +272,7 @@ export async function handleCrtScannerRequest(request: Request, path: string, en
   const runMatch = path.match(/^\/api\/crt-scanner\/runs\/([0-9a-f-]+)$/i);
   const resultMatch = path.match(/^\/api\/crt-scanner\/results\/([0-9a-f-]+)$/i);
   if (path === '/api/crt-scanner/runs' && request.method === 'GET') {
-    const response = await supabaseRequest(env, db.runs, { method: 'GET' }, '?select=id,status,provider,filters,created_at,started_at,completed_at,total_symbols,processed_symbols,result_count,error_message&order=created_at.desc&limit=20');
+    const response = await supabaseRequest(env, db.runs, { method: 'GET' }, '?select=id,status,provider,filters,created_at,completed_at,total_symbols,processed_symbols,result_count,error_message&order=created_at.desc&limit=20');
     return reply({ status: response.ok ? 'ok' : 'error', data: response.ok ? await response.json() : [], message: response.ok ? 'Saved scan runs loaded.' : 'Saved scan runs unavailable.' }, response.ok ? 200 : 502);
   }
   if (runMatch && request.method === 'GET') {
@@ -278,9 +286,9 @@ export async function handleCrtScannerRequest(request: Request, path: string, en
     const run = runs[0];
     if (!run) return reply({ status: 'error', data: [], message: 'Scan run not found.' }, 404);
     if (run.status !== 'completed') return reply({ status: run.status, data: [], progress: run, message: 'Scan is not complete. Final results are not exposed yet.' }, 202);
-    const response = await supabaseRequest(env, db.results, { method: 'GET' }, `?scan_run_id=eq.${resultMatch[1]}&select=result&order=symbol.asc`);
-    const rows = response.ok ? await response.json() as Array<{ result: unknown }> : [];
-    return reply({ status: response.ok ? 'ok' : 'error', data: rows.map((row) => row.result), message: response.ok ? 'Saved final scan results loaded without provider refetch.' : 'Saved results unavailable.' }, response.ok ? 200 : 502);
+    const response = await supabaseRequest(env, db.results, { method: 'GET' }, `?scan_run_id=eq.${resultMatch[1]}&select=result_payload&order=symbol.asc`);
+    const rows = response.ok ? await response.json() as Array<{ result_payload: unknown }> : [];
+    return reply({ status: response.ok ? 'ok' : 'error', data: rows.map((row) => row.result_payload), message: response.ok ? 'Saved final scan results loaded without provider refetch.' : 'Saved results unavailable.' }, response.ok ? 200 : 502);
   }
   return reply({ status: 'error', message: 'CRT Scanner API route not found.' }, 404);
 }

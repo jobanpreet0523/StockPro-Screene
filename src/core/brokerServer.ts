@@ -38,6 +38,7 @@ const dhanTokenSchema = z.object({
 const clean = (value: unknown, max = 1000) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 const bool = (value: unknown) => String(value || '').trim().toLowerCase() === 'true';
 const table = (value: unknown, fallback: string) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(clean(value, 100)) ? clean(value, 100) : fallback;
+const encryptionSecret = (env: BrokerEnv) => clean(env.BROKER_TOKEN_ENCRYPTION_KEY || env.BROKER_ENCRYPTION_SECRET, 1000);
 
 function secureHeaders(request: Request) {
   const origin = new URL(request.url).origin;
@@ -166,7 +167,7 @@ async function loadConnection(env: BrokerEnv, userId: string, provider: ReadOnly
 }
 
 async function persistConnection(env: BrokerEnv, userId: string, provider: ReadOnlyBrokerProvider, token: string, refreshToken: string | null, clientId: string | null, expiresAt: string | null, scopes: string[] = []) {
-  const secret = clean(env.BROKER_ENCRYPTION_SECRET, 1000);
+  const secret = encryptionSecret(env);
   const encrypted = await encryptBrokerToken({ token: JSON.stringify({ accessToken: token, clientId, mode: 'live' }), provider, userId, secret });
   if (encrypted.status !== 'ok' || !encrypted.record) throw new Error(encrypted.message);
   const encryptedRefresh = refreshToken ? await encryptBrokerToken({ token: refreshToken, provider, userId, secret }) : null;
@@ -328,7 +329,7 @@ async function callbackDhan(request: Request, env: BrokerEnv) {
 async function providerStatus(request: Request, env: BrokerEnv, authResolver: AuthResolver, provider: ReadOnlyBrokerProvider) {
   const auth = await requireUser(request, env, authResolver, provider);
   if (auth.response) return auth.response;
-  if (!database(env).configured || clean(env.BROKER_TOKEN_STORAGE, 30) !== 'supabase' || clean(env.BROKER_ENCRYPTION_SECRET, 1000).length < 32) return setup(request, provider, 'vault_setup_required', 'Per-user Supabase token storage and BROKER_ENCRYPTION_SECRET are required.');
+  if (!database(env).configured || clean(env.BROKER_TOKEN_STORAGE, 30) !== 'supabase' || encryptionSecret(env).length < 32) return setup(request, provider, 'vault_setup_required', 'Per-user Supabase token storage and BROKER_TOKEN_ENCRYPTION_KEY are required.');
   const row = await loadConnection(env, auth.userId!, provider).catch(() => null);
   const expired = Boolean(row?.expires_at && Date.parse(row.expires_at) <= Date.now());
   if (!row) return reply(request, { status: 'not_connected', configured: true, provider, isConnected: false, dataAccess: 'none', message: `No ${provider} connection is stored for this user.` });
@@ -350,7 +351,7 @@ async function testProvider(request: Request, env: BrokerEnv, authResolver: Auth
   const row = await loadConnection(env, auth.userId!, provider).catch(() => null);
   if (!row?.encrypted_token || !row.token_iv) return reply(request, { status: 'not_connected', configured: true, provider, isConnected: false, message: `Connect ${provider} before testing it.` });
   if (row.expires_at && Date.parse(row.expires_at) <= Date.now()) return reply(request, { status: 'reconnect_required', configured: true, provider, isConnected: false, message: `${provider} token has expired.` });
-  const decrypted = await decryptBrokerToken({ record: { provider, userId: auth.userId!, encryptedToken: row.encrypted_token, iv: row.token_iv, algorithm: 'AES-GCM', createdAt: row.connected_at || new Date().toISOString() }, secret: clean(env.BROKER_ENCRYPTION_SECRET, 1000) });
+  const decrypted = await decryptBrokerToken({ record: { provider, userId: auth.userId!, encryptedToken: row.encrypted_token, iv: row.token_iv, algorithm: 'AES-GCM', createdAt: row.connected_at || new Date().toISOString() }, secret: encryptionSecret(env) });
   if (decrypted.status !== 'ok' || !decrypted.token) return reply(request, { status: 'reconnect_required', configured: true, provider, isConnected: false, message: 'Stored credentials could not be decrypted. Reconnect this user.' });
   let credentials: { accessToken?: string; clientId?: string; mode?: string }; let body: BrokerTestRequest;
   try { credentials = JSON.parse(decrypted.token); body = await request.json() as BrokerTestRequest; } catch { return reply(request, { status: 'invalid_input', provider, message: 'A valid broker test request is required.' }, 400); }
@@ -372,7 +373,7 @@ async function disconnectProvider(request: Request, env: BrokerEnv, authResolver
   if (auth.response) return auth.response;
   const row = await loadConnection(env, auth.userId!, provider).catch(() => null);
   if (row?.encrypted_token && row.token_iv && provider === 'upstox') {
-    const decrypted = await decryptBrokerToken({ record: { provider, userId: auth.userId!, encryptedToken: row.encrypted_token, iv: row.token_iv, algorithm: 'AES-GCM', createdAt: row.connected_at || new Date().toISOString() }, secret: clean(env.BROKER_ENCRYPTION_SECRET, 1000) });
+    const decrypted = await decryptBrokerToken({ record: { provider, userId: auth.userId!, encryptedToken: row.encrypted_token, iv: row.token_iv, algorithm: 'AES-GCM', createdAt: row.connected_at || new Date().toISOString() }, secret: encryptionSecret(env) });
     if (decrypted.status === 'ok' && decrypted.token) {
       try { const credentials = JSON.parse(decrypted.token); await fetch('https://api.upstox.com/v2/logout', { method: 'DELETE', headers: { Accept: 'application/json', Authorization: `Bearer ${clean(credentials.accessToken, 5000)}` } }); } catch { /* Local deletion still prevents reuse. */ }
     }

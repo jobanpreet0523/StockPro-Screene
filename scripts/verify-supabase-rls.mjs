@@ -98,6 +98,12 @@ try {
       saved_research: research.id,
     });
   }
+  const crossParentInsert = await clients[0].from('watchlist_items').insert({
+    user_id: users[0].id,
+    watchlist_id: owned[1].watchlists,
+    symbol: 'WIPRO',
+  }).select('id');
+  ok(Boolean(crossParentInsert.error) || crossParentInsert.data?.length === 0, 'cross-user watchlist parent accepted an item');
 
   const ownerTables = Object.keys(owned[0]);
   for (let index = 0; index < clients.length; index += 1) {

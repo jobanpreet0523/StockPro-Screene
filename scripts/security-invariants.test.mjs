@@ -80,19 +80,28 @@ for (const table of tables) assert.match(rlsVerifier, new RegExp('\\b' + table +
 for (const evidence of ['cross-user read', 'cross-user update', 'cross-user delete', 'anonymous read', 'finally', 'cleanup']) {
   assert.ok(rlsVerifier.includes(evidence), 'RLS verifier must retain ' + evidence + ' evidence');
 }
+assert.match(policies, /watchlist_items_own_all[\s\S]*exists \(select 1 from public\.watchlists/);
+assert.match(rlsVerifier, /cross-user watchlist parent accepted an item/);
+
 assert.match(rlsVerifier, /auth\.admin\.generateLink/);
 assert.doesNotMatch(rlsVerifier, /resetPasswordForEmail/);
 
 // Production deploys must synchronize server secrets without exposing them to Vite.
-for (const secret of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY']) {
+for (const secret of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'TURNSTILE_SECRET_KEY', 'BROKER_TOKEN_ENCRYPTION_KEY']) {
   assert.match(deployWorkflow, new RegExp(`\\n\\s+${secret}: \\$\\{\\{ secrets\\.${secret} \\}\\}`));
 }
 assert.match(deployWorkflow, /VITE_SUPABASE_PUBLISHABLE_KEY: \$\{\{ secrets\.SUPABASE_ANON_KEY \}\}/);
 assert.doesNotMatch(deployWorkflow, /VITE_[A-Z_]*SERVICE_ROLE/);
 assert.match(wrangler, /SUPABASE_AUTH_ENABLED = "true"/);
-for (const table of ['waitlist_leads', 'contact_messages', 'crt_scan_runs', 'saved_research']) {
+for (const table of ['waitlist_leads', 'contact_messages', 'broker_connections', 'broker_oauth_states', 'crt_scan_runs', 'saved_research']) {
   assert.ok(wrangler.includes(`= "${table}"`), `Wrangler must declare the ${table} binding`);
 }
+assert.match(worker, /\['broker_oauth_states', 'SUPABASE_BROKER_OAUTH_STATES_TABLE'\]/);
+assert.match(worker, /probeSupabaseTable\(env, 'crt_scan_results', 'SUPABASE_CRT_SCAN_RESULTS_TABLE'\)/);
+assert.match(worker, /probeSupabaseTable\(env, 'saved_research', 'SUPABASE_SAVED_RESEARCH_TABLE'\)/);
+assert.match(deployWorkflow, /node-version: '22'/);
+assert.match(deployWorkflow, /environment: production/);
+assert.match(deployWorkflow, /group: stockpro-production-deploy/);
 
 // Optional provider/broker setup states are honest gates, not invite-beta failures.
 assert.match(productionVerifier, /const requiredServices = \['auth', 'turnstile', 'supabase', 'crtStorage', 'savedResearch'\]/);

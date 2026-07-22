@@ -149,9 +149,9 @@ if (exists(matrixFile)) {
     if (!matrix.includes(`| ${integration.name} |`)) errors.push(`Plugin readiness matrix is missing: ${integration.name}`);
   }
   for (const fact of [
-    'all 18 tables have RLS',
-    '9 tables have no-policy notices',
-    '0/17 tables',
+    'all 18 public tables have RLS',
+    '9 intentionally service-only tables have informational no-policy notices',
+    '0/17 application tables',
     'ingested_event=false',
     'live Sentry read was available',
     'production `/api/contact` currently returns 404',

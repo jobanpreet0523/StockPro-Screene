@@ -101,6 +101,8 @@ export interface MarketDataEnv {
   MARKET_DATA_API_BASE_URL?: string;
   MARKET_DATA_API_KEY?: string;
   MARKET_DATA_PROVIDER_NAME?: string;
+  AUTHORIZED_VENDOR_BASE_URL?: string;
+  AUTHORIZED_VENDOR_API_KEY?: string;
 }
 
 export const SETUP_REQUIRED_MESSAGE = 'Live provider setup required';
@@ -139,12 +141,12 @@ function setupRequiredProvider(provider: string, detail: string): MarketDataProv
 const allowedStatuses = new Set<MarketApiStatus>(['ok', 'setup_required', 'provider_unavailable', 'error']);
 
 export function externalProviderAdapter(env: MarketDataEnv): MarketDataProvider {
-  const baseUrl = env.MARKET_DATA_API_BASE_URL?.trim().replace(/\/+$/, '');
-  const apiKey = env.MARKET_DATA_API_KEY?.trim();
-  const providerName = env.MARKET_DATA_PROVIDER_NAME?.trim() || 'external';
+  const baseUrl = (env.AUTHORIZED_VENDOR_BASE_URL || env.MARKET_DATA_API_BASE_URL)?.trim().replace(/\/+$/, '');
+  const apiKey = (env.AUTHORIZED_VENDOR_API_KEY || env.MARKET_DATA_API_KEY)?.trim();
+  const providerName = env.MARKET_DATA_PROVIDER_NAME?.trim() || env.MARKET_DATA_PROVIDER?.trim() || 'external';
 
   if (!baseUrl || !apiKey) {
-    return setupRequiredProvider(providerName, 'Configure MARKET_DATA_API_BASE_URL and MARKET_DATA_API_KEY as Worker secrets/bindings.');
+    return setupRequiredProvider(providerName, 'Configure AUTHORIZED_VENDOR_BASE_URL and AUTHORIZED_VENDOR_API_KEY as Worker bindings.');
   }
 
   const request = async <T>(path: string): Promise<MarketDataEnvelope<T>> => {

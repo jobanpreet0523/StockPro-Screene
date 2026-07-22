@@ -6,7 +6,7 @@ StockPro supports per-user broker authorization only. The current foundation sup
 
 - `BROKER_DATA_PROVIDER=upstox` or `dhan`
 - `BROKER_TOKEN_STORAGE=supabase`
-- `BROKER_ENCRYPTION_SECRET`
+- `BROKER_TOKEN_ENCRYPTION_KEY`
 - Supabase server URL and secret key
 - Upstox client ID, client secret, and exact HTTPS redirect URI; or Dhan client ID
 

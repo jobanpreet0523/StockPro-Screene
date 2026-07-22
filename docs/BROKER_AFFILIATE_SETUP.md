@@ -13,10 +13,10 @@ UPSTOX_CLIENT_SECRET=
 UPSTOX_REDIRECT_URI=https://stockpro1.qzz.io/api/broker/upstox/callback
 DHAN_CLIENT_ID=
 BROKER_TOKEN_STORAGE=supabase
-BROKER_ENCRYPTION_SECRET=
+BROKER_TOKEN_ENCRYPTION_KEY=
 ```
 
-`BROKER_ENCRYPTION_SECRET` should be a strong random secret of at least 32 characters. Broker client secrets and access tokens must never be sent to frontend code or stored in `localStorage`. Do not add a shared `DHAN_ACCESS_TOKEN` or any other owner token as a public feed.
+`BROKER_TOKEN_ENCRYPTION_KEY` should be a strong random secret of at least 32 characters. Broker client secrets and access tokens must never be sent to frontend code or stored in `localStorage`. Do not add a shared `DHAN_ACCESS_TOKEN` or any other owner token as a public feed.
 
 Every broker authorization must be tied to the authenticated StockPro user. One user’s token and broker data must never be reused for another user. Upstox OAuth state must be unpredictable, short-lived, single-use, and bound to the initiating user before the callback exchanges an authorization code. Tokens should be encrypted before persistence and decrypted only inside trusted server code.
 

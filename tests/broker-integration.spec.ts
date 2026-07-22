@@ -2,6 +2,10 @@ import { expect, test } from '@playwright/test';
 import { handleBrokerV2Request } from '../src/core/brokerServer';
 import { normalizeBrokerCandle, testReadOnlyBrokerProvider } from '../src/core/brokerProvider';
 import { handleBrokerCrtRequest } from '../src/core/crtScannerBrokerServer';
+import { handleSavedResearchRequest } from '../src/core/savedResearchServer';
+import { externalProviderAdapter } from '../src/core/marketDataProvider';
+import { handleCrtScannerRequest } from '../src/core/crtScannerServer';
+import stockproWorker from '../src/_worker';
 import { decryptBrokerToken, encryptBrokerToken } from '../src/core/tokenVault';
 
 const originalFetch = globalThis.fetch;
@@ -295,4 +299,216 @@ test('saved CRT result load never refetches a broker provider', async () => {
   expect(response!.status).toBe(200);
   expect(payload.data).toEqual([expect.objectContaining({ symbol: 'INFY', provider: 'upstox' })]);
   expect(providerUrls).toEqual([]);
+});
+
+test('saved-research item creation rejects a watchlist owned by another user', async () => {
+  const watchlistId = '11111111-1111-4111-8111-111111111111';
+  let itemWrites = 0;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = String(input);
+    if (url.includes('/rest/v1/watchlists?')) return json([]);
+    if (url.includes('/rest/v1/watchlist_items') && init.method === 'POST') {
+      itemWrites += 1;
+      return json({}, 201);
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  };
+  const response = await handleSavedResearchRequest(
+    new Request(`https://stockpro1.qzz.io/api/watchlists/${watchlistId}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol: 'INFY', exchange: 'NSE' }),
+    }),
+    `/api/watchlists/${watchlistId}/items`,
+    {
+      SUPABASE_URL: 'https://project.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-test-value',
+    },
+    auth,
+  );
+  expect(response.status).toBe(404);
+  expect(await response.json()).toMatchObject({ status: 'not_found' });
+  expect(itemWrites).toBe(0);
+});
+
+test('authorized vendor bindings also configure the standardized live provider adapter', async () => {
+  const requested: string[] = [];
+  globalThis.fetch = async (input) => {
+    requested.push(String(input));
+    return json({
+      status: 'ok',
+      source: 'authorized_vendor',
+      timestamp: '2026-07-22T00:00:00.000Z',
+      delayMinutes: 0,
+      isLive: true,
+      isStale: false,
+      providerStatus: 'connected',
+      message: 'Authorized provider connected.',
+      data: { status: 'connected' },
+    });
+  };
+  const provider = externalProviderAdapter({
+    MARKET_DATA_PROVIDER: 'authorized_vendor',
+    AUTHORIZED_VENDOR_BASE_URL: 'https://licensed-provider.example',
+    AUTHORIZED_VENDOR_API_KEY: 'server-only-provider-key',
+  });
+  expect((await provider.health()).status).toBe('ok');
+  expect(requested).toEqual(['https://licensed-provider.example/health']);
+});
+
+test('Zerodha instrument refresh accepts the official NSE equity CSV shape', async () => {
+  let persisted: Array<Record<string, unknown>> = [];
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    if (url === 'https://api.kite.trade/instruments/NSE') {
+      return new Response([
+        'instrument_token,exchange_token,tradingsymbol,name,last_price,expiry,strike,tick_size,lot_size,instrument_type,segment,exchange',
+        '738561,2885,RELIANCE,RELIANCE INDUSTRIES,0,,,0.05,1,EQ,NSE,NSE',
+      ].join('\n'), { status: 200, headers: { 'Content-Type': 'text/csv' } });
+    }
+    if (url.includes('/rest/v1/market_instruments')) {
+      persisted = JSON.parse(String(init?.body));
+      return json(persisted, 201);
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  };
+  const response = await handleCrtScannerRequest(
+    new Request('https://stockpro1.qzz.io/api/market/instruments/refresh', {
+      method: 'POST',
+      headers: { 'X-Admin-Token': 'admin-test-value' },
+    }),
+    '/api/market/instruments/refresh',
+    {
+      MARKET_DATA_PROVIDER: 'zerodha',
+      ZERODHA_API_KEY: 'zerodha-api-key',
+      ZERODHA_ACCESS_TOKEN: 'zerodha-access-token',
+      ADMIN_ACCESS_TOKEN: 'admin-test-value',
+      SUPABASE_URL: 'https://project.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-test-value',
+      SUPABASE_MARKET_INSTRUMENTS_TABLE: 'market_instruments',
+    },
+    undefined,
+    async () => true,
+  );
+  const payload = await response.json();
+  expect(payload).toMatchObject({ status: 'ok', count: 1 });
+  expect(persisted).toHaveLength(1);
+  expect(persisted[0]).toMatchObject({ instrument_token: '738561', symbol: 'RELIANCE', segment: 'EQ', active: true });
+});
+
+test('database readiness probes all 18 mandatory tables including broker OAuth state storage', async () => {
+  const requested: string[] = [];
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    requested.push(url);
+    return url.includes('/rest/v1/broker_oauth_states?') ? json({}, 404) : json([]);
+  };
+  const response = await stockproWorker.fetch(
+    new Request('https://stockpro1.qzz.io/api/database/readiness'),
+    {
+      SUPABASE_URL: 'https://project.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-test-value',
+      SUPABASE_BROKER_OAUTH_STATES_TABLE: 'broker_oauth_states',
+    },
+    undefined,
+  );
+  const payload = await response.json();
+  expect(response.status).toBe(200);
+  expect(payload.status).toBe('setup_required');
+  expect(payload.configured).toBe(false);
+  expect(Object.keys(payload.tables)).toHaveLength(18);
+  expect(payload.tables.broker_oauth_states).toBe('missing');
+  expect(requested.some((url) => url.includes('/rest/v1/broker_oauth_states?'))).toBe(true);
+});
+
+test('database readiness honors a custom broker-connections table binding', async () => {
+  const requested: string[] = [];
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    requested.push(url);
+    return url.includes('/rest/v1/tenant_broker_connections?') ? json({}, 404) : json([]);
+  };
+  const response = await stockproWorker.fetch(
+    new Request('https://stockpro1.qzz.io/api/database/readiness'),
+    {
+      SUPABASE_URL: 'https://project.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-test-value',
+      SUPABASE_BROKER_CONNECTIONS_TABLE: 'tenant_broker_connections',
+    },
+    undefined,
+  );
+  const payload = await response.json();
+  expect(payload.tables.broker_connections).toBe('missing');
+  expect(requested.some((url) => url.includes('/rest/v1/tenant_broker_connections?'))).toBe(true);
+});
+
+const operationsEnv = {
+  SUPABASE_AUTH_ENABLED: 'true',
+  SUPABASE_URL: 'https://project.supabase.co',
+  SUPABASE_ANON_KEY: 'anon-test-value',
+  SUPABASE_SERVICE_ROLE_KEY: 'service-role-test-value',
+  TURNSTILE_SECRET_KEY: 'turnstile-test-value',
+  SUPABASE_WAITLIST_TABLE: 'waitlist_leads',
+  SUPABASE_CRT_SCAN_RUNS_TABLE: 'crt_scan_runs',
+  SUPABASE_CRT_SCAN_RESULTS_TABLE: 'crt_scan_results',
+  SUPABASE_WATCHLISTS_TABLE: 'watchlists',
+  SUPABASE_WATCHLIST_ITEMS_TABLE: 'watchlist_items',
+  SUPABASE_ALERTS_TABLE: 'alerts',
+  SUPABASE_SAVED_SCREENS_TABLE: 'saved_screeners',
+  SUPABASE_SAVED_RESEARCH_TABLE: 'saved_research',
+};
+
+async function operationsReadinessWithMissingTable(table: string) {
+  globalThis.fetch = async (input) => String(input).includes(`/rest/v1/${table}?`) ? json({}, 404) : json([]);
+  const response = await stockproWorker.fetch(
+    new Request('https://stockpro1.qzz.io/api/operations/readiness'),
+    operationsEnv,
+    undefined,
+  );
+  return { response, payload: await response.json() };
+}
+
+test('operations readiness requires every CRT and saved-research table to be reachable', async () => {
+  const cases = [
+    ['crt_scan_runs', 'crtStorage'],
+    ['crt_scan_results', 'crtStorage'],
+    ['watchlists', 'savedResearch'],
+    ['watchlist_items', 'savedResearch'],
+    ['alerts', 'savedResearch'],
+    ['saved_screeners', 'savedResearch'],
+    ['saved_research', 'savedResearch'],
+  ] as const;
+  for (const [table, service] of cases) {
+    const { response, payload } = await operationsReadinessWithMissingTable(table);
+    expect(response.status, table).toBe(200);
+    expect(payload.services[service], table).toBe('setup_required');
+  }
+  const { response, payload } = await operationsReadinessWithMissingTable('saved_research');
+  expect(response.status).toBe(200);
+  expect(payload.services.auth).toBe('configured');
+  expect(payload.services.turnstile).toBe('configured');
+  expect(payload.services.supabase).toBe('configured');
+  expect(payload.services.crtStorage).toBe('configured');
+  expect(payload.services.savedResearch).toBe('setup_required');
+  expect(payload.services.paymentLive).toBe('disabled');
+});
+
+test('waitlist health reports reachable and unavailable storage truthfully', async () => {
+  globalThis.fetch = async () => json([]);
+  const reachable = await stockproWorker.fetch(
+    new Request('https://stockpro1.qzz.io/api/waitlist/health'),
+    operationsEnv,
+    undefined,
+  );
+  expect(reachable.status).toBe(200);
+  expect(await reachable.json()).toMatchObject({ status: 'ok', configured: true });
+
+  globalThis.fetch = async () => json({}, 503);
+  const unavailable = await stockproWorker.fetch(
+    new Request('https://stockpro1.qzz.io/api/waitlist/health'),
+    operationsEnv,
+    undefined,
+  );
+  expect(unavailable.status).toBe(503);
+  expect(await unavailable.json()).toMatchObject({ status: 'unavailable', configured: false });
 });

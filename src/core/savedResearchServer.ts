@@ -100,6 +100,10 @@ export async function handleSavedResearchRequest(request: Request, path: string,
   if (itemMatch && request.method === 'POST') {
     const parsed = watchlistItemSchema.safeParse(await body(request));
     if (!parsed.success) return json({ status: 'error', message: 'A valid NSE equity symbol is required.' }, 400);
+    const ownershipResponse = await rest(env, cfg.watchlists, { method: 'GET' }, `?id=eq.${itemMatch[1]}&user_id=eq.${encodeURIComponent(userId)}&select=id&limit=1`);
+    if (!ownershipResponse.ok) return json({ status: 'error', message: 'Watchlist ownership could not be verified.' }, 502);
+    const ownedWatchlists = await ownershipResponse.json().catch(() => []);
+    if (!Array.isArray(ownedWatchlists) || ownedWatchlists.length !== 1) return json({ status: 'not_found', message: 'Watchlist not found.' }, 404);
     const response = await rest(env, cfg.items, { method: 'POST', body: JSON.stringify({ user_id: userId, watchlist_id: itemMatch[1], ...parsed.data }) }, '?on_conflict=watchlist_id,symbol');
     return json({ status: response.ok ? 'created' : 'error', message: response.ok ? 'Stock saved to watchlist.' : 'Stock could not be saved.' }, response.ok ? 201 : 502);
   }

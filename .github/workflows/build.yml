@@ -80,6 +80,7 @@ jobs:
 
   production-readiness:
     name: Configured production readiness APIs
+    environment: production
     runs-on: ubuntu-latest
 
     steps:
@@ -99,6 +100,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
+    environment: preview
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
