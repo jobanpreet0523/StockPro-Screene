@@ -29,4 +29,4 @@ Reachability is not readiness. Supabase can be reachable while an empty schema o
 
 Each workflow is inactive on import, has a global and per-workflow disable switch, starts in test mode, uses a fixed retry budget with jitter only for transient idempotent operations, emits an audit event, and moves exhausted failures to encrypted dead-letter storage. State-change monitors suppress duplicate notifications. Human approval gates production-changing or destructive suggestions; approval never expands the workflow's technical permissions.
 
-The ten templates and runbooks under `automation/n8n` are the authoritative workflow inventory. `scripts/verify-n8n-contracts.mjs` checks their static contract without network or secret access.
+The eleven templates and runbooks under `automation/n8n` are the authoritative workflow inventory. `scripts/verify-n8n-contracts.mjs` checks their static contract without network or secret access.

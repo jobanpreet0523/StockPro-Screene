@@ -10,6 +10,8 @@ on:
       # PR #48 is intentionally stacked on this free-beta foundation branch.
       # Keep the complete gate suite active until the stack is rebased to main.
       - agent/free-beta-3d-launch
+      # Mission B is intentionally stacked on PR #48 until the owner merges it.
+      - agent/homepage-full-3d-automation
   workflow_dispatch:
 
 permissions:

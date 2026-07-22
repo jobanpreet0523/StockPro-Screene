@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "state": "TEST_MODE",
+  "globalKillSwitch": true,
+  "queues": [
+    {"slug":"dependency-audit","wave":5,"owner":"046","reviewer":"051","mode":"read_only","schedule":"weekly","active":false,"output":"sanitized dependency risk report"},
+    {"slug":"broken-link-audit","wave":5,"owner":"076","reviewer":"054","mode":"read_only","schedule":"weekly","active":false,"output":"public route and link report"},
+    {"slug":"sitemap-validation","wave":5,"owner":"077","reviewer":"076","mode":"read_only","schedule":"weekly","active":false,"output":"sitemap and robots validation"},
+    {"slug":"uptime-readiness-check","wave":5,"owner":"068","reviewer":"061","mode":"read_only","schedule":"five minutes","active":false,"output":"transition-only readiness state"},
+    {"slug":"stale-documentation-detection","wave":5,"owner":"008","reviewer":"003","mode":"read_only","schedule":"weekly","active":false,"output":"documentation review queue"},
+    {"slug":"issue-triage","wave":5,"owner":"003","reviewer":"005","mode":"read_only","schedule":"daily","active":false,"output":"sanitized issue priority queue"},
+    {"slug":"analytics-report-generation","wave":5,"owner":"078","reviewer":"048","mode":"read_only","schedule":"weekly","active":false,"output":"aggregate privacy-safe analytics report"},
+    {"slug":"blog-research","wave":6,"owner":"082","reviewer":"083","mode":"draft","schedule":"on approved task","active":false,"output":"sourced research packet"},
+    {"slug":"blog-outline","wave":6,"owner":"082","reviewer":"083","mode":"draft","schedule":"after research review","active":false,"output":"educational outline"},
+    {"slug":"fact-checking","wave":6,"owner":"083","reviewer":"080","mode":"draft","schedule":"after content draft","active":false,"output":"claim-by-claim verification record"},
+    {"slug":"instagram-draft","wave":6,"owner":"085","reviewer":"083","mode":"draft","schedule":"on approved task","active":false,"output":"unpublished platform draft"},
+    {"slug":"x-threads-draft","wave":6,"owner":"086","reviewer":"083","mode":"draft","schedule":"on approved task","active":false,"output":"unpublished platform draft"},
+    {"slug":"youtube-script","wave":6,"owner":"087","reviewer":"083","mode":"draft","schedule":"on approved task","active":false,"output":"unpublished script and creative brief"},
+    {"slug":"newsletter-draft","wave":6,"owner":"088","reviewer":"083","mode":"draft","schedule":"after verified published source","active":false,"output":"unsent newsletter draft"}
+  ]
+}

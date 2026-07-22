@@ -1,0 +1,5 @@
+{
+  "schemaVersion": "1.0.0",
+  "description": "Scoped human approval evidence. Empty in repository test mode; never store names, emails, signatures, tokens, or secret values.",
+  "records": []
+}

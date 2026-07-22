@@ -1,0 +1,15 @@
+# Human review ownership. Branch protection must enforce CODEOWNERS review.
+* @jobanpreet0523
+/.github/workflows/ @jobanpreet0523
+/src/_worker.js @jobanpreet0523
+/wrangler.toml @jobanpreet0523
+/supabase/migrations/ @jobanpreet0523
+/src/core/*auth* @jobanpreet0523
+/src/core/*Auth* @jobanpreet0523
+/src/core/*broker* @jobanpreet0523
+/src/core/providers/ @jobanpreet0523
+/automation/n8n/ @jobanpreet0523
+/docs/content/ @jobanpreet0523
+/docs/agents/ @jobanpreet0523
+/scripts/agents/ @jobanpreet0523
+/.agents/skills/ @jobanpreet0523

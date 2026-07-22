@@ -35,7 +35,7 @@ Run executable ingress tests separately with node --test automation/n8n/security
 
 ## Layout
 
-- `workflows/`: ten inactive import templates.
+- `workflows/`: eleven inactive import templates.
 - `runbooks/`: activation, test, failure, and shutdown procedures per workflow.
 - `security/`: ingress schema, threat model, redaction, and egress controls.
 - `docker-compose.example.yml`: standalone topology example, bound to loopback only.
@@ -57,5 +57,6 @@ No workflow may merge code, push code, deploy, roll back, enable payment, execut
 | Weekly Product Analytics Digest | Monday 10:00 IST | Product Analytics | aggregate operator digest only |
 | Daily Support Digest | daily 08:00 IST | Customer Support | privacy-safe operator digest only |
 | Release Verification | authenticated successful-deploy webhook | Release Engineering | safe checks + report/issue only |
+| Approved Content Scheduling | authenticated approved-content webhook | Content Operations | test-mode plan or human queue only; never publishes |
 
 workflow-specs.json is the reviewed source inventory; generate-contract-artifacts.mjs deterministically builds the exports and runbooks using Node built-ins. Readiness distinguishes setup_required from outage, and reachability alone never proves readiness. Provider monitoring distinguishes scheduled market closure and unconfigured providers from verified outages. No unchanged state produces a repeated operator notification.

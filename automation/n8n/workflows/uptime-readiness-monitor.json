@@ -82,6 +82,39 @@
           },
           "conditions": [
             {
+              "id": "06b969bf-97c0-451b-9e3e-a41e64ac1fd4",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_ENABLED || 'false' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -270,
+        -40
+      ],
+      "id": "6f6c16d4-ab98-4afb-8034-fb9678b7cce3",
+      "name": "Global Automation Enabled Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
               "id": "c9254fd4-b370-40e4-94d2-e333d46724c2",
               "leftValue": "={{ $vars.STOCKPRO_WF_UPTIME_READINESS_MONITOR_ENABLED || 'false' }}",
               "rightValue": "true",
@@ -729,6 +762,24 @@
       "main": [
         [
           {
+            "node": "Global Automation Enabled Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Automation Enabled Gate": {
+      "main": [
+        [
+          {
             "node": "Workflow Enabled Gate",
             "type": "main",
             "index": 0
@@ -895,6 +946,7 @@
     "deploymentStatus": "DOCUMENTED_NOT_DEPLOYED",
     "activeOnImport": false,
     "globalDisableSwitch": "STOCKPRO_AUTOMATION_KILL_SWITCH",
+    "globalEnableSwitch": "STOCKPRO_AUTOMATION_ENABLED",
     "workflowDisableSwitch": "STOCKPRO_WF_UPTIME_READINESS_MONITOR_ENABLED",
     "testModeSwitch": "STOCKPRO_AUTOMATION_TEST_MODE",
     "failurePath": [

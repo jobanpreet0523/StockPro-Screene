@@ -101,6 +101,7 @@ function workflow(spec) {
   });
   nodes.push(triggerNode(spec));
   nodes.push(ifNode(spec, "Global Kill Switch Gate", "={{ $vars.STOCKPRO_AUTOMATION_KILL_SWITCH || 'true' }}", "notEquals", "true", [-380, 0]));
+  nodes.push(ifNode(spec, "Global Automation Enabled Gate", "={{ $vars.STOCKPRO_AUTOMATION_ENABLED || 'false' }}", "equals", "true", [-270, -40]));
   nodes.push(ifNode(spec, "Workflow Enabled Gate", "={{ $vars." + enabledVar(spec) + " || 'false' }}", "equals", "true", [-160, -80]));
   nodes.push(ifNode(spec, "Test Mode Gate", "={{ $vars.STOCKPRO_AUTOMATION_TEST_MODE || 'true' }}", "equals", "true", [60, -140]));
   nodes.push(setNode(spec, "Minimize Allowlisted Input", [280, -220], input));
@@ -112,8 +113,10 @@ function workflow(spec) {
   nodes.push({ parameters: {}, type: "n8n-nodes-base.noOp", typeVersion: 1, position: [500, -40], id: uuid(spec.slug + ":test-stop"), name: "No Business Side Effect in Test Mode" });
   nodes.push(httpNode(spec, "Disabled Audit Event", "STOCKPRO_AUDIT_SINK_URL", "StockPro immutable audit sink", [0, 220], false, auditBody(spec, "disabled")));
   connect(trigger, 0, "Global Kill Switch Gate");
-  connect("Global Kill Switch Gate", 0, "Workflow Enabled Gate");
+  connect("Global Kill Switch Gate", 0, "Global Automation Enabled Gate");
   connect("Global Kill Switch Gate", 1, "Disabled Audit Event");
+  connect("Global Automation Enabled Gate", 0, "Workflow Enabled Gate");
+  connect("Global Automation Enabled Gate", 1, "Disabled Audit Event");
   connect("Workflow Enabled Gate", 0, "Test Mode Gate");
   connect("Workflow Enabled Gate", 1, "Disabled Audit Event");
   connect("Test Mode Gate", 0, "Test Mode Audit Event");
@@ -185,6 +188,7 @@ function workflow(spec) {
       deploymentStatus: "DOCUMENTED_NOT_DEPLOYED",
       activeOnImport: false,
       globalDisableSwitch: "STOCKPRO_AUTOMATION_KILL_SWITCH",
+      globalEnableSwitch: "STOCKPRO_AUTOMATION_ENABLED",
       workflowDisableSwitch: enabledVar(spec),
       testModeSwitch: "STOCKPRO_AUTOMATION_TEST_MODE",
       failurePath: ["bounded retry on idempotent fixed adapter", "body-free failure audit", "encrypted dead letter after exhaustion", "human escalation"],
@@ -226,7 +230,7 @@ function runbook(spec) {
     "## External provisioning",
     "",
     "- Create " + enabledVar(spec) + " as false.",
-    "- Keep STOCKPRO_AUTOMATION_TEST_MODE=true and STOCKPRO_AUTOMATION_KILL_SWITCH=true until approval.",
+    "- Keep STOCKPRO_AUTOMATION_ENABLED=false, STOCKPRO_AUTOMATION_TEST_MODE=true, and STOCKPRO_AUTOMATION_KILL_SWITCH=true until approval.",
     "- Provision " + spec.adapter + " as fixed allowlisted HTTPS egress and bind the least-privilege credential named " + spec.credential + ".",
     "- The adapter must atomically bind every idempotency key to the minimized body and return the recorded result for an identical duplicate; a body collision fails closed.",
     ...(spec.notify ? ["- Provision " + spec.notify + " and bind " + spec.notifyCredential + " for transition-only notification."] : []),
@@ -238,7 +242,7 @@ function runbook(spec) {
     "1. Run node scripts/verify-n8n-contracts.mjs on the reviewed commit.",
     "2. Import and confirm inactive. Security verifies ingress, fixed egress, scopes, redaction, replay/idempotency, rate limits, audit, and dead letter.",
     "3. Owner verifies all actions/destinations and runs every test below in test mode.",
-    "4. Obtain owner and Security approval. Clear global kill switch while workflow switch remains false; activate; then enable only this workflow.",
+    "4. Obtain owner and Security approval. Clear the kill switch, enable global automation, activate, and then enable only this workflow. Reverse any one of those gates to stop it.",
     "5. Observe audit, DLQ, errors, and egress through a full cycle. Human approval never grants absent merge/deploy/payment/trading/delete capability.",
     "",
     "## Test mode, retry, failure, and dead-letter tests",

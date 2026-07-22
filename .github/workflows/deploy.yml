@@ -1,9 +1,6 @@
 name: Deploy to Cloudflare Workers
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -29,6 +26,13 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+
+      - name: Verify agent, security, and automation policies for exact dispatch commit
+        run: |
+          npm run verify:agents
+          npm run security:scan
+          npm run test:security-invariants
+          npm run verify:n8n-contracts
 
       - name: Build
         run: npm run build
