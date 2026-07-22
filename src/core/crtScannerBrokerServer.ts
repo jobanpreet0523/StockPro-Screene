@@ -173,7 +173,7 @@ async function processRun(env: Env, runId: string, userId: string, provider: Pro
   const db = database(env);
   try {
     await updateRun(env, runId, userId, { status: 'running' });
-    const decrypted = await decryptBrokerToken({ record: { provider, userId, encryptedToken: row.encrypted_token, iv: row.token_iv, algorithm: 'AES-GCM', createdAt: row.connected_at || new Date().toISOString() }, secret: clean(env.BROKER_ENCRYPTION_SECRET, 1000) });
+    const decrypted = await decryptBrokerToken({ record: { provider, userId, encryptedToken: row.encrypted_token, iv: row.token_iv, algorithm: 'AES-GCM', createdAt: row.connected_at || new Date().toISOString() }, secret: clean(env.BROKER_TOKEN_ENCRYPTION_KEY || env.BROKER_ENCRYPTION_SECRET, 1000) });
     if (decrypted.status !== 'ok' || !decrypted.token) throw new Error('Broker credentials could not be opened for this scan.');
     const credentials = JSON.parse(decrypted.token) as { accessToken: string; clientId?: string };
     const limit = Math.min(250, Math.max(1, Number(env.CRT_SCAN_MAX_INSTRUMENTS) || 100));

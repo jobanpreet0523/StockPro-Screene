@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { fetchSearchRuntimeConfig, getSearchClient, type SearchRuntimeConfig } from '../../core/searchConfig';
 import { searchResultItemSchema, type SearchResultItem } from '../../core/schemas';
 import SearchResultCard from './SearchResultCard';
 
-export default function StockProSearch() {
+export default function StockProSearch({ autoFocus = false }: { autoFocus?: boolean }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const client = useMemo(() => getSearchClient(), []);
   const [runtime, setRuntime] = useState<SearchRuntimeConfig>({ status: 'setup_required', indices: [], message: 'Checking search setup...' });
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [message, setMessage] = useState('');
+  const unavailable = !client || runtime.status !== 'configured';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -20,6 +22,10 @@ export default function StockProSearch() {
     }));
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (autoFocus && !unavailable) inputRef.current?.focus();
+  }, [autoFocus, unavailable]);
 
   useEffect(() => {
     if (!client || runtime.status !== 'configured' || query.trim().length < 2) {
@@ -53,13 +59,12 @@ export default function StockProSearch() {
     };
   }, [client, query, runtime]);
 
-  const unavailable = !client || runtime.status !== 'configured';
   return (
     <div className="relative">
       <label className="relative block">
         <span className="sr-only">Search StockPro</span>
         <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} disabled={unavailable} placeholder={unavailable ? 'Search setup required' : 'Search stocks, sectors, and guides'} className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950" />
+        <input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} disabled={unavailable} placeholder={unavailable ? 'Search setup required' : 'Search stocks, sectors, and guides'} className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950" />
       </label>
       {(results.length > 0 || message) && (
         <div className="absolute z-50 mt-2 max-h-80 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950">

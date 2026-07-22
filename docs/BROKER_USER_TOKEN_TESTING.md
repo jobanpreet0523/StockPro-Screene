@@ -6,7 +6,7 @@ This flow is for real beta users testing read-only market data from their own br
 
 1. Configure Supabase Auth, `broker_connections`, and `broker_connection_events`.
 2. Set `BROKER_TOKEN_STORAGE=supabase`.
-3. Store a random `BROKER_ENCRYPTION_SECRET` of at least 32 characters as a Worker secret.
+3. Store a random `BROKER_TOKEN_ENCRYPTION_KEY` of at least 32 characters as a Worker secret.
 4. Configure the approved broker application and callback.
 5. Confirm order placement is disabled.
 

@@ -1,11 +1,23 @@
 .landing-3d-root {
-  position: relative;
-  width: min(100%, 480px);
-  min-height: 300px;
+  position: fixed;
+  top: clamp(5rem, 11vh, 8rem);
+  right: max(1.5rem, calc((100vw - 1440px) / 2));
+  z-index: 4;
+  width: min(46vw, 720px);
+  min-height: min(56vh, 450px);
   aspect-ratio: 8 / 5;
   margin-inline: auto;
   overflow: hidden;
   isolation: isolate;
+  pointer-events: none;
+  contain: layout paint;
+  background: radial-gradient(circle at 58% 42%, rgb(47 107 255 / 12%), transparent 58%);
+  transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.landing-3d-root[data-landing-3d-visible='false'] {
+  visibility: hidden;
+  opacity: 0;
 }
 
 .landing-3d-fallback,
@@ -34,13 +46,38 @@
   opacity: 1;
 }
 
+.landing-3d-root[data-render-ready='true'] .landing-3d-fallback {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.landing-3d-root[data-landing-3d-state='error'] .landing-3d-fallback,
+.landing-3d-root[data-landing-3d-context='lost'] .landing-3d-fallback {
+  opacity: 1;
+}
+
+.landing-3d-root[data-landing-3d-state='error'] .landing-3d-canvas,
+.landing-3d-root[data-landing-3d-context='lost'] .landing-3d-canvas {
+  visibility: hidden;
+  opacity: 0;
+}
+
 @media (max-width: 768px), (prefers-reduced-motion: reduce) {
   .landing-3d-root {
-    width: min(100%, 180px);
-    min-height: 113px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 1px;
+    min-height: 1px;
+    aspect-ratio: auto;
   }
 
   .landing-3d-canvas {
     display: none;
+  }
+
+  .landing-3d-fallback {
+    opacity: 1 !important;
+    transition: none;
   }
 }

@@ -30,7 +30,7 @@ create policy "profiles_update_own" on public.user_profiles for update to authen
 drop policy if exists "watchlists_own_all" on public.watchlists;
 create policy "watchlists_own_all" on public.watchlists for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "watchlist_items_own_all" on public.watchlist_items;
-create policy "watchlist_items_own_all" on public.watchlist_items for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "watchlist_items_own_all" on public.watchlist_items for all to authenticated using (user_id = (select auth.uid()) and exists (select 1 from public.watchlists where id = watchlist_id and user_id = (select auth.uid()))) with check (user_id = (select auth.uid()) and exists (select 1 from public.watchlists where id = watchlist_id and user_id = (select auth.uid())));
 drop policy if exists "alerts_own_all" on public.alerts;
 create policy "alerts_own_all" on public.alerts for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "saved_screeners_own_all" on public.saved_screeners;

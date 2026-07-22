@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { captureSafeEvent, initPostHog, type SafeAnalyticsEvent } from '../../lib/posthog';
+import { captureSafeEvent, captureWebVital, initPostHog, type SafeAnalyticsEvent } from '../../lib/posthog';
 import { captureRouteError, initSentry } from '../../lib/sentry';
 
 const explicitEventMap: Record<string, SafeAnalyticsEvent> = {
@@ -36,7 +36,10 @@ export default function AnalyticsProvider({ children }: { children: ReactNode })
 
   useEffect(() => {
     initSentry();
-    initPostHog();
+    void initPostHog().then((configured) => {
+      if (!configured) return;
+      void import('../../lib/webVitals').then(({ reportWebVitals }) => reportWebVitals(captureWebVital));
+    });
   }, []);
 
   useEffect(() => {

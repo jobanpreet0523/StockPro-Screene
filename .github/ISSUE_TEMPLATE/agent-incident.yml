@@ -1,0 +1,43 @@
+name: Agent incident
+description: Record a sanitized Agent OS policy, security, or automation incident.
+title: "[AGENT INCIDENT] "
+labels: ["agent-incident", "security-review"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include secrets, raw payloads, customer/support text, broker/financial data, or private prompts. Enable the narrow kill switch first when authorized."
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options: [low, medium, high, critical]
+    validations:
+      required: true
+  - type: input
+    id: task
+    attributes:
+      label: Related task ID
+  - type: textarea
+    id: summary
+    attributes:
+      label: Sanitized observation and affected capability
+    validations:
+      required: true
+  - type: textarea
+    id: containment
+    attributes:
+      label: Kill-switch or containment state
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence references
+    validations:
+      required: true
+  - type: textarea
+    id: recovery
+    attributes:
+      label: Human owner, recovery, validation, and rollback
+    validations:
+      required: true

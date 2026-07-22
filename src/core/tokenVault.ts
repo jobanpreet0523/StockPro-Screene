@@ -39,7 +39,7 @@ async function deriveKey(secret: string) {
   return crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
-function setupRequired(message = 'Broker token vault requires BROKER_ENCRYPTION_SECRET before tokens can be stored.') {
+function setupRequired(message = 'Broker token vault requires BROKER_TOKEN_ENCRYPTION_KEY before tokens can be stored.') {
   return { status: 'setup_required' as const, message };
 }
 

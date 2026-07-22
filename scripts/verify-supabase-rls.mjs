@@ -15,7 +15,9 @@ const admin = createClient(url, serviceKey, { auth: authOptions });
 const anonymous = createClient(url, anonKey, { auth: authOptions });
 const run = randomBytes(8).toString('hex');
 const password = `StockPro-${randomBytes(18).toString('base64url')}!9a`;
-const emails = [`stockpro-e2e-user-a-${run}@example.invalid`, `stockpro-e2e-user-b-${run}@example.invalid`];
+// Use an IANA-reserved address and generate recovery material server-side.
+// The test must never attempt to deliver email to a real operator mailbox.
+const emails = [`stockpro-e2e-user-a-${run}@example.com`, `stockpro-e2e-user-b-${run}@example.com`];
 const users = [];
 const canaries = [];
 
@@ -70,7 +72,12 @@ try {
 
   const invalidAuth = await fetch(`${url}/auth/v1/user`, { headers: { apikey: anonKey, Authorization: 'Bearer invalid-stockpro-test-token' } });
   ok(invalidAuth.status === 401 || invalidAuth.status === 403, 'invalid token was not rejected');
-  ensure(await anonymous.auth.resetPasswordForEmail(emails[0], { redirectTo: 'https://stockpro1.qzz.io/account' }), 'password reset request');
+  const recovery = ensure(await admin.auth.admin.generateLink({
+    type: 'recovery',
+    email: emails[0],
+    options: { redirectTo: 'https://stockpro1.qzz.io/account' },
+  }), 'generate recovery link');
+  ok(recovery.user?.id === users[0].id && recovery.properties?.action_link, 'recovery link was not generated for the temporary user');
 
   const owned = [];
   for (let index = 0; index < clients.length; index += 1) {
@@ -91,6 +98,12 @@ try {
       saved_research: research.id,
     });
   }
+  const crossParentInsert = await clients[0].from('watchlist_items').insert({
+    user_id: users[0].id,
+    watchlist_id: owned[1].watchlists,
+    symbol: 'WIPRO',
+  }).select('id');
+  ok(Boolean(crossParentInsert.error) || crossParentInsert.data?.length === 0, 'cross-user watchlist parent accepted an item');
 
   const ownerTables = Object.keys(owned[0]);
   for (let index = 0; index < clients.length; index += 1) {
@@ -110,9 +123,9 @@ try {
   const brokerConnection = await insertCanary('broker_connections', { user_id: users[0].id, provider: 'upstox', encrypted_token: `cipher-${run}`, token_iv: `iv-${run}`, status: 'pending_verification' });
   const scanRun = await insertCanary('crt_scan_runs', { user_id: users[0].id, provider: 'upstox', status: 'completed', filters: { test: true } });
   const protectedRows = [
-    ['waitlist_leads', { name: 'StockPro RLS test', email: `waitlist-${run}@example.invalid`, interest: 'automated-rls' }],
+    ['waitlist_leads', { name: 'StockPro RLS test', email: `waitlist-${run}@example.com`, interest: 'automated-rls' }],
     ['beta_feedback', { user_id: users[0].id, message: `Automated RLS ${run}` }],
-    ['contact_messages', { user_id: users[0].id, name: 'StockPro RLS test', email: `contact-${run}@example.invalid`, message: 'Automated RLS verification' }],
+    ['contact_messages', { user_id: users[0].id, name: 'StockPro RLS test', email: `contact-${run}@example.com`, message: 'Automated RLS verification' }],
     ['broker_connection_events', { user_id: users[0].id, broker_connection_id: brokerConnection, provider: 'upstox', event_type: 'test', outcome: 'blocked', safe_metadata: { test: true } }],
     ['broker_oauth_states', { user_id: users[0].id, provider: 'upstox', state_hash: `hash-${run}`, expires_at: new Date(Date.now() + 60_000).toISOString() }],
     ['market_instruments', { provider: 'rls-test', instrument_token: run, exchange: 'NSE', segment: 'EQ', symbol: 'RLS', trading_symbol: 'RLS' }],
@@ -146,7 +159,7 @@ try {
   }
 
   for (const client of clients) ensure(await client.auth.signOut(), 'temporary user logout');
-  console.log('Protected Supabase verification passed: auth lifecycle, two-user owner isolation, anonymous denial, server-only table denial, and password-reset redirect request.');
+  console.log('Protected Supabase verification passed: auth lifecycle, two-user owner isolation, anonymous denial, server-only table denial, and recovery-link generation.');
 } finally {
   await cleanup();
   console.log('Protected Supabase cleanup passed: all temporary rows and Auth users removed.');

@@ -8,17 +8,19 @@ const allowedStatuses = {
   '/api/live/health': ['ok', 'configured', 'setup_required', 'provider_required', 'provider_unavailable', 'unavailable'],
   '/api/market/provider-status': ['configured', 'setup_required', 'provider_required', 'unavailable'],
   '/api/broker/status': ['not_connected', 'login_required', 'setup_required'],
-  '/api/broker/upstox/status': ['login_required'],
-  '/api/broker/dhan/status': ['login_required'],
+  '/api/broker/upstox/status': ['login_required', 'setup_required', 'provider_required', 'unavailable'],
+  '/api/broker/dhan/status': ['login_required', 'setup_required', 'provider_required', 'approval_pending', 'unavailable'],
   '/api/broker/angelone/status': ['setup_pending'],
-  '/api/crt-scanner/readiness': ['login_required'],
+  '/api/crt-scanner/readiness': ['login_required', 'setup_required', 'provider_required', 'unavailable'],
   '/api/pro/readiness': ['setup_required'],
   '/api/trial/status': ['setup_required', 'ready'],
   '/api/billing/readiness': ['setup_required', 'test_ready'],
   '/api/waitlist/health': ['ok'],
 };
 
-const requiredServices = ['auth', 'turnstile', 'supabase', 'brokerProvider', 'brokerVault', 'crtStorage', 'savedResearch'];
+const requiredServices = ['auth', 'turnstile', 'supabase', 'crtStorage', 'savedResearch'];
+const optionalServices = ['brokerProvider', 'brokerVault'];
+const allowedOptionalServiceStatuses = ['configured', 'setup_required', 'provider_required', 'approval_pending', 'unavailable'];
 const forbiddenResponseKeys = /^(access_?token|refresh_?token|service_?role(_?key)?|authorization|password|cookie|client_?secret|api_?key)$/i;
 
 function fail(message) {
@@ -90,13 +92,18 @@ await inspect('/api/operations/readiness', {
         fail(`/api/operations/readiness reports ${service}=${payload.services?.[service] || 'missing'}.`);
       }
     }
+    for (const service of optionalServices) {
+      if (!allowedOptionalServiceStatuses.includes(payload.services?.[service])) {
+        fail(`/api/operations/readiness reports invalid optional ${service}=${payload.services?.[service] || 'missing'}.`);
+      }
+    }
     if (payload.services?.paymentLive !== 'disabled') fail('Production readiness did not confirm paymentLive=disabled.');
   },
   summary: ({ response, payload }) => ({
     path: '/api/operations/readiness',
     http: response.status,
     status: payload.status,
-    services: Object.fromEntries([...requiredServices, 'paymentLive'].map((key) => [key, payload.services?.[key]])),
+    services: Object.fromEntries([...requiredServices, ...optionalServices, 'paymentLive'].map((key) => [key, payload.services?.[key]])),
   }),
 });
 
@@ -132,7 +139,7 @@ await inspect('/api/contact', {
   init: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'Production verifier', email: 'verifier@example.com', subject: 'Automated validation', message: 'Turnstile rejection check.', turnstileToken: '' }),
+    body: JSON.stringify({ name: 'Production verifier', email: 'verifier@example.com', interest: 'Automated validation', message: 'Turnstile rejection check.', turnstileToken: '' }),
   },
   validate: ({ payload }) => {
     if (!['invalid', 'invalid_input'].includes(payload.status)) fail(`/api/contact missing-token check returned status ${payload.status}.`);

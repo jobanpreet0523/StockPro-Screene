@@ -33,7 +33,7 @@ Only publishable, site, DSN, or search-only credentials belong in browser variab
 - `ZERODHA_ACCESS_TOKEN`
 - `AUTHORIZED_VENDOR_API_KEY`
 - `AUTHORIZED_VENDOR_BASE_URL`
-- `BROKER_ENCRYPTION_SECRET`
+- `BROKER_TOKEN_ENCRYPTION_KEY`
 - `RAZORPAY_KEY_ID`
 - `RAZORPAY_KEY_SECRET`
 

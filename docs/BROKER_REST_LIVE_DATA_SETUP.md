@@ -17,7 +17,7 @@ Broker REST live data requires all of the following:
 ```bash
 BROKER_DATA_PROVIDER=dhan # or upstox
 BROKER_TOKEN_STORAGE=supabase
-BROKER_ENCRYPTION_SECRET=at-least-32-random-characters
+BROKER_TOKEN_ENCRYPTION_KEY=at-least-32-random-characters
 DHAN_CLIENT_ID=
 UPSTOX_CLIENT_ID=
 UPSTOX_CLIENT_SECRET=

@@ -72,6 +72,6 @@ StockPro returns HTTP 200 `setup_required` states.
 ## Token storage
 
 Configure `BROKER_TOKEN_STORAGE=supabase` and a high-entropy
-`BROKER_ENCRYPTION_SECRET`. AES-GCM appends its authentication tag to the
+`BROKER_TOKEN_ENCRYPTION_KEY`. AES-GCM appends its authentication tag to the
 ciphertext returned by Web Crypto. Each access or refresh token receives a
 unique IV. Apply `docs/SUPABASE_BROKER_OAUTH_MIGRATION.sql` before testing.

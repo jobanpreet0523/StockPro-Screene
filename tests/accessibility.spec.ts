@@ -5,6 +5,12 @@ import { mockSetupRequiredApis } from './helpers/mockSetupApis';
 const routes = ['/', '/pro', '/crt-scanner', '/connect-broker', '/account', '/pricing', '/contact', '/status'];
 
 test.describe('StockPro accessibility smoke', () => {
+  // Axe traverses the full route DOM and can exceed Playwright's default
+  // timeout on Windows software rendering. Keep the assertions intact while
+  // exercising the first-class reduced-motion experience deterministically.
+  test.describe.configure({ timeout: 60_000 });
+  test.use({ reducedMotion: 'reduce' });
+
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('theme', 'light'));
     await mockSetupRequiredApis(page);

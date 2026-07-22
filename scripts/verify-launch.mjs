@@ -14,7 +14,8 @@ const requiredFiles = [
   'src/components/landing3d/LandingHero3D.tsx',
   'src/components/landing3d/HeroFinancialScene.ts',
   'src/components/landing3d/Hero3DFallback.tsx',
-  'src/components/landing3d/SectionVisual.tsx',
+  'src/components/landing3d/LandingSceneFallback.tsx',
+  'src/styles/landing-story.css',
   'src/hooks/useWebGLCapability.ts',
   'src/hooks/useLanding3DQuality.ts',
   'src/components/RouteSeo.tsx',
@@ -53,6 +54,7 @@ const requiredFiles = [
   'src/hooks/useUserAccess.ts',
   'src/hooks/useProAccess.ts',
   'src/pages/StatusPage.tsx',
+  'src/components/landing/LandingPrimarySections.tsx',
   'scripts/seo-audit.mjs',
   'scripts/validate-sitemap.mjs',
   'scripts/verify-landing-links.mjs',
@@ -62,6 +64,9 @@ const requiredFiles = [
   'scripts/check-landing-bundle-budget.mjs',
   'tests/landing-3d.spec.ts',
   'docs/LANDING_3D_ASSETS.md',
+  'docs/design-research/HOMEPAGE_VISUAL_CONTRACT.md',
+  'docs/design-research/REMOVED_2D_ASSETS.md',
+  'docs/design-research/THREE_D_ASSET_MANIFEST.md',
   'docs/SUPABASE_BROKER_OAUTH_MIGRATION.sql',
   'docs/LANDING_INTERACTION_INVENTORY.md',
   'docs/PRODUCTION_ANALYTICS_TEST_GUIDE.md',
@@ -76,6 +81,7 @@ const requiredFiles = [
   'docs/CLOSED_BETA_LAUNCH.md',
   'docs/SUPABASE_FULL_SCHEMA.sql',
   'docs/SUPABASE_RLS_POLICIES.sql',
+  'supabase/migrations/20260722000000_watchlist_item_parent_ownership.sql',
   'docs/SUPABASE_SETUP_CHECKLIST.md',
   'docs/SUPABASE_AUTH_SETUP.md',
   'docs/MARKET_PROVIDER_SETUP.md',
@@ -147,7 +153,7 @@ for (const key of [
   'ALGOLIA_ADMIN_KEY',
   'ZERODHA_API_KEY',
   'AUTHORIZED_VENDOR_API_KEY',
-  'BROKER_ENCRYPTION_SECRET',
+  'BROKER_TOKEN_ENCRYPTION_KEY',
   'UPSTOX_REDIRECT_URI',
   'DHAN_API_KEY',
   'DHAN_API_SECRET',
@@ -185,7 +191,9 @@ const crt = read('src/pages/CrtScannerPage.tsx');
 for (const unsafe of ['BUY', 'SELL', 'demo badge', 'sample badge', 'fake live']) if (crt.includes(unsafe)) errors.push(`CRT Scanner contains prohibited label: ${unsafe}`);
 for (const required of ['Run CRT Scan', 'Refresh Market Data &amp; Scan Again', 'Filters will apply on next scan.', 'Data Captured At']) if (!crt.includes(required)) errors.push(`CRT Scanner is missing: ${required}`);
 
-const landing = read('src/components/LandingProductPage.tsx') + read('src/components/landing/LandingDeferredSections.tsx');
+const landing = read('src/components/LandingProductPage.tsx')
+  + read('src/components/landing/LandingPrimarySections.tsx')
+  + read('src/components/landing/LandingDeferredSections.tsx');
 const indexHtml = read('index.html');
 for (const unsafe of ['421K Cr', '198K Cr', 'BSE LIVE FEED', 'NSE LIVE FEED']) {
   if (landing.includes(unsafe)) errors.push(`Landing still contains unsafe fake-live token: ${unsafe}`);
@@ -207,7 +215,7 @@ if (!billing.includes('live_disabled: true') || !billing.includes('paymentEnable
 const marketData = read('src/core/marketDataClient.ts');
 if (!marketData.includes('validateProviderData')) errors.push('Market provider responses are not schema validated.');
 const landing3d = read('src/components/landing3d/LandingHero3D.tsx') + read('src/components/landing3d/HeroFinancialScene.ts');
-for (const required of ["import('./HeroFinancialScene')", 'visibilitychange', 'IntersectionObserver', 'dispose()', 'forceContextLoss', 'data-landing-3d-state']) {
+for (const required of ["import('./HeroFinancialScene')", 'visibilitychange', 'MutationObserver', 'requestAnimationFrame', 'dispose()', 'forceContextLoss', 'data-landing-3d-state']) {
   if (!landing3d.includes(required)) errors.push(`Landing 3D lifecycle is missing: ${required}`);
 }
 if (exists('src/data.ts')) errors.push('Obsolete sample-data module must not be present.');

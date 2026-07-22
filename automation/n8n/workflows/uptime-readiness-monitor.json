@@ -1,0 +1,1013 @@
+{
+  "name": "StockPro - Uptime and Readiness Monitor",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Inactive security-reviewed template\nOwner: Site Reliability owner\nRunbook: automation/n8n/runbooks/uptime-readiness-monitor.md\n\nNo endpoint values, credential identifiers, tokens, or private payloads are embedded.",
+        "height": 180,
+        "width": 520,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -760,
+        -300
+      ],
+      "id": "09b582dc-2d74-45f0-968e-6adf5a3e731e",
+      "name": "Contract Note"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ],
+      "id": "a2bbf519-15ad-4a6f-b167-e9469c3a9383",
+      "name": "Internal Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1a051ba7-38aa-4e9e-acd1-abd06e65de83",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_KILL_SWITCH || 'true' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -380,
+        0
+      ],
+      "id": "4939c6e5-f3dc-4963-8ff6-c3e51473ad1a",
+      "name": "Global Kill Switch Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "06b969bf-97c0-451b-9e3e-a41e64ac1fd4",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_ENABLED || 'false' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -270,
+        -40
+      ],
+      "id": "6f6c16d4-ab98-4afb-8034-fb9678b7cce3",
+      "name": "Global Automation Enabled Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c9254fd4-b370-40e4-94d2-e333d46724c2",
+              "leftValue": "={{ $vars.STOCKPRO_WF_UPTIME_READINESS_MONITOR_ENABLED || 'false' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -80
+      ],
+      "id": "364acaf6-6c18-43f3-997d-a8fb3e570317",
+      "name": "Workflow Enabled Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7b3512c6-4015-4b21-8c38-758fb11aa05a",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_TEST_MODE || 'true' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        60,
+        -140
+      ],
+      "id": "c06bab06-a1b0-4a58-b2ca-f46f5f062ea2",
+      "name": "Test Mode Gate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2ed32a9-24ba-4232-8472-33a993872dda",
+              "name": "workflow",
+              "value": "uptime-readiness-monitor",
+              "type": "string"
+            },
+            {
+              "id": "0eea2c0d-3998-4475-8bff-1fd981ee4a41",
+              "name": "eventId",
+              "value": "={{ 'schedule-' + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "8b4dbe37-86d4-4def-80fd-ae0457d0559b",
+              "name": "idempotencyKey",
+              "value": "={{ 'schedule-' + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "51b6c6bc-b1a3-4ea0-8890-d1657909b0a2",
+              "name": "occurredAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "26f3bebc-6e92-44f6-8abc-bc7feca04bf1",
+              "name": "traceId",
+              "value": "={{ 'schedule-' + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "832e4a61-ead7-48a8-ac9a-18fbf14ffe26",
+              "name": "testMode",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {
+          "dotNotation": false
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        280,
+        -220
+      ],
+      "id": "d5b2f5ef-83fd-437d-83e6-4a5e9159f584",
+      "name": "Minimize Allowlisted Input"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_READINESS_CHECK_ADAPTER_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        -220
+      ],
+      "id": "1f98f140-c978-4502-b17a-d3c46a9694ac",
+      "name": "Primary Fixed Adapter Action",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro readiness read-only adapter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'uptime-readiness-monitor', eventType: 'success', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Site Reliability owner', testMode: false }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1420,
+        -320
+      ],
+      "id": "9f24aa7a-3422-4083-8124-f46b86ec438d",
+      "name": "Success Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'uptime-readiness-monitor', eventType: 'failure', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Site Reliability owner', testMode: false, sanitizedErrorCode: 'adapter_failure' }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        180
+      ],
+      "id": "66e7359c-4446-4246-af34-23959caf8935",
+      "name": "Failure Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_DLQ_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'uptime-readiness-monitor', executionReference: $execution.id, occurredAt: $now.toISO(), sanitizedErrorCode: 'retry_exhausted', retentionDays: 14, adapterReferenceOnly: true }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        100
+      ],
+      "id": "559f4179-79fa-43c8-89cc-82ac17ec9d19",
+      "name": "Encrypted Dead Letter",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro encrypted dead-letter sink"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'uptime-readiness-monitor', eventType: 'test_suppressed', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Site Reliability owner', testMode: true }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        -40
+      ],
+      "id": "177c07af-ef8c-4477-aacb-0f7b8f09d5a4",
+      "name": "Test Mode Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -40
+      ],
+      "id": "22f2dcc1-be4c-402d-a1f2-c81206bf9994",
+      "name": "No Business Side Effect in Test Mode"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'uptime-readiness-monitor', eventType: 'disabled', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Site Reliability owner', testMode: true }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        220
+      ],
+      "id": "357d018b-815f-4d41-b377-235fd9717355",
+      "name": "Disabled Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4c15b6cb-57f9-49f6-8ce0-b3e8e76518a6",
+              "name": "stateChanged",
+              "value": "={{ $json.stateChanged === true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "276821ba-ad82-42a2-a732-ae364d369dcd",
+              "name": "stateCode",
+              "value": "={{ $json.stateCode || 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "6d29d1ba-ee9d-4032-80e0-b346286dadbe",
+              "name": "previousStateCode",
+              "value": "={{ $json.previousStateCode || 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "6a40a450-7539-4342-9add-0dd7a56c3eb5",
+              "name": "stateFingerprint",
+              "value": "={{ $json.stateFingerprint || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "36379008-314f-436e-8034-f044a94ace8f",
+              "name": "summaryCode",
+              "value": "={{ $json.summaryCode || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {
+          "dotNotation": false
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        -220
+      ],
+      "id": "0d3180df-7ce5-4925-a66d-510fa4f736dd",
+      "name": "Minimize State Result"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1c8329fe-e9ed-4e26-afc3-83cdcb98d53f",
+              "leftValue": "={{ $json.stateChanged === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        -220
+      ],
+      "id": "dda50e0d-b210-4f25-8e23-aedcd8125d3a",
+      "name": "Meaningful State Change Gate"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_OPERATIONS_NOTIFY_ADAPTER_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        -220
+      ],
+      "id": "c858c334-4ef8-4e00-8c23-a5e5a666b997",
+      "name": "Fixed Operator Notification",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro operations notifier"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'uptime-readiness-monitor', eventType: 'unchanged_suppressed', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Site Reliability owner', testMode: false }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        -20
+      ],
+      "id": "6799462d-ff39-4bd4-be47-97a56d1af8a9",
+      "name": "No State Change Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Internal Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Global Kill Switch Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Kill Switch Gate": {
+      "main": [
+        [
+          {
+            "node": "Global Automation Enabled Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Automation Enabled Gate": {
+      "main": [
+        [
+          {
+            "node": "Workflow Enabled Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Enabled Gate": {
+      "main": [
+        [
+          {
+            "node": "Test Mode Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Mode Gate": {
+      "main": [
+        [
+          {
+            "node": "Test Mode Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Minimize Allowlisted Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Mode Audit Event": {
+      "main": [
+        [
+          {
+            "node": "No Business Side Effect in Test Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Minimize Allowlisted Input": {
+      "main": [
+        [
+          {
+            "node": "Primary Fixed Adapter Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Primary Fixed Adapter Action": {
+      "main": [
+        [
+          {
+            "node": "Minimize State Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failure Audit Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Encrypted Dead Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Minimize State Result": {
+      "main": [
+        [
+          {
+            "node": "Meaningful State Change Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meaningful State Change Gate": {
+      "main": [
+        [
+          {
+            "node": "Fixed Operator Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No State Change Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fixed Operator Notification": {
+      "main": [
+        [
+          {
+            "node": "Success Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failure Audit Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Encrypted Dead Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "timezone": "Asia/Kolkata"
+  },
+  "pinData": {},
+  "tags": [],
+  "stockproContract": {
+    "contractVersion": "1.0.0",
+    "slug": "uptime-readiness-monitor",
+    "owner": "Site Reliability owner",
+    "runbook": "automation/n8n/runbooks/uptime-readiness-monitor.md",
+    "trigger": "Five-minute internal schedule",
+    "deploymentStatus": "DOCUMENTED_NOT_DEPLOYED",
+    "activeOnImport": false,
+    "globalDisableSwitch": "STOCKPRO_AUTOMATION_KILL_SWITCH",
+    "globalEnableSwitch": "STOCKPRO_AUTOMATION_ENABLED",
+    "workflowDisableSwitch": "STOCKPRO_WF_UPTIME_READINESS_MONITOR_ENABLED",
+    "testModeSwitch": "STOCKPRO_AUTOMATION_TEST_MODE",
+    "failurePath": [
+      "bounded retry on idempotent fixed adapter",
+      "body-free failure audit",
+      "encrypted dead letter after exhaustion",
+      "human escalation"
+    ],
+    "retryPolicy": {
+      "maxTries": 3,
+      "waitBetweenTriesMs": 2000,
+      "retryOnly": [
+        "timeout",
+        "connection failure",
+        "HTTP 429",
+        "HTTP 5xx"
+      ],
+      "neverRetry": [
+        "validation",
+        "authentication",
+        "authorization",
+        "other HTTP 4xx"
+      ]
+    },
+    "deadLetter": {
+      "retentionDays": 14,
+      "encrypted": true,
+      "adapterReferenceOnly": true
+    },
+    "audit": {
+      "retentionDays": 365,
+      "bodyFree": true,
+      "events": [
+        "disabled",
+        "test_suppressed",
+        "success",
+        "failure",
+        "retry_exhausted"
+      ]
+    },
+    "allowedInputFields": [],
+    "allowedActions": [
+      "GET fixed homepage/status endpoints",
+      "check auth, database, provider, contact, broker-vault, CRT-storage, saved-research, and waitlist readiness",
+      "classify operational, degraded, setup_required, or outage",
+      "notify only when the state fingerprint changes"
+    ],
+    "forbiddenData": [
+      "authorization headers, cookies, sessions, tokens, secrets, passwords, PINs, OTPs, or TOTP values",
+      "broker credentials, holdings, portfolio values, orders, trades, payment or card data",
+      "raw private request bodies, raw support text, or user financial data"
+    ],
+    "forbiddenActions": [
+      "write/push code or merge a pull request/main",
+      "deploy, roll back, mutate production, or delete user data",
+      "enable payment, trade, or change broker credentials",
+      "execute shell, SSH, file, or arbitrary code",
+      "setup_required is configuration state, not outage. Reachability is not readiness. Report current setup-required gates and contact 404 exactly; never auto-configure."
+    ],
+    "requiresOwnerApproval": true,
+    "requiresSecurityApproval": true,
+    "promptInjectionPolicy": "No user-submitted free text accepted."
+  }
+}

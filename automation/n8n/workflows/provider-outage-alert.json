@@ -1,0 +1,1013 @@
+{
+  "name": "StockPro - Provider Outage Alert",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Inactive security-reviewed template\nOwner: Market Data Reliability owner\nRunbook: automation/n8n/runbooks/provider-outage-alert.md\n\nNo endpoint values, credential identifiers, tokens, or private payloads are embedded.",
+        "height": 180,
+        "width": 520,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -760,
+        -300
+      ],
+      "id": "cba26067-6588-4234-9e3f-295e8e194c39",
+      "name": "Contract Note"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        0
+      ],
+      "id": "0a3a9716-4de6-486d-9329-5e5f205caaa7",
+      "name": "Internal Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cf2e7cff-ba8c-4eb9-90e6-d450618961f7",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_KILL_SWITCH || 'true' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -380,
+        0
+      ],
+      "id": "f601a12c-70db-4e36-85f8-c5914f2b7b6d",
+      "name": "Global Kill Switch Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f3a774a5-d068-416d-8e35-3c3e60ab0008",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_ENABLED || 'false' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -270,
+        -40
+      ],
+      "id": "48664d99-247c-49c7-aa61-44b20f5072fb",
+      "name": "Global Automation Enabled Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "71b37965-1c0d-4e09-88d2-0bb6e96d1578",
+              "leftValue": "={{ $vars.STOCKPRO_WF_PROVIDER_OUTAGE_ALERT_ENABLED || 'false' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -80
+      ],
+      "id": "56de4199-02fd-4875-b015-5f16a9504eb4",
+      "name": "Workflow Enabled Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "656310b0-1f3a-4dbd-af96-d5a1bae92a12",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_TEST_MODE || 'true' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        60,
+        -140
+      ],
+      "id": "4bc606e2-fe81-4db9-8480-65291f8948d3",
+      "name": "Test Mode Gate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6cad830a-9c50-40fb-b5a6-e57b5068f52b",
+              "name": "workflow",
+              "value": "provider-outage-alert",
+              "type": "string"
+            },
+            {
+              "id": "dba9ab94-e28a-4f9b-ac7d-a8f68f110771",
+              "name": "eventId",
+              "value": "={{ 'schedule-' + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "6875ef26-0497-4c9c-9383-b5fd6819a442",
+              "name": "idempotencyKey",
+              "value": "={{ 'schedule-' + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "80886d6c-3663-473f-b84a-d97587505a1b",
+              "name": "occurredAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "c5080e6a-1b0a-4d6f-bc2c-6f912dbba58c",
+              "name": "traceId",
+              "value": "={{ 'schedule-' + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "0f900f54-4ecd-448e-8ef9-ff7e7bdd3157",
+              "name": "testMode",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {
+          "dotNotation": false
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        280,
+        -220
+      ],
+      "id": "9ec3c732-f760-4061-9561-0270c84d170d",
+      "name": "Minimize Allowlisted Input"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_PROVIDER_STATUS_ADAPTER_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        -220
+      ],
+      "id": "f5ce3bf3-31b7-4e27-aa06-d35dc8c6b8e5",
+      "name": "Primary Fixed Adapter Action",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro provider status read-only adapter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'provider-outage-alert', eventType: 'success', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Market Data Reliability owner', testMode: false }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1420,
+        -320
+      ],
+      "id": "d8b69575-76d8-4dff-a14c-56cb93322674",
+      "name": "Success Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'provider-outage-alert', eventType: 'failure', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Market Data Reliability owner', testMode: false, sanitizedErrorCode: 'adapter_failure' }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        180
+      ],
+      "id": "c2b28c31-0f3d-4dc2-9e01-1ae0428a089b",
+      "name": "Failure Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_DLQ_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'provider-outage-alert', executionReference: $execution.id, occurredAt: $now.toISO(), sanitizedErrorCode: 'retry_exhausted', retentionDays: 14, adapterReferenceOnly: true }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        100
+      ],
+      "id": "b03b5c52-ed01-446d-aea6-c9f88e94b429",
+      "name": "Encrypted Dead Letter",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro encrypted dead-letter sink"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'provider-outage-alert', eventType: 'test_suppressed', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Market Data Reliability owner', testMode: true }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        -40
+      ],
+      "id": "b3b58311-d094-4014-b9d8-6a0d89c1cd6b",
+      "name": "Test Mode Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -40
+      ],
+      "id": "887dd82e-b9ae-49dc-86dc-822ce46282e9",
+      "name": "No Business Side Effect in Test Mode"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'provider-outage-alert', eventType: 'disabled', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Market Data Reliability owner', testMode: true }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        220
+      ],
+      "id": "dd082d1d-be6e-49e0-8fef-c9d28e80477e",
+      "name": "Disabled Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fc32dca8-ec79-4e14-8058-e441309cac66",
+              "name": "stateChanged",
+              "value": "={{ $json.stateChanged === true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "5e52853e-5d14-4e7a-a64c-7e89f4e314c5",
+              "name": "stateCode",
+              "value": "={{ $json.stateCode || 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "ba37c5e4-7427-43ba-b7fd-395c5dc7d409",
+              "name": "previousStateCode",
+              "value": "={{ $json.previousStateCode || 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "1dbfafc0-6236-48c4-96e8-a0a9cf64ec6f",
+              "name": "stateFingerprint",
+              "value": "={{ $json.stateFingerprint || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f99747c3-e458-42c2-b28f-edf95f28b11b",
+              "name": "summaryCode",
+              "value": "={{ $json.summaryCode || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {
+          "dotNotation": false
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        -220
+      ],
+      "id": "6f6a02f2-40ca-4609-bd30-810dd5abaa4b",
+      "name": "Minimize State Result"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "633ef320-c4ea-41fe-8d48-7c9a13436345",
+              "leftValue": "={{ $json.stateChanged === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        -220
+      ],
+      "id": "86dd3bcd-0a73-49bf-a7de-dad5e1fd7520",
+      "name": "Meaningful State Change Gate"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_OPERATIONS_NOTIFY_ADAPTER_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        -220
+      ],
+      "id": "21c79083-48c6-4c5e-b66e-82857693edb4",
+      "name": "Fixed Operator Notification",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro operations notifier"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.STOCKPRO_AUDIT_SINK_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ workflow: 'provider-outage-alert', eventType: 'unchanged_suppressed', executionReference: $execution.id, occurredAt: $now.toISO(), owner: 'Market Data Reliability owner', testMode: false }) }}",
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        -20
+      ],
+      "id": "83bcca5e-b170-4f19-8809-8504f046c9b3",
+      "name": "No State Change Audit Event",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "StockPro immutable audit sink"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Internal Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Global Kill Switch Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Kill Switch Gate": {
+      "main": [
+        [
+          {
+            "node": "Global Automation Enabled Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Automation Enabled Gate": {
+      "main": [
+        [
+          {
+            "node": "Workflow Enabled Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Enabled Gate": {
+      "main": [
+        [
+          {
+            "node": "Test Mode Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Mode Gate": {
+      "main": [
+        [
+          {
+            "node": "Test Mode Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Minimize Allowlisted Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Mode Audit Event": {
+      "main": [
+        [
+          {
+            "node": "No Business Side Effect in Test Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Minimize Allowlisted Input": {
+      "main": [
+        [
+          {
+            "node": "Primary Fixed Adapter Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Primary Fixed Adapter Action": {
+      "main": [
+        [
+          {
+            "node": "Minimize State Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failure Audit Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Encrypted Dead Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Minimize State Result": {
+      "main": [
+        [
+          {
+            "node": "Meaningful State Change Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meaningful State Change Gate": {
+      "main": [
+        [
+          {
+            "node": "Fixed Operator Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No State Change Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fixed Operator Notification": {
+      "main": [
+        [
+          {
+            "node": "Success Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failure Audit Event",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Encrypted Dead Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "timezone": "Asia/Kolkata"
+  },
+  "pinData": {},
+  "tags": [],
+  "stockproContract": {
+    "contractVersion": "1.0.0",
+    "slug": "provider-outage-alert",
+    "owner": "Market Data Reliability owner",
+    "runbook": "automation/n8n/runbooks/provider-outage-alert.md",
+    "trigger": "Five-minute internal schedule",
+    "deploymentStatus": "DOCUMENTED_NOT_DEPLOYED",
+    "activeOnImport": false,
+    "globalDisableSwitch": "STOCKPRO_AUTOMATION_KILL_SWITCH",
+    "globalEnableSwitch": "STOCKPRO_AUTOMATION_ENABLED",
+    "workflowDisableSwitch": "STOCKPRO_WF_PROVIDER_OUTAGE_ALERT_ENABLED",
+    "testModeSwitch": "STOCKPRO_AUTOMATION_TEST_MODE",
+    "failurePath": [
+      "bounded retry on idempotent fixed adapter",
+      "body-free failure audit",
+      "encrypted dead letter after exhaustion",
+      "human escalation"
+    ],
+    "retryPolicy": {
+      "maxTries": 3,
+      "waitBetweenTriesMs": 2000,
+      "retryOnly": [
+        "timeout",
+        "connection failure",
+        "HTTP 429",
+        "HTTP 5xx"
+      ],
+      "neverRetry": [
+        "validation",
+        "authentication",
+        "authorization",
+        "other HTTP 4xx"
+      ]
+    },
+    "deadLetter": {
+      "retentionDays": 14,
+      "encrypted": true,
+      "adapterReferenceOnly": true
+    },
+    "audit": {
+      "retentionDays": 365,
+      "bodyFree": true,
+      "events": [
+        "disabled",
+        "test_suppressed",
+        "success",
+        "failure",
+        "retry_exhausted"
+      ]
+    },
+    "allowedInputFields": [],
+    "allowedActions": [
+      "query fixed verified status sources",
+      "consult approved market calendar",
+      "classify market_closed, setup_required, degraded, or verified_outage",
+      "notify only on meaningful change"
+    ],
+    "forbiddenData": [
+      "authorization headers, cookies, sessions, tokens, secrets, passwords, PINs, OTPs, or TOTP values",
+      "broker credentials, holdings, portfolio values, orders, trades, payment or card data",
+      "raw private request bodies, raw support text, or user financial data"
+    ],
+    "forbiddenActions": [
+      "write/push code or merge a pull request/main",
+      "deploy, roll back, mutate production, or delete user data",
+      "enable payment, trade, or change broker credentials",
+      "execute shell, SSH, file, or arbitrary code",
+      "Never classify scheduled closure, unconfigured provider, empty data, or one transient response as verified outage."
+    ],
+    "requiresOwnerApproval": true,
+    "requiresSecurityApproval": true,
+    "promptInjectionPolicy": "No user-submitted free text accepted."
+  }
+}

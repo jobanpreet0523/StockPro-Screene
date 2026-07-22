@@ -10,14 +10,14 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-publishable-or-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 BROKER_TOKEN_STORAGE=supabase
-BROKER_ENCRYPTION_SECRET=at-least-32-random-characters
+BROKER_TOKEN_ENCRYPTION_KEY=at-least-32-random-characters
 DHAN_CLIENT_ID=your-dhan-client-id
 UPSTOX_CLIENT_ID=your-upstox-client-id
 UPSTOX_CLIENT_SECRET=your-upstox-client-secret
 UPSTOX_REDIRECT_URI=https://stockpro1.qzz.io/api/broker/upstox/callback
 ```
 
-`BROKER_ENCRYPTION_SECRET` must be a Worker secret. Never expose it in frontend code.
+`BROKER_TOKEN_ENCRYPTION_KEY` must be a Worker secret. Never expose it in frontend code.
 
 ## Token storage rules
 
