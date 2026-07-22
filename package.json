@@ -18,7 +18,7 @@
     "seo:sitemap": "node scripts/validate-sitemap.mjs",
     "seo:sitemap:production": "node scripts/verify-production-sitemap.mjs",
     "build": "vite build --configLoader runner",
-    "ci": "npm run typecheck && npm run security:scan && npm run test:security-invariants && npm run verify:plugin-readiness && npm run verify:n8n-contracts && npm run build && node scripts/check-landing-bundle-budget.mjs && npm run test:landing-3d && npm run verify:launch && npm run smoke:routes && npm run smoke:landing-links && npm run seo:audit && npm run seo:sitemap && npm run quality:deps",
+    "ci": "npm run typecheck && npm run security:scan && npm run test:security-invariants && npm run verify:plugin-readiness && npm run verify:n8n-contracts && npm run verify:agents && npm run build && node scripts/check-landing-bundle-budget.mjs && npm run test:landing-3d && npm run verify:launch && npm run smoke:routes && npm run smoke:landing-links && npm run seo:audit && npm run seo:sitemap && npm run quality:deps",
     "preview": "vite preview --configLoader runner",
     "test:e2e": "playwright test tests/stockpro-smoke.spec.ts tests/production-readiness.spec.ts tests/landing-product-experience.spec.ts tests/landing-3d.spec.ts tests/broker-integration.spec.ts tests/sentry-regression.spec.ts --project=chromium",
     "test:e2e:headed": "playwright test --headed",
@@ -33,7 +33,13 @@
     "audit:lighthouse:summary": "node scripts/summarize-lighthouse.mjs",
     "analyze:bundle": "vite build --configLoader runner && node scripts/check-landing-bundle-budget.mjs",
     "quality:deps": "npm audit --omit=dev --audit-level=moderate",
-    "verify:plugin-readiness": "node scripts/verify-plugin-readiness.mjs"
+    "verify:plugin-readiness": "node scripts/verify-plugin-readiness.mjs",
+    "verify:agent-registry": "node scripts/agents/validate-agent-registry.mjs",
+    "verify:agent-permissions": "node scripts/agents/validate-agent-permissions.mjs",
+    "verify:agent-tasks": "node scripts/agents/validate-agent-task.mjs",
+    "test:agent-validators": "node --test scripts/agents/validators.test.mjs",
+    "verify:agents": "npm run verify:agent-registry && npm run verify:agent-permissions && npm run verify:agent-tasks && npm run test:agent-validators",
+    "generate:agent-dashboard": "node scripts/agents/generate-agent-dashboard.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
