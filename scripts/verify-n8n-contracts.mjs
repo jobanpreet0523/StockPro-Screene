@@ -42,6 +42,7 @@ const forbiddenNodeTypes = [
 ];
 const requiredNames = [
   "Global Kill Switch Gate",
+  "Global Automation Enabled Gate",
   "Workflow Enabled Gate",
   "Test Mode Gate",
   "Minimize Allowlisted Input",
@@ -64,13 +65,13 @@ const requiredRunbookSections = [
 
 for (const path of requiredDocs) requireCondition(existsSync(resolve(root, path)), "required artifact exists: " + path);
 const specs = parse("automation/n8n/workflow-specs.json");
-requireCondition(Array.isArray(specs) && specs.length === 10, "exactly ten workflow specifications");
+requireCondition(Array.isArray(specs) && specs.length === 11, "exactly eleven workflow specifications");
 const expected = new Set(specs.map((spec) => spec.slug));
-requireCondition(expected.size === 10, "workflow slugs are unique");
+requireCondition(expected.size === 11, "workflow slugs are unique");
 const workflowFiles = readdirSync(resolve(root, "automation/n8n/workflows")).filter((name) => name.endsWith(".json")).sort();
 const runbookFiles = readdirSync(resolve(root, "automation/n8n/runbooks")).filter((name) => name.endsWith(".md")).sort();
-requireCondition(workflowFiles.length === 10, "exactly ten workflow exports");
-requireCondition(runbookFiles.length === 10, "exactly ten workflow runbooks");
+requireCondition(workflowFiles.length === 11, "exactly eleven workflow exports");
+requireCondition(runbookFiles.length === 11, "exactly eleven workflow runbooks");
 requireCondition(workflowFiles.every((name) => expected.has(name.slice(0, -5))), "no unexpected workflow export");
 requireCondition(runbookFiles.every((name) => expected.has(name.slice(0, -3))), "no unexpected workflow runbook");
 
@@ -100,6 +101,7 @@ for (const spec of specs) {
   requireCondition(contract.runbook === runbookPath, prefix + "runbook linked");
   requireCondition(contract.deploymentStatus === "DOCUMENTED_NOT_DEPLOYED", prefix + "honest deployment status");
   requireCondition(contract.globalDisableSwitch === "STOCKPRO_AUTOMATION_KILL_SWITCH", prefix + "global kill switch");
+  requireCondition(contract.globalEnableSwitch === "STOCKPRO_AUTOMATION_ENABLED", prefix + "global enable switch");
   requireCondition(contract.workflowDisableSwitch === "STOCKPRO_WF_" + spec.slug.replaceAll("-", "_").toUpperCase() + "_ENABLED", prefix + "workflow disable switch");
   requireCondition(contract.testModeSwitch === "STOCKPRO_AUTOMATION_TEST_MODE", prefix + "test mode switch");
   requireCondition(Array.isArray(contract.failurePath) && contract.failurePath.length >= 4, prefix + "failure path declared");
@@ -135,6 +137,9 @@ for (const spec of specs) {
   requireCondition(primary.maxTries === 3 && primary.waitBetweenTries === 2000 && primary.onError === "continueErrorOutput", prefix + "primary retry/failure output");
   requireCondition(targets("Primary Fixed Adapter Action", 1).includes("Failure Audit Event"), prefix + "failure reaches audit");
   requireCondition(targets("Primary Fixed Adapter Action", 1).includes("Encrypted Dead Letter"), prefix + "failure reaches dead letter");
+  requireCondition(targets("Global Kill Switch Gate", 0).includes("Global Automation Enabled Gate"), prefix + "kill switch precedes global enable");
+  requireCondition(targets("Global Automation Enabled Gate", 0).includes("Workflow Enabled Gate"), prefix + "global enable precedes workflow enable");
+  requireCondition(targets("Global Automation Enabled Gate", 1).includes("Disabled Audit Event"), prefix + "global disable reaches audit");
   requireCondition(targets("Test Mode Gate", 0).includes("Test Mode Audit Event"), prefix + "test mode suppresses business path");
   requireCondition(targets("Test Mode Gate", 1).includes("Minimize Allowlisted Input"), prefix + "production path first minimizes input");
 
@@ -195,4 +200,4 @@ if (failures.length) {
   for (const failure of failures) console.error("FAIL", failure);
   process.exit(1);
 }
-console.log("N8N CONTRACT VERIFICATION PASSED: " + assertionCount + " assertions; ten inactive workflow exports, ten runbooks, security controls, and deployment documents.");
+console.log("N8N CONTRACT VERIFICATION PASSED: " + assertionCount + " assertions; eleven inactive workflow exports, eleven runbooks, security controls, and deployment documents.");

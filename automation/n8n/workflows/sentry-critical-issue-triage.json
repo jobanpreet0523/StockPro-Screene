@@ -84,6 +84,39 @@
           },
           "conditions": [
             {
+              "id": "23ebe700-1f4a-4de6-a150-007c770d9fde",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_ENABLED || 'false' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -270,
+        -40
+      ],
+      "id": "1b750fe4-0fab-46d6-8b32-15cfa16fe954",
+      "name": "Global Automation Enabled Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
               "id": "c2563075-ea70-4f0e-9e29-188c52710736",
               "leftValue": "={{ $vars.STOCKPRO_WF_SENTRY_CRITICAL_ISSUE_TRIAGE_ENABLED || 'false' }}",
               "rightValue": "true",
@@ -577,6 +610,24 @@
       "main": [
         [
           {
+            "node": "Global Automation Enabled Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Automation Enabled Gate": {
+      "main": [
+        [
+          {
             "node": "Workflow Enabled Gate",
             "type": "main",
             "index": 0
@@ -701,6 +752,7 @@
     "deploymentStatus": "DOCUMENTED_NOT_DEPLOYED",
     "activeOnImport": false,
     "globalDisableSwitch": "STOCKPRO_AUTOMATION_KILL_SWITCH",
+    "globalEnableSwitch": "STOCKPRO_AUTOMATION_ENABLED",
     "workflowDisableSwitch": "STOCKPRO_WF_SENTRY_CRITICAL_ISSUE_TRIAGE_ENABLED",
     "testModeSwitch": "STOCKPRO_AUTOMATION_TEST_MODE",
     "failurePath": [

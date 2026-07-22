@@ -122,5 +122,16 @@
     "credential": "StockPro release verification read-only adapter",
     "actions": ["run fixed safe GET/HEAD route checks", "verify fixed readiness/status contract", "prepare pass/fail report", "open issue when checks fail"],
     "special": "Never merge, deploy, roll back, mutate configuration, purge data, or equate deployment success with readiness."
+  },
+  {
+    "slug": "approved-content-scheduling",
+    "title": "Approved Content Scheduling",
+    "owner": "Content Operations owner",
+    "trigger": "Authenticated owner-approved content-package webhook after ingress verification and minimization",
+    "fields": ["contentReference", "approvedArtifactHash", "channelAlias", "approvalRecordReference", "approvedPublishWindow", "sourceVerificationReference"],
+    "adapter": "STOCKPRO_CONTENT_SCHEDULING_ADAPTER_URL",
+    "credential": "StockPro approved content scheduling adapter",
+    "actions": ["retrieve an immutable approved artifact by opaque reference", "verify fact, compliance, brand, and human approval references", "verify the approved artifact hash and publish window", "create a test-mode scheduling plan or human-operated queue entry"],
+    "special": "Never publish, send, upload, alter approved content, select an account or recipient from untrusted input, or bypass source, fact, compliance, brand, and human approval."
   }
 ]

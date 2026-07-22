@@ -1,32 +1,31 @@
-# Provider Outage Alert runbook
+# Approved Content Scheduling runbook
 
 Status: **DOCUMENTED_NOT_DEPLOYED**
-Owner: **Market Data Reliability owner**
-Workflow: automation/n8n/workflows/provider-outage-alert.json
-Trigger: Five-minute internal schedule
+Owner: **Content Operations owner**
+Workflow: automation/n8n/workflows/approved-content-scheduling.json
+Trigger: Authenticated owner-approved content-package webhook after ingress verification and minimization
 
 ## Purpose and permitted actions
 
-- query fixed verified status sources
-- consult approved market calendar
-- classify market_closed, setup_required, degraded, or verified_outage
-- notify only on meaningful change
+- retrieve an immutable approved artifact by opaque reference
+- verify fact, compliance, brand, and human approval references
+- verify the approved artifact hash and publish window
+- create a test-mode scheduling plan or human-operated queue entry
 
-Never classify scheduled closure, unconfigured provider, empty data, or one transient response as verified outage.
+Never publish, send, upload, alter approved content, select an account or recipient from untrusted input, or bypass source, fact, compliance, brand, and human approval.
 
 ## Input, privacy, and prompt-injection contract
 
-Allowed workflow-specific fields: No event payload; fixed read-only adapter.
+Allowed workflow-specific fields: contentReference, approvedArtifactHash, channelAlias, approvalRecordReference, approvedPublishWindow, sourceVerificationReference
 Unknown fields are dropped. Fixed adapters reject auth headers, cookies, secrets, raw bodies/text, broker/trading/portfolio/payment data, and financial data.
 No public value selects a URL, repository, recipient, credential, query, action, retry count, or model instruction. Raw user text never becomes a model prompt.
 
 ## External provisioning
 
-- Create STOCKPRO_WF_PROVIDER_OUTAGE_ALERT_ENABLED as false.
+- Create STOCKPRO_WF_APPROVED_CONTENT_SCHEDULING_ENABLED as false.
 - Keep STOCKPRO_AUTOMATION_ENABLED=false, STOCKPRO_AUTOMATION_TEST_MODE=true, and STOCKPRO_AUTOMATION_KILL_SWITCH=true until approval.
-- Provision STOCKPRO_PROVIDER_STATUS_ADAPTER_URL as fixed allowlisted HTTPS egress and bind the least-privilege credential named StockPro provider status read-only adapter.
+- Provision STOCKPRO_CONTENT_SCHEDULING_ADAPTER_URL as fixed allowlisted HTTPS egress and bind the least-privilege credential named StockPro approved content scheduling adapter.
 - The adapter must atomically bind every idempotency key to the minimized body and return the recorded result for an identical duplicate; a body collision fails closed.
-- Provision STOCKPRO_OPERATIONS_NOTIFY_ADAPTER_URL and bind StockPro operations notifier for transition-only notification.
 - Provision immutable body-free audit and encrypted dead-letter adapters. Record no credential values, tokens, project identifiers, or bodies.
 
 ## Activation approval
@@ -46,10 +45,8 @@ No public value selects a URL, repository, recipient, credential, query, action,
 - Timeout, connection failure, HTTP 429/5xx retry at most three total attempts, two seconds apart. Validation/auth/other 4xx do not retry.
 - Exhaustion emits body-free failure audit and encrypted adapter-reference-only dead letter retained at most 14 days.
 - Audit is body-free, privacy-safe, access-logged, and retained 365 days.
-- Changed fingerprint emits exactly one notification; unchanged emits only unchanged_suppressed.
-- setup_required remains distinct from verified_outage; scheduled market closure is never outage.
 
 ## Disable, escalation, and incident shutdown
 
-Disable on unexpected output, privacy signal, duplicate side effect, or adapter failure; preserve body-free evidence and escalate to Market Data Reliability owner and Security. Sensitive exposure also escalates to privacy owner/incident commander.
+Disable on unexpected output, privacy signal, duplicate side effect, or adapter failure; preserve body-free evidence and escalate to Content Operations owner and Security. Sensitive exposure also escalates to privacy owner/incident commander.
 Set STOCKPRO_AUTOMATION_KILL_SWITCH=true, block ingress, deactivate, revoke affected credentials, verify egress stops, preserve evidence, and follow docs/automation/N8N_ROLLBACK.md. Never delete evidence/user data or let n8n deploy/roll itself back.

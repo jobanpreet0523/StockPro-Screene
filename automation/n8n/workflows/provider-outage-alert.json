@@ -82,6 +82,39 @@
           },
           "conditions": [
             {
+              "id": "f3a774a5-d068-416d-8e35-3c3e60ab0008",
+              "leftValue": "={{ $vars.STOCKPRO_AUTOMATION_ENABLED || 'false' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -270,
+        -40
+      ],
+      "id": "48664d99-247c-49c7-aa61-44b20f5072fb",
+      "name": "Global Automation Enabled Gate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
               "id": "71b37965-1c0d-4e09-88d2-0bb6e96d1578",
               "leftValue": "={{ $vars.STOCKPRO_WF_PROVIDER_OUTAGE_ALERT_ENABLED || 'false' }}",
               "rightValue": "true",
@@ -729,6 +762,24 @@
       "main": [
         [
           {
+            "node": "Global Automation Enabled Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Disabled Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Automation Enabled Gate": {
+      "main": [
+        [
+          {
             "node": "Workflow Enabled Gate",
             "type": "main",
             "index": 0
@@ -895,6 +946,7 @@
     "deploymentStatus": "DOCUMENTED_NOT_DEPLOYED",
     "activeOnImport": false,
     "globalDisableSwitch": "STOCKPRO_AUTOMATION_KILL_SWITCH",
+    "globalEnableSwitch": "STOCKPRO_AUTOMATION_ENABLED",
     "workflowDisableSwitch": "STOCKPRO_WF_PROVIDER_OUTAGE_ALERT_ENABLED",
     "testModeSwitch": "STOCKPRO_AUTOMATION_TEST_MODE",
     "failurePath": [

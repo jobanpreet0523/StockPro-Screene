@@ -24,7 +24,7 @@ No public value selects a URL, repository, recipient, credential, query, action,
 ## External provisioning
 
 - Create STOCKPRO_WF_SENTRY_CRITICAL_ISSUE_TRIAGE_ENABLED as false.
-- Keep STOCKPRO_AUTOMATION_TEST_MODE=true and STOCKPRO_AUTOMATION_KILL_SWITCH=true until approval.
+- Keep STOCKPRO_AUTOMATION_ENABLED=false, STOCKPRO_AUTOMATION_TEST_MODE=true, and STOCKPRO_AUTOMATION_KILL_SWITCH=true until approval.
 - Provision STOCKPRO_SENTRY_TRIAGE_ADAPTER_URL as fixed allowlisted HTTPS egress and bind the least-privilege credential named StockPro Sentry issue triage adapter.
 - The adapter must atomically bind every idempotency key to the minimized body and return the recorded result for an identical duplicate; a body collision fails closed.
 - Provision immutable body-free audit and encrypted dead-letter adapters. Record no credential values, tokens, project identifiers, or bodies.
@@ -34,7 +34,7 @@ No public value selects a URL, repository, recipient, credential, query, action,
 1. Run node scripts/verify-n8n-contracts.mjs on the reviewed commit.
 2. Import and confirm inactive. Security verifies ingress, fixed egress, scopes, redaction, replay/idempotency, rate limits, audit, and dead letter.
 3. Owner verifies all actions/destinations and runs every test below in test mode.
-4. Obtain owner and Security approval. Clear global kill switch while workflow switch remains false; activate; then enable only this workflow.
+4. Obtain owner and Security approval. Clear the kill switch, enable global automation, activate, and then enable only this workflow. Reverse any one of those gates to stop it.
 5. Observe audit, DLQ, errors, and egress through a full cycle. Human approval never grants absent merge/deploy/payment/trading/delete capability.
 
 ## Test mode, retry, failure, and dead-letter tests
