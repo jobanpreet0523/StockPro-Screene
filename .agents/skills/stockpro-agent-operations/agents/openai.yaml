@@ -1,0 +1,4 @@
+interface:
+  display_name: "StockPro Agent Operations"
+  short_description: "Route and govern StockPro agent tasks"
+  default_prompt: "Use $stockpro-agent-operations to create and route a controlled StockPro agent task."
